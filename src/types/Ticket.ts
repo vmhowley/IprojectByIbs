@@ -8,7 +8,6 @@ export interface Attachment {
 export interface Ticket {
   id: string;
   project_id: string;
-  title: string;
   description: string | null;
   status: 'todo' | 'in_progress' | 'done' | 'ongoing' | 'completed' | 'in_review' | 'pending';
   urgency: 'low' | 'medium' | 'high' | 'critical' | 'minor' | 'moderate';
@@ -23,8 +22,9 @@ export interface Ticket {
   contact?: string | null;
   subject?: string | null;
   request_type?: string | null;
-  forms?: string | null;
   attachments?: Attachment[];
   created_at: string;
   updated_at: string;
+  files?: File[];
+
 }

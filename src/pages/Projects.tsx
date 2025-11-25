@@ -25,6 +25,7 @@ export function Projects() {
         project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
+      console.log("🚀 ~ Projects ~ filtered:", filtered)
       setFilteredProjects(filtered);
     } else {
       setFilteredProjects(projects);
@@ -57,7 +58,7 @@ export function Projects() {
 
   const activeProjects = filteredProjects.filter(p => p.status === 'active');
   const completedProjects = filteredProjects.filter(p => p.status === 'completed');
-  const archivedProjects = filteredProjects.filter(p => p.status === 'archived');
+  const archivedProjects = filteredProjects.filter(p => p.status === 'archived' || p.status === null);
 
   return (
     <div className="flex-1 flex flex-col bg-white overflow-hidden">

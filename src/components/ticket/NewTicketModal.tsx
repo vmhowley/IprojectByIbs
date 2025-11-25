@@ -17,11 +17,9 @@ export interface TicketFormData {
   contact: string;
   subject: string;
   request_type: string;
-  forms: string;
-  title: string;
   description?: string;
-  status: string;
-  urgency: string;
+  status: 'todo' | 'in_progress' | 'done' | 'ongoing' | 'completed' | 'in_review' | 'pending';
+  urgency: 'low' | 'medium' | 'high' | 'critical' | 'minor' | 'moderate';
   files?: File[];
 }
 
@@ -31,8 +29,6 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
     contact: '',
     subject: '',
     request_type: 'feature',
-    forms: '',
-    title: '',
     description: '',
     status: 'todo',
     urgency: 'medium',
@@ -103,11 +99,7 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
       setError('Asunto es requerido');
       return;
     }
-    if (!formData.title.trim()) {
-      setError('Título es requerido');
-      return;
-    }
-
+  
     setIsSubmitting(true);
     setError(null);
 
@@ -211,7 +203,7 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
               </Select>
             </div>
 
-            <div>
+            {/* <div>
               <label htmlFor="forms" className="block text-sm font-medium text-gray-700 mb-1">
                 Formas
               </label>
@@ -223,13 +215,13 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
                 rows={3}
                 disabled={isSubmitting}
               />
-            </div>
+            </div> */}
 
             <div className="border-t border-gray-200 pt-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Detalles del Ticket</h3>
 
               <div className="space-y-4">
-                <div>
+                {/* <div>
                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                     Título <span className="text-red-500">*</span>
                   </label>
@@ -241,7 +233,7 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
                     disabled={isSubmitting}
                     required
                   />
-                </div>
+                </div> */}
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
