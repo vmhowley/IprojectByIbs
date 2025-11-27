@@ -227,7 +227,8 @@ export function Sidebar({ onNewProject }: SidebarProps) {
       </nav>
 
       <div className="border-t border-gray-200">
-        <div className="p-3 bg-purple-50 mx-3 my-3 rounded-lg">
+        {/* Actualizar para version premium */}
+        {/* <div className="p-3 bg-purple-50 mx-3 my-3 rounded-lg">
           <p className="text-xs text-gray-700 mb-2">
             There are <span className="font-semibold">6 days left</span> in your trial.
           </p>
@@ -237,7 +238,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
           <button className="w-full px-3 py-1.5 bg-white border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors">
             Upgrade
           </button>
-        </div>
+        </div> */}
 
         <div className="px-2 pb-3 space-y-0.5">
           <Link

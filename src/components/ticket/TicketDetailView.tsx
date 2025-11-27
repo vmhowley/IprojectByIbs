@@ -1,21 +1,26 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, Calendar, User, Tag, AlertCircle, Trash2, Edit, Paperclip, Download, Plus, MessageSquare, Clock } from 'lucide-react';
-import { Ticket, Comment, TicketProgram } from '../types';
-import { ticketService } from '../services/ticketService';
-import { commentService } from '../services/commentService';
-import { programService } from '../services/programService';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Select } from '../components/ui/Select';
-import { Textarea } from '../components/ui/Textarea';
-import { StatusBadge } from '../components/ui/StatusBadge';
-import { UrgencyBadge } from '../components/ui/UrgencyBadge';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState, useRef } from 'react';
+import { ChevronRight, Calendar, User, Tag, AlertCircle, Trash2, Edit, Paperclip, Download, Plus, MessageSquare, Clock, X } from 'lucide-react';
+import { Ticket, Comment, TicketProgram } from '../../types';
+import { ticketService } from '../../services/ticketService';
+import { commentService } from '../../services/commentService';
+import { programService } from '../../services/programService';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
+import { StatusBadge } from '../ui/StatusBadge';
+import { UrgencyBadge } from '../ui/UrgencyBadge';
+import { supabase } from '../../lib/supabase';
+import { storageService } from '../../services/storageService';
 
-export function TicketDetail() {
-  const { ticketId } = useParams<{ ticketId: string }>();
-  const navigate = useNavigate();
+interface TicketDetailViewProps {
+  ticketId: string;
+  onClose?: () => void;
+  onDelete?: () => void;
+  onUpdate?: (ticket: Ticket) => void;
+}
+
+export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: TicketDetailViewProps) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -29,6 +34,8 @@ export function TicketDetail() {
     description: ''
   });
   const [addingProgram, setAddingProgram] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (ticketId) {
@@ -41,7 +48,7 @@ export function TicketDetail() {
 
   const loadTicket = async () => {
     try {
-      const data = await ticketService.getById(ticketId!);
+      const data = await ticketService.getById(ticketId);
       setTicket(data);
     } catch (error) {
       console.error('Error loading ticket:', error);
@@ -52,7 +59,7 @@ export function TicketDetail() {
 
   const loadComments = async () => {
     try {
-      const data = await commentService.getByTicket(ticketId!);
+      const data = await commentService.getByTicket(ticketId);
       setComments(data);
     } catch (error) {
       console.error('Error loading comments:', error);
@@ -61,7 +68,7 @@ export function TicketDetail() {
 
   const loadPrograms = async () => {
     try {
-      const data = await programService.getByTicketId(ticketId!);
+      const data = await programService.getByTicketId(ticketId);
       setPrograms(data);
     } catch (error) {
       console.error('Error loading programs:', error);
@@ -92,6 +99,7 @@ export function TicketDetail() {
     try {
       const updated = await ticketService.updateStatus(ticket.id, newStatus);
       setTicket(updated);
+      if (onUpdate) onUpdate(updated);
     } catch (error) {
       console.error('Error updating status:', error);
     }
@@ -120,7 +128,7 @@ export function TicketDetail() {
 
     try {
       await ticketService.delete(ticket.id);
-      navigate(`/project/${ticket.project_id}`);
+      if (onDelete) onDelete();
     } catch (error) {
       console.error('Error deleting ticket:', error);
     }
@@ -142,6 +150,11 @@ export function TicketDetail() {
         description: ''
       });
       loadPrograms();
+      // Programs are related to ticket but don't change ticket fields directly unless we track count or last update
+      // However, user might want to see update timestamp change if we updated that on ticket
+      // For now, let's assume we might want to refresh ticket if needed, but programs are separate table.
+      // If we want to trigger update on main list (e.g. if we showed program count), we would need to fetch ticket again or just call onUpdate with current ticket
+      if (ticket && onUpdate) onUpdate(ticket); 
     } catch (error) {
       console.error('Error adding program:', error);
     } finally {
@@ -154,14 +167,103 @@ export function TicketDetail() {
     try {
       await programService.delete(id);
       loadPrograms();
+      if (ticket && onUpdate) onUpdate(ticket);
     } catch (error) {
       console.error('Error deleting program:', error);
     }
   };
 
+  const handleDownloadAttachment = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      // Fallback to opening in new tab if fetch fails
+      window.open(url, '_blank');
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentIndex: number) => {
+    if (!ticket || !confirm('Are you sure you want to delete this attachment?')) return;
+
+    try {
+      const attachment = ticket.attachments[attachmentIndex];
+      
+      // 1. Delete from storage
+      // Extract path from URL or use the stored path if available. 
+      // Assuming the URL structure or that we need to store the path.
+      // For now, let's try to extract it or use the path if we had it.
+      // Looking at storageService, it returns { url, path }. Ticket attachment type has { name, url, size, type }.
+      // We might need to guess the path or update the type to store it.
+      // However, storageService.deleteFile expects a path.
+      // Let's assume we can derive it or we should have stored it.
+      // If we don't have the path, we can't easily delete from storage without parsing the URL.
+      // Let's try to parse the URL to get the path relative to the bucket.
+      // URL format: .../storage/v1/object/public/ticket-attachments/projectId/ticketId/filename
+      
+      const urlObj = new URL(attachment.url);
+      const pathParts = urlObj.pathname.split('/ticket-attachments/');
+      if (pathParts.length > 1) {
+        const filePath = decodeURIComponent(pathParts[1]);
+        await storageService.deleteFile(filePath);
+      }
+
+      // 2. Update ticket
+      const newAttachments = ticket.attachments.filter((_, index) => index !== attachmentIndex);
+      const updatedTicket = await ticketService.update(ticket.id, { attachments: newAttachments });
+      setTicket(updatedTicket);
+      if (onUpdate) onUpdate(updatedTicket);
+      
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
+      alert('Failed to delete attachment');
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !ticket) return;
+
+    const file = e.target.files[0];
+    setUploading(true);
+    try {
+      const { url } = await storageService.uploadFile(file, ticket.project_id, ticket.id);
+      
+      const newAttachment = {
+        name: file.name,
+        url: url,
+        size: file.size,
+        type: file.type
+      };
+
+      const currentAttachments = ticket.attachments || [];
+      const newAttachments = [...currentAttachments, newAttachment];
+      
+      const updatedTicket = await ticketService.update(ticket.id, { attachments: newAttachments });
+      setTicket(updatedTicket);
+      if (onUpdate) onUpdate(updatedTicket);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-gray-600">Loading...</div>
       </div>
     );
@@ -169,18 +271,11 @@ export function TicketDetail() {
 
   if (!ticket) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-gray-600">Ticket not found</div>
       </div>
     );
   }
-
-  const priorityColors = {
-    low: 'bg-gray-100 text-gray-700',
-    medium: 'bg-blue-100 text-blue-700',
-    high: 'bg-orange-100 text-orange-700',
-    critical: 'bg-red-100 text-red-700'
-  };
 
   const statusOptions = [
     { value: 'todo', label: 'To Do' },
@@ -189,20 +284,18 @@ export function TicketDetail() {
   ];
 
   return (
-    <main className="flex-1 overflow-y-auto bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <Link to="/" className="hover:text-gray-900">Projects</Link>
-          <ChevronRight size={16} />
-          <Link to={`/project/${ticket.project_id}`} className="hover:text-gray-900">
-            Project
-          </Link>
-          <ChevronRight size={16} />
-          <span className="text-gray-900 font-medium">{ticket.ticket_number}</span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 space-y-6">
+    <div className="flex flex-col h-full bg-gray-50 overflow-y-auto">
+      <div className="p-6">
+        {onClose && (
+          <div className="flex justify-end mb-4">
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X size={20} />
+            </button>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
             <Card>
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
@@ -245,7 +338,7 @@ export function TicketDetail() {
                 
                 {programs.length > 0 && (
                   <div className="overflow-x-auto mb-4">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Object</th>
@@ -257,13 +350,13 @@ export function TicketDetail() {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {programs.map((program) => (
-                          <tr key={program.id}>
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{program.object_name}</td>
+                          <tr key={program.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{program.object_name}</td>
                             <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{program.object_type}</td>
                             <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{program.attribute}</td>
                             <td className="px-3 py-2 text-sm text-gray-500">{program.description}</td>
                             <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
-                              <button onClick={() => handleDeleteProgram(program.id)} className="text-red-600 hover:text-red-900">
+                              <button onClick={() => handleDeleteProgram(program.id)} className="text-red-400 hover:text-red-600 transition-colors">
                                 <Trash2 size={14} />
                               </button>
                             </td>
@@ -324,35 +417,97 @@ export function TicketDetail() {
 
               {ticket.attachments && ticket.attachments.length > 0 && (
                 <div className="mb-6 pb-6 border-b border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Paperclip className="w-4 h-4" />
-                    Attachments ({ticket.attachments.length})
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      Attachments ({ticket.attachments.length})
+                    </h3>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Plus size={14} className="mr-1" />
+                      {uploading ? 'Uploading...' : 'Add'}
+                    </Button>
+                  </div>
                   <div className="space-y-2">
                     {ticket.attachments.map((attachment, index) => (
-                      <a
+                      <div
                         key={index}
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors group"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
+                            <a 
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 hover:underline block"
+                            >
                               {attachment.name}
-                            </p>
+                            </a>
                             <p className="text-xs text-gray-500">
                               {(attachment.size / 1024).toFixed(2)} KB
                             </p>
                           </div>
                         </div>
-                        <Download className="w-4 h-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
-                      </a>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleDownloadAttachment(attachment.url, attachment.name)}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAttachment(index)}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
+              )}
+
+              {(!ticket.attachments || ticket.attachments.length === 0) && (
+                 <div className="mb-6 pb-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      Attachments (0)
+                    </h3>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Plus size={14} className="mr-1" />
+                      {uploading ? 'Uploading...' : 'Add'}
+                    </Button>
+                  </div>
+                 </div>
               )}
 
               <div className="border-t border-gray-200 pt-6">
@@ -393,7 +548,9 @@ export function TicketDetail() {
                   <Button
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || submittingComment}
+                    className="flex items-center gap-2"
                   >
+                    <MessageSquare size={16} />
                     {submittingComment ? 'Adding...' : 'Add Comment'}
                   </Button>
                 </div>
@@ -472,6 +629,6 @@ export function TicketDetail() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Star, Search, MoreHorizontal, LayoutGrid, MessageSquare } from 'lucide-react';
+import { Plus, Star, Search, MoreHorizontal, LayoutGrid, MessageSquare, ExternalLink } from 'lucide-react';
 import { Ticket, Project, Attachment, Comment } from '../types';
 import { ticketService } from '../services/ticketService';
 import { projectService } from '../services/projectService';
@@ -10,14 +10,16 @@ import { UrgencyBadge } from '../components/ui/UrgencyBadge';
 import { RequestTypeBadge } from '../components/ui/RequestTypeBadge';
 import { NewTicketModal, TicketFormData } from '../components/ticket/NewTicketModal';
 import { supabase } from '../lib/supabase';
-import {  Paperclip, Download } from 'lucide-react';
+import {  Paperclip, Download, Maximize2, Minimize2 } from 'lucide-react';
 import {commentService} from '../services/commentService'
+import { TicketDetailView } from '../components/ticket/TicketDetailView';
 export function ProjectDetail() {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [viewMode, setViewMode] = useState<'properties' | 'full_detail'>('properties');
   const [loading, setLoading] = useState(true);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [comment, setComment] = useState('')
@@ -73,6 +75,7 @@ export function ProjectDetail() {
   const handleSelection =async (ticket:Ticket) => {
     try {
         setSelectedTicket(ticket)
+        setViewMode('properties');
             const commentarios = await commentService.getByTicket(ticket?.id) 
             console.log("🚀 ~ loadComments ~ commentarios:", commentarios)
       setComments(commentarios);
@@ -118,6 +121,16 @@ export function ProjectDetail() {
     } catch (error) {
       console.error('Error creating ticket:', error);
       throw error;
+    }
+  };
+
+  const handleTicketUpdate = (updatedTicket: Ticket) => {
+    setTickets(prevTickets => 
+      prevTickets.map(t => t.id === updatedTicket.id ? updatedTicket : t)
+    );
+    // Also update selected ticket if it matches (though it should be updated by TicketDetailView internal state, keeping them in sync is good)
+    if (selectedTicket?.id === updatedTicket.id) {
+      setSelectedTicket(updatedTicket);
     }
   };
 
@@ -266,17 +279,41 @@ export function ProjectDetail() {
         </div>
 
         {selectedTicket && (
-          <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-semibold text-gray-900">Properties</h3>
-                <button
-                  onClick={() => setSelectedTicket(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              </div>
+          <div 
+            className={`border-l border-gray-200 bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
+              viewMode === 'full_detail' ? 'w-[50vw] min-w-[600px]' : 'w-80'
+            }`}
+          >
+            {viewMode === 'full_detail' ? (
+              <TicketDetailView 
+                ticketId={selectedTicket.id} 
+                onClose={() => setSelectedTicket(null)}
+                onDelete={() => {
+                  setSelectedTicket(null);
+                  loadData();
+                }}
+                onUpdate={handleTicketUpdate}
+              />
+            ) : (
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900">Properties</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setViewMode('full_detail')}
+                      className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                      title="Open full detail"
+                    >
+                      <Maximize2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => setSelectedTicket(null)}
+                      className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
 
               <div className="space-y-6">
                 <div>
@@ -431,7 +468,8 @@ export function ProjectDetail() {
                   </form>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
