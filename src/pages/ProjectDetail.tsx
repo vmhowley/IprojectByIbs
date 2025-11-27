@@ -10,7 +10,7 @@ import { UrgencyBadge } from '../components/ui/UrgencyBadge';
 import { RequestTypeBadge } from '../components/ui/RequestTypeBadge';
 import { NewTicketModal, TicketFormData } from '../components/ticket/NewTicketModal';
 import { supabase } from '../lib/supabase';
-import {  Paperclip, Download, Maximize2, Minimize2 } from 'lucide-react';
+import {  Paperclip, Download, Maximize2 } from 'lucide-react';
 import {commentService} from '../services/commentService'
 import { TicketDetailView } from '../components/ticket/TicketDetailView';
 export function ProjectDetail() {
@@ -64,20 +64,20 @@ export function ProjectDetail() {
 
 
   const handleSubmit =  () => {
+    if (!selectedTicket) return;
+    
     commentService.create({
       ticket_id: selectedTicket?.id,
       user_name:'Santos',
       content: comment
     })
     navigate(0)
-    
   }
   const handleSelection =async (ticket:Ticket) => {
     try {
         setSelectedTicket(ticket)
         setViewMode('properties');
             const commentarios = await commentService.getByTicket(ticket?.id) 
-            console.log("🚀 ~ loadComments ~ commentarios:", commentarios)
       setComments(commentarios);
     } catch (error) {
       console.error('Error loading Comments:', error);
@@ -174,18 +174,17 @@ export function ProjectDetail() {
               className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
             >
               <Plus size={16} />
-              New feature
+              Nueva solicitud
             </button>
           </div>
         </div>
 
         <div className="flex items-center gap-4 px-6">
           <button className="px-4 py-2 text-sm font-medium text-gray-900 border-b-2 border-purple-600">
-            Table
+            Tabla
           </button>
           <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2">
-            Tasks
-
+              Tareas
           </button>
         </div>
       </header>
@@ -196,9 +195,9 @@ export function ProjectDetail() {
             <div className="mb-4">
               <div className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
+                <input    
                   type="text"
-                  placeholder="Find feature"
+                  placeholder="Buscar solicitud"
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -206,8 +205,8 @@ export function ProjectDetail() {
 
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="grid grid-cols-[auto_1fr_120px_140px_140px_100px] gap-4 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600">
+                <div> </div>
                 <div>Asunto</div>
-                <div></div>
                 <div>Tipo</div>
                 <div>Progreso</div>
                 <div>Prioridad</div>
@@ -324,10 +323,9 @@ export function ProjectDetail() {
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-2">Tipo</label>
                   <div className="flex items-center gap-2 text-sm">
-                    <div className="w-5 h-5 bg-gray-900 rounded capitalize flex items-center justify-center text-white text-xs">
-                      {selectedTicket.request_type?.substring(0,1)}
-                    </div>
-                    <span>{selectedTicket.request_type || 'API Documentation'}</span>
+                    {selectedTicket.request_type && (
+                          <RequestTypeBadge type={selectedTicket.request_type} />
+                        )}
                   </div>
                 </div>
 

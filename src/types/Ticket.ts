@@ -9,7 +9,7 @@ export interface Ticket {
   id: string;
   project_id: string;
   description: string | null;
-  status: 'todo' | 'in_progress' | 'done' | 'ongoing' | 'completed' | 'in_review' | 'pending';
+  status: 'pending_analysis' | 'pending_approval' | 'approved' | 'ongoing' | 'completed' | 'done' ;
   urgency: 'low' | 'medium' | 'high' | 'critical' | 'minor' | 'moderate';
   category: string | null;
   department: string | null;

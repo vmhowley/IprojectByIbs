@@ -11,9 +11,9 @@ export type Task = {
   task_number: string;
   title: string;
   description: string | null;
-  status: 'ongoing' | 'completed' | 'in_review' | 'pending';
-  urgency: 'critical' | 'moderate' | 'minor';
-  category: string | null;
+  status: "pending_analysis" | "pending_approval" | "approved" | "ongoing" | "completed" ;
+  urgency: 'high' | 'medium' | 'low';
+  category: string | null;  
   department: string | null;
   assigned_to: string | null;
   date_added: string;

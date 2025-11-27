@@ -9,9 +9,9 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tickets, onTicketClick, onStatusChange }: KanbanBoardProps) {
-  const todoTickets = tickets.filter(t => t.status === 'todo');
-  const inProgressTickets = tickets.filter(t => t.status === 'in_progress');
-  const doneTickets = tickets.filter(t => t.status === 'done');
+  const todoTickets = tickets.filter(t => t.status === 'pending_analysis');
+  const inProgressTickets = tickets.filter(t => t.status === 'ongoing');
+  const doneTickets = tickets.filter(t => t.status === 'completed');
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, draggableId } = result;
@@ -26,20 +26,20 @@ export function KanbanBoard({ tickets, onTicketClick, onStatusChange }: KanbanBo
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-3 gap-4 h-full">
         <Column
-          title="To Do"
-          status="todo"
+          title="Pendiente"
+          status="pending_analysis"
           tickets={todoTickets}
           onTicketClick={onTicketClick}
         />
         <Column
-          title="In Progress"
-          status="in_progress"
+          title="En Desarrollo"
+          status="ongoing"
           tickets={inProgressTickets}
           onTicketClick={onTicketClick}
         />
         <Column
-          title="Done"
-          status="done"
+          title="Completado"
+          status="completed"
           tickets={doneTickets}
           onTicketClick={onTicketClick}
         />

@@ -12,7 +12,7 @@ export function Navbar() {
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search tickets, projects..."
+              placeholder="Buscar tickets, proyectos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -36,7 +36,7 @@ export function Navbar() {
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
               <User size={16} />
             </div>
-            <span className="text-sm font-medium text-gray-700">Guest User</span>
+            <span className="text-sm font-medium text-gray-700">Usuario Invitado</span>
           </button>
         </div>
       </div>

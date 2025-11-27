@@ -13,8 +13,6 @@ import {
   Users,
   Layers,
   Play,
-  Palette,
-  TrendingUp,
   ChevronDown,
   ChevronRight,
   Settings,
@@ -62,13 +60,13 @@ export function Sidebar({ onNewProject }: SidebarProps) {
       <div className="p-3 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-black rounded-md flex items-center justify-center text-white font-bold text-sm">
-            C
+            IBS
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-gray-900">Atlas, Inc</h1>
+            <h1 className="font-semibold text-sm text-gray-900">IBS Project Tracker</h1>
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              Syncing up
+              Sincronizando
             </p>
           </div>
         </div>
@@ -85,7 +83,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
             }`}
           >
             <Home size={18} />
-            <span>Home</span>
+            <span>Inicio</span>
           </Link>
           <Link
             to="/inbox"
@@ -96,7 +94,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
             }`}
           >
             <Inbox size={18} />
-            <span>Inbox</span>
+            <span>Bandeja de entrada</span>
           </Link>
           <Link
             to="/saved"
@@ -107,7 +105,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
             }`}
           >
             <Bookmark size={18} />
-            <span>Saved items</span>
+            <span>Items guardados</span>
           </Link>
         </div>
 
@@ -116,7 +114,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
             onClick={() => toggleSection('workspace')}
             className="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
           >
-            <span>Workspace</span>
+            <span>Área de trabajo</span>
             {expandedSections.workspace ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
           {expandedSections.workspace && (
@@ -126,28 +124,28 @@ export function Sidebar({ onNewProject }: SidebarProps) {
                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 <CheckSquare size={18} />
-                <span>My tasks</span>
+                <span>Tareas</span>
               </Link>
               <Link
                 to="/projects"
                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 <FolderKanban size={18} />
-                <span>Projects</span>
+                <span>Proyectos</span>
               </Link>
               <Link
                 to="/calendar"
                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 <Calendar size={18} />
-                <span>Calendar</span>
+                <span>Calendario</span>
               </Link>
               <Link
                 to="/roadmaps"
                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 <Map size={18} />
-                <span>Roadmaps</span>
+                <span>Mapas</span>
               </Link>
             </div>
           )}
@@ -158,7 +156,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
             onClick={() => toggleSection('channels')}
             className="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
           >
-            <span>Your channels</span>
+            <span>Canal</span>
             {expandedSections.channels ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
           {expandedSections.channels && (
@@ -169,7 +167,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
               >
                 <div className="flex items-center gap-2">
                   <Hash size={16} className="text-gray-500" />
-                  <span>Engineering</span>
+                  <span>Canal</span>
                 </div>
                 {expandedSections.engineering ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
@@ -180,28 +178,28 @@ export function Sidebar({ onNewProject }: SidebarProps) {
                     className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                   >
                     <FileText size={16} />
-                    <span>Docs</span>
+                    <span>Documentos</span>
                   </Link>
                   <Link
                     to="/engineering/teams"
                     className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                   >
                     <Users size={16} />
-                    <span>Teams</span>
+                    <span>Equipos</span>
                   </Link>
                   <Link
                     to="/engineering/initiatives"
                     className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                   >
                     <Layers size={16} />
-                    <span>Initiatives</span>
+                    <span>Iniciativas</span>
                   </Link>
                   <Link
                     to="/engineering/sprint"
                     className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                   >
                     <Play size={16} />
-                    <span>Active sprint</span>
+                    <span>Sprint activo</span>
                   </Link>
                 </div>
               )}
@@ -210,7 +208,7 @@ export function Sidebar({ onNewProject }: SidebarProps) {
                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 <Hash size={16} className="text-gray-500" />
-                <span>Design</span>
+                <span>Diseño</span>
                 <ChevronRight size={14} className="ml-auto text-gray-400" />
               </Link>
               <Link
@@ -246,14 +244,14 @@ export function Sidebar({ onNewProject }: SidebarProps) {
             className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
           >
             <Settings size={18} />
-            <span>Settings</span>
+            <span>Configuraciones</span>
           </Link>
           <Link
             to="/help"
             className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
           >
             <HelpCircle size={18} />
-            <span>Help & support</span>
+            <span>Ayuda & soporte</span>
           </Link>
         </div>
       </div>

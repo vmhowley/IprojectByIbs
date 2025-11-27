@@ -116,7 +116,7 @@ export function TicketDetail() {
   };
 
   const handleDeleteTicket = async () => {
-    if (!ticket || !confirm('Are you sure you want to delete this ticket?')) return;
+    if (!ticket || !confirm('¿Estás seguro de que deseas eliminar este ticket?')) return;
 
     try {
       await ticketService.delete(ticket.id);
@@ -150,7 +150,7 @@ export function TicketDetail() {
   };
 
   const handleDeleteProgram = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this program?')) return;
+    if (!confirm('¿Estás seguro de que deseas eliminar este programa?')) return;
     try {
       await programService.delete(id);
       loadPrograms();
@@ -162,7 +162,7 @@ export function TicketDetail() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="text-gray-600">Cargando...</div>
       </div>
     );
   }
@@ -170,7 +170,7 @@ export function TicketDetail() {
   if (!ticket) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-600">Ticket not found</div>
+        <div className="text-gray-600">Ticket no encontrado</div>
       </div>
     );
   }
@@ -183,19 +183,19 @@ export function TicketDetail() {
   };
 
   const statusOptions = [
-    { value: 'todo', label: 'To Do' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' }
+    { value: 'todo', label: 'Por hacer' },
+    { value: 'in_progress', label: 'En Progreso' },
+    { value: 'done', label: 'Hecho' }
   ];
 
   return (
     <main className="flex-1 overflow-y-auto bg-gray-50">
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <Link to="/" className="hover:text-gray-900">Projects</Link>
+          <Link to="/" className="hover:text-gray-900">Proyectos</Link>
           <ChevronRight size={16} />
           <Link to={`/project/${ticket.project_id}`} className="hover:text-gray-900">
-            Project
+            Proyecto
           </Link>
           <ChevronRight size={16} />
           <span className="text-gray-900 font-medium">{ticket.ticket_number}</span>
@@ -208,7 +208,7 @@ export function TicketDetail() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <h1 className="text-2xl font-bold text-gray-900">
-                      {ticket.subject || 'No Subject'}
+                      {ticket.subject || 'Sin Asunto'}
                     </h1>
                     <StatusBadge status={ticket.status} />
                   </div>
@@ -218,7 +218,7 @@ export function TicketDetail() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock size={14} />
-                      Created {new Date(ticket.created_at).toLocaleDateString()}
+                      Creado {new Date(ticket.created_at).toLocaleDateString()}
                     </span>
                     <UrgencyBadge urgency={ticket.urgency} />
                   </div>
@@ -234,25 +234,25 @@ export function TicketDetail() {
               </div>
 
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Description</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Descripción</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  {ticket.description || 'No description provided.'}
+                  {ticket.description || 'No se proporcionó descripción.'}
                 </p>
               </div>
 
               <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Modified/Created Programs</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Programas Modificados/Creados</h3>
                 
                 {programs.length > 0 && (
                   <div className="overflow-x-auto mb-4">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Object</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attribute</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objeto</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Atributo</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -276,33 +276,33 @@ export function TicketDetail() {
 
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Add Program</h4>
+                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Agregar Programa</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                     <input
                       type="text"
-                      placeholder="Object Name"
+                      placeholder="Nombre del Objeto"
                       className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newProgram.object_name}
                       onChange={(e) => setNewProgram({ ...newProgram, object_name: e.target.value })}
                     />
                     <input
                       type="text"
-                      placeholder="Type (e.g., Table, Class)"
+                      placeholder="Tipo (ej. Tabla, Clase)"
                       className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newProgram.object_type}
                       onChange={(e) => setNewProgram({ ...newProgram, object_type: e.target.value })}
                     />
                     <input
                       type="text"
-                      placeholder="Attribute"
+                      placeholder="Atributo"
                       className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newProgram.attribute}
                       onChange={(e) => setNewProgram({ ...newProgram, attribute: e.target.value })}
                     />
                     <input
                       type="text"
-                      placeholder="Description"
+                      placeholder="Descripción"
                       className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newProgram.description}
                       onChange={(e) => setNewProgram({ ...newProgram, description: e.target.value })}
@@ -316,7 +316,7 @@ export function TicketDetail() {
                       className="flex items-center gap-2"
                     >
                       <Plus size={16} />
-                      {addingProgram ? 'Adding...' : 'Add Program'}
+                      {addingProgram ? 'Agregando...' : 'Agregar Programa'}
                     </Button>
                   </div>
                 </div>
@@ -357,7 +357,7 @@ export function TicketDetail() {
 
               <div className="border-t border-gray-200 pt-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                  Comments ({comments.length})
+                  Comentarios ({comments.length})
                 </h3>
 
                 <div className="space-y-6 mb-6">
@@ -385,7 +385,7 @@ export function TicketDetail() {
 
                 <div className="space-y-3">
                   <Textarea
-                    placeholder="Add a comment..."
+                    placeholder="Agregar un comentario..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     rows={3}
@@ -394,7 +394,7 @@ export function TicketDetail() {
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || submittingComment}
                   >
-                    {submittingComment ? 'Adding...' : 'Add Comment'}
+                    {submittingComment ? 'Agregando...' : 'Agregar Comentario'}
                   </Button>
                 </div>
               </div>
@@ -403,12 +403,12 @@ export function TicketDetail() {
 
           <div className="space-y-4">
             <Card>
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Details</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">Detalles</h3>
 
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-2">
-                    Status
+                    Estado
                   </label>
                   <Select
                     options={statusOptions}
@@ -420,17 +420,17 @@ export function TicketDetail() {
                 <div>
                   <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
                     <User size={14} />
-                    Assigned To
+                    Asignado a
                   </label>
                   <p className="text-sm text-gray-900">
-                    {ticket.assigned_to || 'Unassigned'}
+                    {ticket.assigned_to || 'Sin asignar'}
                   </p>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
                     <Calendar size={14} />
-                    Created
+                    Creado
                   </label>
                   <p className="text-sm text-gray-900">
                     {new Date(ticket.created_at).toLocaleDateString()}
@@ -441,7 +441,7 @@ export function TicketDetail() {
                   <div>
                     <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
                       <AlertCircle size={14} />
-                      Deadline
+                      Fecha límite
                     </label>
                     <p className="text-sm text-gray-900">
                       {new Date(ticket.deadline).toLocaleDateString()}
@@ -453,7 +453,7 @@ export function TicketDetail() {
                   <div>
                     <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
                       <Tag size={14} />
-                      Tags
+                      Etiquetas
                     </label>
                     <div className="flex flex-wrap gap-1">
                       {ticket.tags.map((tag, index) => (

@@ -1,20 +1,22 @@
 interface TicketsByStatusChartProps {
   stats: {
-    todo: number;
-    in_progress: number;
-    done: number;
+    pending_analysis: number;
+    pending_approval: number;
+    approved: number;
     completed: number;
+    done: number;
   };
 }
 
 export function TicketsByStatusChart({ stats }: TicketsByStatusChartProps) {
-  const total = stats.todo + stats.in_progress + stats.done + stats.completed;
+  const total = stats.pending_analysis + stats.pending_approval + stats.approved + stats.completed + stats.done;
 
   const statusData = [
-    { label: 'Por hacer', count: stats.todo, color: 'bg-gray-400', percentage: total > 0 ? (stats.todo / total) * 100 : 0 },
-    { label: 'En progreso', count: stats.in_progress, color: 'bg-blue-500', percentage: total > 0 ? (stats.in_progress / total) * 100 : 0 },
-    { label: 'Listo', count: stats.done, color: 'bg-green-500', percentage: total > 0 ? (stats.done / total) * 100 : 0 },
+    { label: 'Pendiente de analizar', count: stats.pending_analysis, color: 'bg-gray-400', percentage: total > 0 ? (stats.pending_analysis / total) * 100 : 0 },
+    { label: 'Pendiente de aprobación', count: stats.pending_approval, color: 'bg-blue-500', percentage: total > 0 ? (stats.pending_approval / total) * 100 : 0 },
+    { label: 'Aprobado', count: stats.approved, color: 'bg-green-500', percentage: total > 0 ? (stats.approved / total) * 100 : 0 },
     { label: 'Completado', count: stats.completed, color: 'bg-emerald-600', percentage: total > 0 ? (stats.completed / total) * 100 : 0 },
+    { label: 'Finalizado', count: stats.done, color: 'bg-emerald-600', percentage: total > 0 ? (stats.done / total) * 100 : 0 },
   ];
 
   return (

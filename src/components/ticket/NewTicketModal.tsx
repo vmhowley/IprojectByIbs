@@ -18,7 +18,7 @@ export interface TicketFormData {
   subject: string;
   request_type: string;
   description?: string;
-  status: 'todo' | 'in_progress' | 'done' | 'ongoing' | 'completed' | 'in_review' | 'pending';
+  status: 'pending_analysis' | 'pending_approval' | 'approved' | 'ongoing' | 'completed' | 'done';
   urgency: 'low' | 'medium' | 'high' | 'critical' | 'minor' | 'moderate';
   files?: File[];
 }
@@ -30,7 +30,7 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
     subject: '',
     request_type: 'feature',
     description: '',
-    status: 'todo',
+    status: 'pending_analysis',
     urgency: 'medium',
     files: []
   });
@@ -194,11 +194,10 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
                 disabled={isSubmitting}
                 required
               >
-                <option value="feature">Feature</option>
-                <option value="bug">Bug</option>
+                <option value="feature">Requerimiento de Adecuación</option>
+                <option value="bug">Incidencia Reportada</option>
                 <option value="support">Soporte</option>
-                <option value="enhancement">Mejora</option>
-                <option value="documentation">Documentación</option>
+                <option value="enhancement">Solicitud de Mejora</option>
                 <option value="other">Otro</option>
               </Select>
             </div>
@@ -260,10 +259,11 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
                       onChange={(e) => handleChange('status', e.target.value)}
                       disabled={isSubmitting}
                     >
-                      <option value="todo">To Do</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="in_review">In Review</option>
-                      <option value="done">Done</option>
+                      <option value="pending_analysis">Pendiente de Análisis</option>
+                      <option value="pending_approval">Pendiente de Aprobación</option>
+                      <option value="approved">Aprobado</option>
+                      <option value="ongoing">En Desarrollo</option>
+                      <option value="completed">Completado</option>
                     </Select>
                   </div>
 

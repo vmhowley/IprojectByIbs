@@ -1,6 +1,6 @@
 import { Circle, CheckCircle2, Clock, Eye, PlayCircle } from 'lucide-react';
 
-type Status = 'todo' | 'in_progress' | 'done' | 'ongoing' | 'completed' | 'in_review' | 'pending';
+type Status = "pending_analysis" | "pending_approval" | "approved" | "ongoing" | "completed" | "done"
 
 interface StatusBadgeProps {
   status: Status | string;
@@ -8,45 +8,45 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const config: Record<string, { icon: any; text: string; className: string; iconClassName: string }> = {
-    todo: {
+    pending_approval: {
       icon: Circle,
-      text: 'To Do',
+      text: 'Pendiente de Aprobación',
       className: 'text-gray-600 bg-gray-50',
       iconClassName: 'text-gray-600'
     },
-    in_progress: {
-      icon: PlayCircle,
-      text: 'In Progress',
-      className: 'text-blue-600 bg-blue-50',
-      iconClassName: 'text-blue-600'
+    approved: {
+      icon: CheckCircle2,
+      text: 'Aprobado',
+      className: 'text-green-600 bg-green-50',
+      iconClassName: 'text-green-600'
     },
     done: {
       icon: CheckCircle2,
-      text: 'Done',
+      text: 'Finalizado',
       className: 'text-green-600 bg-green-50',
       iconClassName: 'text-green-600'
     },
     ongoing: {
       icon: Circle,
-      text: 'Ongoing',
+      text: 'En Desarrollo',
       className: 'text-blue-600 bg-blue-50',
       iconClassName: 'text-blue-600'
     },
     completed: {
       icon: CheckCircle2,
-      text: 'Completed',
+      text: 'Completado',
       className: 'text-green-600 bg-green-50',
       iconClassName: 'text-green-600'
     },
     in_review: {
       icon: Eye,
-      text: 'In review',
+      text: 'En Revisión',
       className: 'text-sky-600 bg-sky-50',
       iconClassName: 'text-sky-600'
     },
-    pending: {
+    pending_analysis: {
       icon: Clock,
-      text: 'Pending',
+      text: 'Pendiente de Análisis',
       className: 'text-gray-600 bg-gray-50',
       iconClassName: 'text-gray-600'
     }

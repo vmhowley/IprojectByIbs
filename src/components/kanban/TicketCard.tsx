@@ -15,6 +15,13 @@ export function TicketCard({ ticket, onClick }: TicketCardProps) {
   };
 
   const priorityColor = priorityColors[ticket.urgency] || priorityColors.medium;
+  
+  const urgencyLabels: Record<string, string> = {
+    low: 'Baja',
+    medium: 'Media',
+    high: 'Alta',
+    critical: 'Crítica'
+  };
 
   return (
     <div
@@ -24,7 +31,7 @@ export function TicketCard({ ticket, onClick }: TicketCardProps) {
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-medium text-sm text-gray-900 flex-1">{ticket.title}</h3>
         <span className={`px-2 py-0.5 text-xs font-medium rounded ${priorityColor}`}>
-          {ticket.urgency}
+          {urgencyLabels[ticket.urgency] || ticket.urgency}
         </span>
       </div>
 

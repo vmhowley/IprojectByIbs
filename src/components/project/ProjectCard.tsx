@@ -10,7 +10,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: ProjectCardProps) {
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -50,7 +50,7 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <CheckCircle2 size={14} />
               <span>
-                {completedTaskCount}/{taskCount} tasks
+                {completedTaskCount}/{taskCount} tareas
               </span>
             </div>
           )}

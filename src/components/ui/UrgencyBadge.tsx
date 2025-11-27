@@ -7,32 +7,32 @@ interface UrgencyBadgeProps {
 export function UrgencyBadge({ urgency }: UrgencyBadgeProps) {
   const config: Record<Urgency, { text: string; bars: number; className: string }> = {
     critical: {
-      text: 'Critical',
+      text: 'Crítico',
       bars: 3,
       className: 'text-red-600'
     },
     high: {
-      text: 'High',
+      text: 'Alto',
       bars: 3,
       className: 'text-red-600'
     },
     moderate: {
-      text: 'Moderate',
+      text: 'Moderado',
       bars: 2,
       className: 'text-orange-600'
     },
     medium: {
-      text: 'Medium',
+      text: 'Medio',
       bars: 2,
       className: 'text-orange-600'
     },
     minor: {
-      text: 'Minor',
+      text: 'Menor',
       bars: 1,
       className: 'text-yellow-600'
     },
     low: {
-      text: 'Low',
+      text: 'Bajo',
       bars: 1,
       className: 'text-gray-600'
     }

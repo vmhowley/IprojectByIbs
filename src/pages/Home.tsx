@@ -57,10 +57,11 @@ export function Home() {
   };
 
   const statusStats = {
-    todo: allTickets.filter(t => t.status === 'todo').length,
-    in_progress: allTickets.filter(t => t.status === 'in_progress').length,
-    done: allTickets.filter(t => t.status === 'done').length,
+    pending_analysis: allTickets.filter(t => t.status === 'pending_analysis').length,
+    pending_approval: allTickets.filter(t => t.status === 'pending_approval').length,
+    approved: allTickets.filter(t => t.status === 'approved').length,
     completed: allTickets.filter(t => t.status === 'completed').length,
+    done: allTickets.filter(t => t.status === 'done').length,
   };
 
   const clientStatsMap = allTickets.reduce((acc, ticket) => {
