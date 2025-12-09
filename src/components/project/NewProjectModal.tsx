@@ -1,14 +1,30 @@
-import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useState } from 'react';
+
+import { Upload } from 'lucide-react';
+import { Project } from '../../types';
+import { ClientPicker } from '../client/ClientPicker';
+import { ContactPicker } from '../client/ContactPicker';
+import { Select } from '../ui/Select';
+import { UserPicker } from '../ui/UserPicker';
 
 interface NewProjectModalProps {
   onClose: () => void;
-  onSubmit: (project: { name: string; description: string }) => void;
+  onSubmit: (project: Partial<Project>) => void;
 }
 
 export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [assignee, setAssignee] = useState<string | null>(null);
+
+  const [status, setStatus] = useState<'active' | 'on_hold' | 'completed'>('active');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [team, setTeam] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [contactId, setContactId] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,6 +33,16 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
     onSubmit({
       name,
       description,
+      assignee: assignee || undefined,
+      status,
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      priority,
+      team: team || undefined,
+      client_id: clientId || undefined,
+      contact_id: contactId || undefined,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     });
 
     onClose();
@@ -24,8 +50,8 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">Nuevo Proyecto</h2>
           <button
             onClick={onClose}
@@ -35,20 +61,149 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-1 pr-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del proyecto
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ingresa el nombre del proyecto"
+                required
+                autoFocus
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cliente
+              </label>
+              <ClientPicker
+                value={clientId}
+                onChange={(id) => {
+                  setClientId(id);
+                  setContactId(''); // Reset contact when client changes
+                }}
+                placeholder="Seleccionar cliente"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Contacto
+              </label>
+              {clientId ? (
+                <ContactPicker
+                  clientId={clientId}
+                  value={contactId}
+                  onChange={(id) => setContactId(id)}
+                  disabled={!clientId}
+                />
+              ) : (
+                <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-500">
+                  Selecciona un cliente primero
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Asignado a
+              </label>
+              <UserPicker
+                value={assignee}
+                onChange={setAssignee}
+                placeholder="Seleccionar responsable"
+              />
+            </div>
+
+            <Select
+              label="Estado"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              options={[
+                { value: 'active', label: 'Activo' },
+                { value: 'on_hold', label: 'En espera' },
+                { value: 'completed', label: 'Completado' },
+              ]}
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de inicio
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de fin
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Select
+              label="Prioridad"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as any)}
+              options={[
+                { value: 'low', label: 'Baja' },
+                { value: 'medium', label: 'Media' },
+                { value: 'high', label: 'Alta' },
+              ]}
+            />
+
+            <Select
+              label="Equipo"
+              value={team}
+              onChange={(e) => setTeam(e.target.value)}
+              options={[
+                { value: '', label: 'Seleccionar equipo' },
+                { value: 'engineering', label: 'Ingeniería' },
+                { value: 'design', label: 'Diseño' },
+                { value: 'marketing', label: 'Marketing' },
+              ]}
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre del Proyecto
+              Adjuntar archivo
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="ej. Plan Q4, Rediseño de App Móvil"
-              required
-              autoFocus
-            />
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors cursor-pointer">
+              <div className="space-y-1 text-center">
+                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                <div className="flex text-sm text-gray-600">
+                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                    <span>Subir un archivo</span>
+                    <input type="file" className="sr-only" />
+                  </label>
+                  <p className="pl-1">o arrastrar y soltar</p>
+                </div>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, PDF hasta 10MB
+                </p>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -59,12 +214,12 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Breve descripción del proyecto"
+              placeholder="Descripción del proyecto..."
               rows={3}
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-4 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}

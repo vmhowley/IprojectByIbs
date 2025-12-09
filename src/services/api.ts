@@ -8,7 +8,7 @@ export class ApiError extends Error {
 }
 
 export async function handleSupabaseResponse<T>(
-  promise: Promise<{ data: T | null; error: any }>
+  promise: PromiseLike<{ data: T | null; error: any }>
 ): Promise<T> {
   const { data, error } = await promise;
 
@@ -24,3 +24,4 @@ export async function handleSupabaseResponse<T>(
 }
 
 export { supabase };
+

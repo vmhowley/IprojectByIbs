@@ -1,4 +1,4 @@
-import { Circle, CheckCircle2, Clock, Eye, PlayCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Eye, PlayCircle } from 'lucide-react';
 
 type Status = "pending_analysis" | "pending_approval" | "approved" | "ongoing" | "completed" | "done"
 
@@ -49,10 +49,34 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       text: 'Pendiente de Análisis',
       className: 'text-gray-600 bg-gray-50',
       iconClassName: 'text-gray-600'
+    },
+    active: {
+      icon: PlayCircle,
+      text: 'Activo',
+      className: 'text-indigo-600 bg-indigo-50',
+      iconClassName: 'text-indigo-600'
+    },
+    on_hold: {
+      icon: Clock,
+      text: 'En Espera',
+      className: 'text-orange-600 bg-orange-50',
+      iconClassName: 'text-orange-600'
+    },
+    pending: {
+      icon: Circle,
+      text: 'Pendiente',
+      className: 'text-gray-600 bg-gray-50',
+      iconClassName: 'text-gray-600'
+    },
+    default: {
+      icon: Circle,
+      text: status, // Show the raw status text for debugging if unknown
+      className: 'text-gray-600 bg-gray-50',
+      iconClassName: 'text-gray-600'
     }
   };
 
-  const statusConfig = config[status] || config['pending'];
+  const statusConfig = config[status] || config['default'];
   const { icon: Icon, text, className, iconClassName } = statusConfig;
 
   return (

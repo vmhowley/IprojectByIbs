@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Grid3x3, List, FolderKanban } from 'lucide-react';
-import { ProjectCard } from '../components/project/ProjectCard';
+import { FolderKanban, Grid3x3, List, Plus, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { NewProjectModal } from '../components/project/NewProjectModal';
-import { Project } from '../types';
-import { projectService } from '../services/projectService';
-import { Input } from '../components/ui/Input';
+import { ProjectCard } from '../components/project/ProjectCard';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { useAuth } from '../hooks/useAuth';
+import { useSubscription } from '../hooks/useSubscription';
+import { projectService } from '../services/projectService';
+import { Project } from '../types';
 
 export function Projects() {
+  const { user } = useAuth();
+  const { limits } = useSubscription();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +62,16 @@ export function Projects() {
     }
   };
 
+  const handleNewProjectClick = () => {
+    if (projects.length >= limits.maxProjects) {
+      if (confirm(`Has alcanzado el límite de ${limits.maxProjects} proyectos de tu plan Gratis. \n\n¿Quieres actualizar a Pro para tener proyectos ilimitados?`)) {
+        navigate('/pricing');
+      }
+      return;
+    }
+    setShowNewProjectModal(true);
+  };
+
   const activeProjects = filteredProjects.filter(p => p.status === 'active');
   const completedProjects = filteredProjects.filter(p => p.status === 'completed');
   const archivedProjects = filteredProjects.filter(p => p.status === 'archived' || p.status === null);
@@ -75,10 +91,12 @@ export function Projects() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setShowNewProjectModal(true)}>
-            <Plus size={18} />
-            Nuevo Proyecto
-          </Button>
+          {user?.role !== 'guest' && (
+            <Button onClick={() => setShowNewProjectModal(true)}>
+              <Plus size={18} />
+              Nuevo Proyecto
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -95,21 +113,19 @@ export function Projects() {
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded ${
-                viewMode === 'grid'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`p-2 rounded ${viewMode === 'grid'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               <Grid3x3 size={18} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded ${
-                viewMode === 'list'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`p-2 rounded ${viewMode === 'list'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               <List size={18} />
             </button>
@@ -137,8 +153,8 @@ export function Projects() {
                   ? 'Intenta con otro término de búsqueda'
                   : 'Comienza creando tu primer proyecto'}
               </p>
-              {!searchQuery && (
-                <Button onClick={() => setShowNewProjectModal(true)}>
+              {!searchQuery && user?.role !== 'guest' && (
+                <Button onClick={handleNewProjectClick}>
                   <Plus size={18} />
                   Crear Proyecto
                 </Button>

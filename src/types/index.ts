@@ -1,7 +1,11 @@
-export * from './Ticket';
-export * from './Project';
-export * from './User';
+export * from './Auth';
+export * from './Client';
 export * from './Comment';
+export * from './Project';
+export * from './Subscription';
+export * from './Ticket';
+export * from './User';
+
 
 export interface TicketProgram {
   id: string;

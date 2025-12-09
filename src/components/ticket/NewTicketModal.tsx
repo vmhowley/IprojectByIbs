@@ -1,32 +1,36 @@
-import { useState, useEffect } from 'react';
-import { X, Upload, FileIcon, XCircle } from 'lucide-react';
-import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
-import { Select } from '../ui/Select';
+import { FileIcon, Upload, X, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
+import { UserPicker } from '../ui/UserPicker';
 
 interface NewTicketModalProps {
   projectId: string;
   projectName: string;
+  clientId?: string | null;
+  contactId?: string | null;
   onClose: () => void;
   onSubmit: (ticketData: TicketFormData) => Promise<void>;
 }
 
 export interface TicketFormData {
-  client: string;
-  contact: string;
+  client_id?: string;
+  contact_id: string;
   subject: string;
   request_type: string;
   description?: string;
   status: 'pending_analysis' | 'pending_approval' | 'approved' | 'ongoing' | 'completed' | 'done';
   urgency: 'low' | 'medium' | 'high' | 'critical' | 'minor' | 'moderate';
+  assigned_to?: string | null;
   files?: File[];
 }
 
-export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: NewTicketModalProps) {
+export function NewTicketModal({ projectId, projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
   const [formData, setFormData] = useState<TicketFormData>({
-    client: '',
-    contact: '',
+    client_id: clientId || '',
+    contact_id: contactId || '',
     subject: '',
     request_type: 'feature',
     description: '',
@@ -87,19 +91,17 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.client.trim()) {
-      setError('Cliente es requerido');
-      return;
-    }
-    if (!formData.contact.trim()) {
-      setError('Contacto es requerido');
-      return;
-    }
+    // Client ID validation removed to allow internal projects
+    // if (!formData.client_id) {
+    //   setError('Cliente es requerido');
+    //   return;
+    // }
+
     if (!formData.subject.trim()) {
       setError('Asunto es requerido');
       return;
     }
-  
+
     setIsSubmitting(true);
     setError(null);
 
@@ -141,33 +143,7 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
               </div>
             </div>
 
-            <div>
-              <label htmlFor="client" className="block text-sm font-medium text-gray-700 mb-1">
-                Cliente <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="client"
-                value={formData.client}
-                onChange={(e) => handleChange('client', e.target.value)}
-                placeholder="Nombre del cliente"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1">
-                Contacto <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="contact"
-                value={formData.contact}
-                onChange={(e) => handleChange('contact', e.target.value)}
-                placeholder="Nombre y datos del contacto"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
+            {/* Client and Contact are now inherited from Project */}
 
             <div>
               <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
@@ -196,44 +172,14 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
               >
                 <option value="feature">Requerimiento de Adecuación</option>
                 <option value="bug">Incidencia Reportada</option>
-                <option value="support">Soporte</option>
                 <option value="enhancement">Solicitud de Mejora</option>
                 <option value="other">Otro</option>
               </Select>
             </div>
-
-            {/* <div>
-              <label htmlFor="forms" className="block text-sm font-medium text-gray-700 mb-1">
-                Formas
-              </label>
-              <Textarea
-                id="forms"
-                value={formData.forms}
-                onChange={(e) => handleChange('forms', e.target.value)}
-                placeholder="Formularios o información adicional"
-                rows={3}
-                disabled={isSubmitting}
-              />
-            </div> */}
-
             <div className="border-t border-gray-200 pt-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Detalles del Ticket</h3>
 
               <div className="space-y-4">
-                {/* <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                    Título <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
-                    placeholder="Título descriptivo del ticket"
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div> */}
-
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                     Descripción
@@ -248,7 +194,7 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
                       Estado
@@ -282,6 +228,17 @@ export function NewTicketModal({ projectId, projectName, onClose, onSubmit }: Ne
                       <option value="high">Alta</option>
                       <option value="critical">Crítica</option>
                     </Select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">
+                      Asignado a
+                    </label>
+                    <UserPicker
+                      value={formData.assigned_to || null}
+                      onChange={(userId) => setFormData(prev => ({ ...prev, assigned_to: userId }))}
+                      placeholder="Seleccionar usuario"
+                    />
                   </div>
                 </div>
               </div>

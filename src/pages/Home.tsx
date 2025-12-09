@@ -1,15 +1,22 @@
+import { CheckCircle, FolderKanban, FolderPlus, Lock, Plus, Ticket as TicketIcon, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Plus, FolderPlus, FolderKanban, Ticket as TicketIcon, Users, CheckCircle } from 'lucide-react';
-import { Project, Ticket } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { StatCard } from '../components/dashboard/StatCard';
+import { TicketsByClientChart } from '../components/dashboard/TicketsByClientChart';
+import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
+import { NewProjectModal } from '../components/project/NewProjectModal';
+import { ProjectCard } from '../components/project/ProjectCard';
+import { Button } from '../components/ui/Button';
+import { useAuth } from '../hooks/useAuth';
+import { useSubscription } from '../hooks/useSubscription';
 import { projectService } from '../services/projectService';
 import { ticketService } from '../services/ticketService';
-import { ProjectCard } from '../components/project/ProjectCard';
-import { NewProjectModal } from '../components/project/NewProjectModal';
-import { StatCard } from '../components/dashboard/StatCard';
-import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
-import { TicketsByClientChart } from '../components/dashboard/TicketsByClientChart';
+import { Project, Ticket } from '../types';
 
 export function Home() {
+  const { user } = useAuth();
+  const { limits } = useSubscription();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectStats, setProjectStats] = useState<Record<string, { total: number; completed: number }>>({});
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
@@ -22,25 +29,45 @@ export function Home() {
 
   const loadProjects = async () => {
     try {
+      // Load projects first
       const projectsData = await projectService.getAll();
       setProjects(projectsData);
 
-      const stats: Record<string, { total: number; completed: number }> = {};
-      const tickets: Ticket[] = [];
-
-      for (const project of projectsData) {
-        const projectTickets = await ticketService.getByProject(project.id);
-        tickets.push(...projectTickets);
-        stats[project.id] = {
-          total: projectTickets.length,
-          completed: projectTickets.filter((t) => t.status === 'completed' || t.status === 'done').length,
-        };
+      // If no projects, stop loading
+      if (projectsData.length === 0) {
+        setLoading(false);
+        return;
       }
 
+      // Load tickets for all projects in parallel
+      const stats: Record<string, { total: number; completed: number }> = {};
+      const allTicketsList: Ticket[] = [];
+
+      // Use Promise.all to fetch tickets in parallel
+      const ticketsPromises = projectsData.map(async (project) => {
+        try {
+          const projectTickets = await ticketService.getByProject(project.id);
+          return { projectId: project.id, tickets: projectTickets };
+        } catch (err) {
+          console.warn(`Failed to load tickets for project ${project.id}`, err);
+          return { projectId: project.id, tickets: [] };
+        }
+      });
+
+      const results = await Promise.all(ticketsPromises);
+
+      results.forEach(({ projectId, tickets }) => {
+        allTicketsList.push(...tickets);
+        stats[projectId] = {
+          total: tickets.length,
+          completed: tickets.filter((t) => t.status === 'completed' || t.status === 'done').length,
+        };
+      });
+
       setProjectStats(stats);
-      setAllTickets(tickets);
+      setAllTickets(allTicketsList);
     } catch (error) {
-      console.error('Error loading projects:', error);
+      console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -65,15 +92,15 @@ export function Home() {
   };
 
   const clientStatsMap = allTickets.reduce((acc, ticket) => {
-    if (ticket.client) {
-      acc[ticket.client] = (acc[ticket.client] || 0) + 1;
+    if (ticket.client_id) {
+      acc[ticket.client_id] = (acc[ticket.client_id] || 0) + 1;
     }
     return acc;
   }, {} as Record<string, number>);
 
   const clientStats = Object.entries(clientStatsMap).map(([name, count]) => ({ name, count }));
 
-  const uniqueClients = new Set(allTickets.map(t => t.client).filter(Boolean)).size;
+  const uniqueClients = new Set(projects.map(t => t.client_id).filter(Boolean)).size;
   const completedCount = statusStats.done + statusStats.completed;
 
   if (loading) {
@@ -95,13 +122,15 @@ export function Home() {
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600 mt-1">Resumen general de proyectos y solicitudes</p>
           </div>
-          <button
-            onClick={() => setIsNewProjectModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus size={18} />
-            Nuevo Proyecto
-          </button>
+          {user?.role !== 'guest' && (
+            <button
+              onClick={() => setIsNewProjectModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <Plus size={18} />
+              Nuevo Proyecto
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -135,9 +164,29 @@ export function Home() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <TicketsByStatusChart stats={statusStats} />
-          <TicketsByClientChart stats={clientStats} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 relative">
+          {!limits.hasAdvancedAnalytics && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200">
+              <div className="text-center p-6 bg-white rounded-xl shadow-lg border border-gray-100 max-w-sm">
+                <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                  <Lock className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Análisis Avanzados</h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Obtén insights detallados sobre el rendimiento de tus proyectos con el plan Pro.
+                </p>
+                <Button onClick={() => navigate('/pricing')} className="w-full">
+                  Actualizar ahora
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className={!limits.hasAdvancedAnalytics ? 'filter blur-sm select-none pointer-events-none' : ''}>
+            <TicketsByStatusChart stats={statusStats} />
+          </div>
+          <div className={!limits.hasAdvancedAnalytics ? 'filter blur-sm select-none pointer-events-none' : ''}>
+            <TicketsByClientChart stats={clientStats} />
+          </div>
         </div>
 
         <div className="mb-6">
@@ -162,13 +211,15 @@ export function Home() {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No hay proyectos</h3>
             <p className="text-gray-600 mb-6">Comienza creando tu primer proyecto</p>
-            <button
-              onClick={() => setIsNewProjectModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={18} />
-              Crear Proyecto
-            </button>
+            {user?.role !== 'guest' && (
+              <button
+                onClick={() => setIsNewProjectModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={18} />
+                Crear Proyecto
+              </button>
+            )}
           </div>
         )}
       </div>

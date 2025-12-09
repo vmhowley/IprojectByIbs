@@ -1,39 +1,49 @@
+import { Activity, Edit, LayoutGrid, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Star, Search, MoreHorizontal, LayoutGrid, MessageSquare, ExternalLink } from 'lucide-react';
-import { Ticket, Project, Attachment, Comment } from '../types';
-import { ticketService } from '../services/ticketService';
-import { projectService } from '../services/projectService';
-import { storageService } from '../services/storageService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { EditProjectModal } from '../components/project/EditProjectModal';
+import { ProjectTimeline } from '../components/project/ProjectTimeline';
+import { ShareProjectModal } from '../components/project/ShareProjectModal';
+import { NewTicketModal } from '../components/ticket/NewTicketModal';
+import { TicketDetailView } from '../components/ticket/TicketDetailView';
+import { RequestTypeBadge } from '../components/ui/RequestTypeBadge';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { UrgencyBadge } from '../components/ui/UrgencyBadge';
-import { RequestTypeBadge } from '../components/ui/RequestTypeBadge';
-import { NewTicketModal, TicketFormData } from '../components/ticket/NewTicketModal';
+import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
-import {  Paperclip, Download, Maximize2 } from 'lucide-react';
-import {commentService} from '../services/commentService'
-import { TicketDetailView } from '../components/ticket/TicketDetailView';
+import { commentService } from '../services/commentService';
+import { projectService } from '../services/projectService';
+import { storageService } from '../services/storageService';
+import { ticketService } from '../services/ticketService';
+import { getUsers } from '../services/usersService';
+import { Attachment, Comment, Project, Ticket, UserProfile } from '../types';
+
 export function ProjectDetail() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [viewMode, setViewMode] = useState<'properties' | 'full_detail'>('properties');
+  const [activeTab, setActiveTab] = useState<'tickets' | 'timeline'>('tickets');
   const [loading, setLoading] = useState(true);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [comment, setComment] = useState('')
   const [comments, setComments] = useState<Comment[]>()
+  const [users, setUsers] = useState<UserProfile[]>([]);
+
   useEffect(() => {
     if (projectId) {
       loadData();
+      loadUsers();
     }
-    
   }, [projectId]);
 
   const loadData = async () => {
     try {
- 
       const projectData = await projectService.getById(projectId!);
       setProject(projectData);
 
@@ -62,425 +72,289 @@ export function ProjectDetail() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
 
-  const handleSubmit =  () => {
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!selectedTicket) return;
-    
+
     commentService.create({
       ticket_id: selectedTicket?.id,
-      user_name:'Santos',
+      user_name: 'Santos',
       content: comment
+    }).then(() => {
+      setComment('');
+      // Reload comments
+      commentService.getByTicket(selectedTicket.id).then(setComments);
     })
-    navigate(0)
   }
-  const handleSelection =async (ticket:Ticket) => {
+
+  const handleSelection = async (ticket: Ticket) => {
     try {
-        setSelectedTicket(ticket)
-        setViewMode('properties');
-            const commentarios = await commentService.getByTicket(ticket?.id) 
+      setSelectedTicket(ticket)
+      setViewMode('properties');
+      const commentarios = await commentService.getByTicket(ticket?.id)
       setComments(commentarios);
     } catch (error) {
       console.error('Error loading Comments:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  
-
-  const handleCreateTicket = async (ticketData: TicketFormData) => {
-    try {
-      const newTicket:Ticket = await ticketService.create({
-        project_id: projectId!,
-        description: ticketData.description || '',
-        status: ticketData.status,
-        urgency: ticketData.urgency,
-        client: ticketData.client,
-        contact: ticketData.contact,
-        subject: ticketData.subject,
-        request_type: ticketData.request_type,
-      });
-
-      if (ticketData.files && ticketData.files.length > 0) {
-        const attachments: Attachment[] = [];
-
-        for (const file of ticketData.files) {
-          const { url } = await storageService.uploadFile(file, projectId!, newTicket.id);
-          attachments.push({
-            name: file.name,
-            url,
-            size: file.size,
-            type: file.type
-          });
-        }
-
-        await ticketService.update(newTicket.id, { attachments });
-      }
-
-      await loadData();
-    } catch (error) {
-      console.error('Error creating ticket:', error);
-      throw error;
-    }
-  };
-
-  const handleTicketUpdate = (updatedTicket: Ticket) => {
-    setTickets(prevTickets => 
-      prevTickets.map(t => t.id === updatedTicket.id ? updatedTicket : t)
-    );
-    // Also update selected ticket if it matches (though it should be updated by TicketDetailView internal state, keeping them in sync is good)
-    if (selectedTicket?.id === updatedTicket.id) {
-      setSelectedTicket(updatedTicket);
-    }
-  };
+  const handleProjectUpdated = (updatedProject: Project) => {
+    setProject(updatedProject);
+    // Timeline updates automatically due to re-render
+  }
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-600">Project not found</div>
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Proyecto no encontrado</h2>
+        <button
+          onClick={() => navigate('/')}
+          className="text-indigo-600 hover:text-indigo-800 font-medium"
+        >
+          Volver al panel
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-white">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <LayoutGrid size={16} className="text-purple-600" />
-              <span className="text-sm font-medium">{project.name}</span>
-            </div>
-            <Star size={16} className="text-yellow-500 fill-yellow-500" />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-              Share
-            </button>
-            <button className="p-1.5 text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-              <MoreHorizontal size={18} />
-            </button>
-            <button
-              onClick={() => setIsNewTicketModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors"
-            >
-              <Plus size={16} />
-              Nueva solicitud
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 px-6">
-          <button className="px-4 py-2 text-sm font-medium text-gray-900 border-b-2 border-purple-600">
-            Tabla
-          </button>
-          <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2">
-              Tareas
-          </button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="mb-4">
-              <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input    
-                  type="text"
-                  placeholder="Buscar solicitud"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+    <div className="flex h-screen bg-gray-50">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/')}
+                className="text-gray-500 hover:text-gray-700 font-medium"
+              >
+                Proyectos
+              </button>
+              <span className="text-gray-300">/</span>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{project.name}</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  {project.description || 'Sin descripción'}
+                </p>
               </div>
+              <StatusBadge status={project.status} />
             </div>
-
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-[auto_1fr_120px_140px_140px_100px] gap-4 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600">
-                <div> </div>
-                <div>Asunto</div>
-                <div>Tipo</div>
-                <div>Progreso</div>
-                <div>Prioridad</div>
-                <div>Asignado a</div>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                {tickets.map((ticket) => {
-                  const isCompleted = ticket.status === 'completed' || ticket.status === 'done';
-                  return (
-                    <div
-                      key={ticket.id}
-                      onClick={() => handleSelection(ticket)}
-                      className={`grid grid-cols-[auto_1fr_120px_140px_140px_100px] gap-4 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                        selectedTicket?.id === ticket.id ? 'bg-purple-50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        {isCompleted ? (
-                          <div className="w-5 h-5 rounded bg-purple-600 flex items-center justify-center">
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded border-2 border-gray-300"></div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-900">{ticket.subject}</span>
-                        {ticket.comment_count > 0 && (
-                          <div className="flex items-center gap-1 text-gray-500">
-                            <MessageSquare size={14} />
-                            <span className="text-xs">{ticket.comment_count}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center">
-                        {ticket.request_type && (
-                          <RequestTypeBadge type={ticket.request_type} />
-                        )}
-                      </div>
-
-                      <div className="flex items-center">
-                        <StatusBadge status={ticket.status} />
-                      </div>
-
-                      <div className="flex items-center">
-                        <UrgencyBadge urgency={ticket.urgency} />
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {ticket.assigned_to ? (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xs font-medium">
-                            {ticket.assigned_to[0].toUpperCase()}
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-200"></div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {selectedTicket && (
-          <div 
-            className={`border-l border-gray-200 bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
-              viewMode === 'full_detail' ? 'w-[50vw] min-w-[600px]' : 'w-80'
-            }`}
-          >
-            {viewMode === 'full_detail' ? (
-              <TicketDetailView 
-                ticketId={selectedTicket.id} 
-                onClose={() => setSelectedTicket(null)}
-                onDelete={() => {
-                  setSelectedTicket(null);
-                  loadData();
-                }}
-                onUpdate={handleTicketUpdate}
-              />
-            ) : (
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-sm font-semibold text-gray-900">Properties</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setViewMode('full_detail')}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
-                      title="Open full detail"
-                    >
-                      <Maximize2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => setSelectedTicket(null)}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Progreso</label>
-                  <StatusBadge status={selectedTicket.status} />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Tipo</label>
-                  <div className="flex items-center gap-2 text-sm">
-                    {selectedTicket.request_type && (
-                          <RequestTypeBadge type={selectedTicket.request_type} />
-                        )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Asignado a</label>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-white text-xs font-medium">
-                      {selectedTicket.assigned_to?.substring(0,1)}
-                    </div>
-                    <span>{selectedTicket.assigned_to || '-'}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Prioridad</label>
-                  <UrgencyBadge urgency={selectedTicket.urgency} />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Departamento</label>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-5 h-5 bg-gray-900 rounded"></div>
-                    <span>{selectedTicket.department || '-'}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Fecha Creacion</label>
-                  <div className="flex items-center gap-2 text-sm">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-600">
-                      <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    <span>{new Date(selectedTicket.created_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">Fecha de finalizacion</label>
-                  <div className="flex items-center gap-2 text-sm">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-600">
-                      <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    <span>{selectedTicket.deadline ? new Date(selectedTicket.deadline).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' }) : '----'}</span>
-                  </div>
-                </div>
-
-                {selectedTicket.tags && selectedTicket.tags.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-2">Tags</label>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedTicket.tags.map((tag, index) => {
-                        const colors = [
-                          'bg-blue-100 text-blue-700',
-                          'bg-red-100 text-red-700',
-                          'bg-green-100 text-green-700'
-                        ];
-                        return (
-                          <span
-                            key={index}
-                            className={`px-2 py-1 text-xs font-medium rounded ${colors[index % colors.length]}`}
-                          >
-                            {tag}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <div className="space-y-2">
-                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
-                <div className="mb-6 pb-6 border-b border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Paperclip className="w-4 h-4" />
-                    Attachments ({selectedTicket.attachments.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {selectedTicket.attachments.map((attachment, index) => (
-                      <a
-                        key={index}
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors group"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
-                              {attachment.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {(attachment.size / 1024).toFixed(2)} KB
-                            </p>
-                          </div>
-                        </div>
-                        <Download className="w-4 h-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
+            <div className="flex items-center gap-3">
+              {(user?.id === project.created_by || user?.role === 'admin') && (
+                <button
+                  onClick={() => setIsEditProjectModalOpen(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <Edit className="w-4 h-4" />
+                  Editar
+                </button>
               )}
 
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-3">Discucion</label>
-                  <div className="space-y-3">
-                    {comments?.map((comment, index)=> (
-                      
-                    <div key={index} className="flex gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex-shrink-0"></div>
-                      <div>
-                        <div className="text-xs font-medium text-gray-900">{comment.user_name}</div>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {comment.content}
-                        </p>
-                      </div>
-                    </div>
-                    ))}
-              
-                  </div>
-                </div>
-
-                <div>
-                  <form onSubmit={handleSubmit}>
-                  <textarea
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Write a comment"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  rows={3}
-                  />
-                  <button type='submit'>Enviar</button>
-                  </form>
-                </div>
-              </div>
-              </div>
-            )}
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Compartir
+              </button>
+              {user?.role !== 'guest' && (
+                <button onClick={() => setIsNewTicketModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+                  <Plus className="w-4 h-4" />
+                  Nuevo Ticket
+                </button>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Tabs */}
+          <div className="flex items-center gap-6 mt-6 border-b border-gray-100">
+            <button
+              onClick={() => setActiveTab('tickets')}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'tickets'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              <div className="flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4" />
+                Tickets ({tickets.length})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('timeline')}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'timeline'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Actividad
+              </div>
+            </button>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto p-6">
+          {activeTab === 'tickets' ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tickets.map((ticket) => (
+                  <div
+                    key={ticket.id}
+                    onClick={() => handleSelection(ticket)}
+                    className={`bg-white p-4 rounded-xl border cursor-pointer hover:shadow-md transition-shadow ${selectedTicket?.id === ticket.id ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-gray-200'
+                      }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-xs font-medium text-gray-500">#{ticket.id.slice(0, 8)}</span>
+                      <UrgencyBadge urgency={ticket.urgency} />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{ticket.subject}</h3>
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+                      {ticket.description}
+                    </p>
+                    <div className="flex items-center justify-between mt-auto">
+                      <StatusBadge status={ticket.status} />
+                      <RequestTypeBadge type={ticket.request_type || 'feature_request'} />
+                    </div>
+                    {ticket.assigned_to && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                        <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs text-gray-600 font-medium">
+                          {users.find(u => u.id === ticket.assigned_to)?.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {users.find(u => u.id === ticket.assigned_to)?.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {user?.role !== 'guest' && (
+                  <div
+                    onClick={() => setIsNewTicketModalOpen(true)}
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-gray-400 hover:border-indigo-500 hover:text-indigo-500 cursor-pointer transition-colors min-h-[200px]"
+                  >
+                    <Plus className="w-8 h-8 mb-2" />
+                    <span className="font-medium">Crear nuevo ticket</span>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Timeline View */
+            <div className="max-w-3xl mx-auto">
+              <ProjectTimeline projectId={project.id} />
+            </div>
+          )}
+        </main>
       </div>
 
+      {/* Right Sidebar - Using TicketDetailView with correct props */}
+      {selectedTicket && activeTab === 'tickets' && (
+        <div className="w-96 border-l border-gray-200 bg-white overflow-hidden flex flex-col shadow-xl z-10">
+          <TicketDetailView
+            ticketId={selectedTicket.id} // Correct prop
+            onClose={() => setSelectedTicket(null)}
+            onUpdate={(updated) => {
+              setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
+              if (selectedTicket?.id === updated.id) setSelectedTicket(updated);
+              // Also refresh comments if needed, but TicketDetailView handles its own comments
+            }}
+            onDelete={(deletedId) => {
+              setTickets(prev => prev.filter(t => t.id !== deletedId));
+              setSelectedTicket(null);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Modals */}
       {isNewTicketModalOpen && (
         <NewTicketModal
           projectId={project.id}
           projectName={project.name}
+          clientId={project.client_id}
+          contactId={project.contact_id}
           onClose={() => setIsNewTicketModalOpen(false)}
-          onSubmit={handleCreateTicket}
+          onSubmit={async (data) => {
+            try {
+              // 1. Separate files from other data
+              const { files, ...ticketData } = data;
+
+              // 2. Create the ticket (without files field)
+              // Sanitize UUID fields: convert empty strings to null or undefined
+              const sanitizedData = {
+                ...ticketData,
+                client_id: ticketData.client_id || null,
+                contact_id: ticketData.contact_id || null,
+                assigned_to: ticketData.assigned_to || null,
+                project_id: project.id
+              };
+
+              const newTicket = await ticketService.create(sanitizedData);
+
+              // 3. Handle file uploads if any
+              if (files && files.length > 0) {
+                const attachments: Attachment[] = [];
+
+                for (const file of files) {
+                  const { url } = await storageService.uploadFile(file, project.id, newTicket.id);
+                  attachments.push({
+                    name: file.name,
+                    url,
+                    size: file.size,
+                    type: file.type
+                  });
+                }
+
+                // 4. Update ticket with attachments
+                await ticketService.update(newTicket.id, { attachments });
+              }
+
+              setIsNewTicketModalOpen(false);
+              const ticketsData = await ticketService.getByProject(project.id);
+              setTickets(ticketsData);
+            } catch (error) {
+              console.error('Error creating ticket:', error);
+            }
+          }}
+        />
+      )}
+
+      {isShareModalOpen && (
+        <ShareProjectModal
+          projectId={project.id}
+          projectName={project.name}
+          onClose={() => setIsShareModalOpen(false)}
+        />
+      )}
+
+      {project && (
+        <EditProjectModal
+          isOpen={isEditProjectModalOpen}
+          onClose={() => setIsEditProjectModalOpen(false)}
+          project={project}
+          onProjectUpdated={handleProjectUpdated}
         />
       )}
     </div>
   );
 }
-

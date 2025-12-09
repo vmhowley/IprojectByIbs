@@ -1,19 +1,56 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { Home } from '../pages/Home';
-import { ProjectDetail } from '../pages/ProjectDetail';
-import { TicketDetail } from '../pages/TicketDetail';
-import { PlaceholderPage } from '../pages/PlaceholderPage';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { useAuth } from '../hooks/useAuth';
 import { RootLayout } from '../layouts/RootLayout';
-import { Projects } from '../pages/Projects';
+import { AdminPanel } from '../pages/AdminPanel';
+import { Clients } from '../pages/Clients';
 import { ContactUs } from '../pages/ContactUs';
+import { DemoPage } from '../pages/DemoPage';
+import { Home } from '../pages/Home';
+import { LandingPage } from '../pages/LandingPage';
+import { Login } from '../pages/Login';
+import { PlaceholderPage } from '../pages/PlaceholderPage';
+import { PricingPage } from '../pages/PricingPage';
+import { ProjectDetail } from '../pages/ProjectDetail';
+import { Projects } from '../pages/Projects';
+import { Register } from '../pages/Register';
+import { TicketDetail } from '../pages/TicketDetail';
+
+// Authentication enabled
+const ENABLE_AUTH = true;
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <RootLayout />,
+    element: <LandingPageWrapper />,
+  },
+  {
+    path: '/demo',
+    element: <DemoPage />,
+  },
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/register',
+    element: <Register />,
+  },
+  {
+    path: '/pricing',
+    element: <PricingPage />,
+  },
+  {
+    element: ENABLE_AUTH ? (
+      <ProtectedRoute>
+        <RootLayout />
+      </ProtectedRoute>
+    ) : (
+      <RootLayout />
+    ),
     children: [
       {
-        index: true,
+        path: 'dashboard',
         element: <Home />,
       },
       {
@@ -68,6 +105,34 @@ export const router = createBrowserRouter([
         path: 'help',
         element: <PlaceholderPage />,
       },
+      {
+        path: 'admin',
+        element: <AdminPanel />,
+      },
+      {
+        path: 'clients',
+        element: <Clients />,
+      },
     ],
   },
 ]);
+
+function LandingPageWrapper() {
+  const { user, loading, initialized } = useAuth();
+
+  if (loading || !initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <LandingPage />;
+}

@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { clientService } from '../../services/clientService';
+
 interface ClientStats {
   name: string;
   count: number;
@@ -8,10 +11,35 @@ interface TicketsByClientChartProps {
 }
 
 export function TicketsByClientChart({ stats }: TicketsByClientChartProps) {
+  const [clientNames, setClientNames] = useState<Record<string, string>>({});
+
   const total = stats.reduce((sum, client) => sum + client.count, 0);
   const topClients = stats
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
+
+  useEffect(() => {
+    const fetchClientNames = async () => {
+      const names: Record<string, string> = {};
+      const promises = topClients.map(async (clientStats) => {
+        // clientStats.name actually holds the ID based on usage in Home.tsx
+        try {
+          const client = await clientService.getById(clientStats.name);
+          names[clientStats.name] = client.name;
+        } catch (error) {
+          console.error(`Failed to fetch client name for ${clientStats.name}`, error);
+          names[clientStats.name] = 'Unknown Client';
+        }
+      });
+
+      await Promise.all(promises);
+      setClientNames(prev => ({ ...prev, ...names }));
+    };
+
+    if (topClients.length > 0) {
+      fetchClientNames();
+    }
+  }, [stats]);
 
   const colors = [
     'bg-blue-500',
@@ -37,7 +65,7 @@ export function TicketsByClientChart({ stats }: TicketsByClientChartProps) {
                   key={index}
                   className={`${colors[index % colors.length]} transition-all`}
                   style={{ width: `${(client.count / total) * 100}%` }}
-                  title={`${client.name}: ${client.count}`}
+                  title={`${clientNames[client.name] || 'Cargando...'}: ${client.count}`}
                 />
               ))}
             </div>
@@ -48,8 +76,8 @@ export function TicketsByClientChart({ stats }: TicketsByClientChartProps) {
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`w-3 h-3 rounded-full flex-shrink-0 ${colors[index % colors.length]}`} />
-                  <span className="text-sm text-gray-700 truncate" title={client.name}>
-                    {client.name}
+                  <span className="text-sm text-gray-700 truncate" title={clientNames[client.name] || 'Cargando...'}>
+                    {clientNames[client.name] || 'Cargando...'}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0 ml-3">

@@ -1,5 +1,5 @@
-import { supabase, handleSupabaseResponse } from './api';
 import { Ticket } from '../types';
+import { handleSupabaseResponse, supabase } from './api';
 
 export const ticketService = {
   async getByProject(projectId: string): Promise<Ticket[]> {
@@ -23,15 +23,18 @@ export const ticketService = {
   },
 
   async create(ticket: Partial<Ticket>): Promise<Ticket> {
-    console.log('llegue')
+    // Get current user ID from session
+    const { data: { user } } = await supabase.auth.getUser();
+    
     return handleSupabaseResponse(
       supabase
         .from('tickets')
-        .insert([ticket])
+        .insert([{ ...ticket, created_by: user?.id }])
         .select()
         .single()
     );
   },
+
 
   async update(id: string, updates: Partial<Ticket>): Promise<Ticket> {
     return handleSupabaseResponse(

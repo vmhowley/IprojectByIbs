@@ -14,17 +14,22 @@ export interface Ticket {
   category: string | null;
   department: string | null;
   assigned_to: string | null;
+  assigned_to_profile?: {
+    name: string;
+  } | null;
   date_added: string;
   deadline: string | null;
   tags: string[];
   comment_count: number;
-  client?: string | null;
-  contact?: string | null;
+  client_id?: string | null;
+  contact_id?: string | null;
   subject?: string | null;
   request_type?: string | null;
   attachments?: Attachment[];
+  created_by?: string | null;
   created_at: string;
   updated_at: string;
   files?: File[];
 
 }
+

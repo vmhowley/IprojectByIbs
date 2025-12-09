@@ -1,27 +1,28 @@
-import { useEffect, useState, useRef } from 'react';
-import { ChevronRight, Calendar, User, Tag, AlertCircle, Trash2, Edit, Paperclip, Download, Plus, MessageSquare, Clock, X } from 'lucide-react';
-import { Ticket, Comment, TicketProgram } from '../../types';
-import { ticketService } from '../../services/ticketService';
+import { Calendar, Download, Edit, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
 import { commentService } from '../../services/commentService';
 import { programService } from '../../services/programService';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
+import { storageService } from '../../services/storageService';
+import { ticketService } from '../../services/ticketService';
+import { getUserById } from '../../services/usersService';
+import { Comment, Ticket, TicketProgram } from '../../types';
 import { Select } from '../ui/Select';
-import { Textarea } from '../ui/Textarea';
 import { StatusBadge } from '../ui/StatusBadge';
 import { UrgencyBadge } from '../ui/UrgencyBadge';
-import { supabase } from '../../lib/supabase';
-import { storageService } from '../../services/storageService';
 
 interface TicketDetailViewProps {
   ticketId: string;
   onClose?: () => void;
-  onDelete?: () => void;
+  onDelete?: (id: string) => void;
   onUpdate?: (ticket: Ticket) => void;
 }
 
 export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: TicketDetailViewProps) {
+  const { user } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [assignedUser, setAssignedUser] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,35 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
       subscribeToComments();
     }
   }, [ticketId]);
+
+  useEffect(() => {
+    if (ticket) {
+      loadUser();
+    }
+  }, [ticket]);
+
+  const loadUser = async () => {
+    if (!ticket?.assigned_to) {
+      setAssignedUser('Sin asignar');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const data = await getUserById(ticket.assigned_to);
+      if (data) {
+        setAssignedUser(data.name);
+      } else {
+        setAssignedUser('Desconocido');
+      }
+    } catch (error) {
+      console.error('Error loading assigned user:', error);
+      setAssignedUser('Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const loadTicket = async () => {
     try {
@@ -112,10 +142,11 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
     try {
       await commentService.create({
         ticket_id: ticketId,
-        user_name: 'Guest User',
+        user_name: user?.name || user?.email || 'Usuario',
         content: newComment
       });
       setNewComment('');
+      loadComments();
     } catch (error) {
       console.error('Error adding comment:', error);
     } finally {
@@ -128,7 +159,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
     try {
       await ticketService.delete(ticket.id);
-      if (onDelete) onDelete();
+      if (onDelete) onDelete(ticket.id);
     } catch (error) {
       console.error('Error deleting ticket:', error);
     }
@@ -150,11 +181,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
         description: ''
       });
       loadPrograms();
-      // Programs are related to ticket but don't change ticket fields directly unless we track count or last update
-      // However, user might want to see update timestamp change if we updated that on ticket
-      // For now, let's assume we might want to refresh ticket if needed, but programs are separate table.
-      // If we want to trigger update on main list (e.g. if we showed program count), we would need to fetch ticket again or just call onUpdate with current ticket
-      if (ticket && onUpdate) onUpdate(ticket); 
+      if (ticket && onUpdate) onUpdate(ticket);
     } catch (error) {
       console.error('Error adding program:', error);
     } finally {
@@ -196,20 +223,9 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
     if (!ticket || !confirm('¿Estás seguro de que deseas eliminar este archivo adjunto?')) return;
 
     try {
+      if (!ticket.attachments) return;
       const attachment = ticket.attachments[attachmentIndex];
-      
-      // 1. Delete from storage
-      // Extract path from URL or use the stored path if available. 
-      // Assuming the URL structure or that we need to store the path.
-      // For now, let's try to extract it or use the path if we had it.
-      // Looking at storageService, it returns { url, path }. Ticket attachment type has { name, url, size, type }.
-      // We might need to guess the path or update the type to store it.
-      // However, storageService.deleteFile expects a path.
-      // Let's assume we can derive it or we should have stored it.
-      // If we don't have the path, we can't easily delete from storage without parsing the URL.
-      // Let's try to parse the URL to get the path relative to the bucket.
-      // URL format: .../storage/v1/object/public/ticket-attachments/projectId/ticketId/filename
-      
+
       const urlObj = new URL(attachment.url);
       const pathParts = urlObj.pathname.split('/ticket-attachments/');
       if (pathParts.length > 1) {
@@ -217,12 +233,11 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
         await storageService.deleteFile(filePath);
       }
 
-      // 2. Update ticket
-      const newAttachments = ticket.attachments.filter((_, index) => index !== attachmentIndex);
+      const newAttachments = (ticket.attachments || []).filter((_, index) => index !== attachmentIndex);
       const updatedTicket = await ticketService.update(ticket.id, { attachments: newAttachments });
       setTicket(updatedTicket);
       if (onUpdate) onUpdate(updatedTicket);
-      
+
     } catch (error) {
       console.error('Error deleting attachment:', error);
       alert('Error al eliminar el archivo adjunto');
@@ -236,7 +251,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
     setUploading(true);
     try {
       const { url } = await storageService.uploadFile(file, ticket.project_id, ticket.id);
-      
+
       const newAttachment = {
         name: file.name,
         url: url,
@@ -246,7 +261,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
       const currentAttachments = ticket.attachments || [];
       const newAttachments = [...currentAttachments, newAttachment];
-      
+
       const updatedTicket = await ticketService.update(ticket.id, { attachments: newAttachments });
       setTicket(updatedTicket);
       if (onUpdate) onUpdate(updatedTicket);
@@ -286,350 +301,251 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   ];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 overflow-y-auto">
-      <div className="p-6">
-        {onClose && (
-          <div className="flex justify-end mb-4">
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+    <div className="flex flex-col h-full bg-white relative">
+      <div className="flex-none px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-gray-400">#{ticket.id.slice(0, 8)}</span>
+            <StatusBadge status={ticket.status} />
+          </div>
+          <div className="flex items-center gap-1">
+            {user?.role !== 'guest' && (
+              <>
+                <button
+                  onClick={handleDeleteTicket}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                  title="Eliminar Ticket"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
               <X size={20} />
             </button>
           </div>
-        )}
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                      {ticket.subject || 'No Subject'}
-                    </h1>
-                    <StatusBadge status={ticket.status} />
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-                      {ticket.id}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} />
-                      Created {new Date(ticket.created_at).toLocaleDateString()}
-                    </span>
-                    <UrgencyBadge urgency={ticket.urgency} />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Edit size={16} />
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={handleDeleteTicket}>
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
+        </div>
+        <h1 className="text-lg font-bold text-gray-900 leading-snug">
+          {ticket.subject || 'Sin Asunto'}
+        </h1>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Estado</label>
+              <Select
+                options={statusOptions}
+                value={ticket.status}
+                onChange={(e) => handleStatusChange(e.target.value as Ticket['status'])}
+                disabled={user?.role === 'guest'}
+                className="bg-gray-50 border-gray-200 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Prioridad</label>
+              <div className="py-2">
+                <UrgencyBadge urgency={ticket.urgency} />
               </div>
-
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Descripción</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {ticket.description || 'No description provided.'}
-                </p>
-              </div>
-
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Programas Modificados/Creados</h3>
-                
-                {programs.length > 0 && (
-                  <div className="overflow-x-auto mb-4">
-                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objeto</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Atributo</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {programs.map((program) => (
-                          <tr key={program.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{program.object_name}</td>
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{program.object_type}</td>
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{program.attribute}</td>
-                            <td className="px-3 py-2 text-sm text-gray-500">{program.description}</td>
-                            <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
-                              <button onClick={() => handleDeleteProgram(program.id)} className="text-red-400 hover:text-red-600 transition-colors">
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Agregar Objetos</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <input
-                      type="text"
-                      placeholder="Nombre del Objeto"
-                      className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={newProgram.object_name}
-                      onChange={(e) => setNewProgram({ ...newProgram, object_name: e.target.value })}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Tipo (e.g., Tabla, Clase)"
-                      className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={newProgram.object_type}
-                      onChange={(e) => setNewProgram({ ...newProgram, object_type: e.target.value })}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Atributo"
-                      className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={newProgram.attribute}
-                      onChange={(e) => setNewProgram({ ...newProgram, attribute: e.target.value })}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Descripción"
-                      className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={newProgram.description}
-                      onChange={(e) => setNewProgram({ ...newProgram, description: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button 
-                      size="sm" 
-                      onClick={handleAddProgram}
-                      disabled={!newProgram.object_name || !newProgram.object_type || addingProgram}
-                      className="flex items-center gap-2"
-                    >
-                      <Plus size={16} />
-                      {addingProgram ? 'agregando...' : 'Agregar Programa'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {ticket.attachments && ticket.attachments.length > 0 && (
-                <div className="mb-6 pb-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Paperclip className="w-4 h-4" />
-                      Archivos ({ticket.attachments.length})
-                    </h3>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={handleFileSelect}
-                    />
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      <Plus size={14} className="mr-1" />
-                      {uploading ? 'Subiendo...' : 'Agregar'}
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {ticket.attachments.map((attachment, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors group"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <a 
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 hover:underline block"
-                            >
-                              {attachment.name}
-                            </a>
-                            <p className="text-xs text-gray-500">
-                              {(attachment.size / 1024).toFixed(2)} KB
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleDownloadAttachment(attachment.url, attachment.name)}
-                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAttachment(index)}
-                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(!ticket.attachments || ticket.attachments.length === 0) && (
-                 <div className="mb-6 pb-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Paperclip className="w-4 h-4" />
-                      Archivos (0)
-                    </h3>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={handleFileSelect}
-                    />
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      <Plus size={14} className="mr-1" />
-                      {uploading ? 'Uploading...' : 'Add'}
-                    </Button>
-                  </div>
-                 </div>
-              )}
-              
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                  Comentarios ({comments.length})
-                </h3>
-
-                <div className="space-y-6 mb-6">
-                  {comments.map((comment) => (
-                    <div key={comment.id} className="flex gap-4 group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
-                        {comment.user_name[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-3 border border-gray-100">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-gray-900">
-                              {comment.user_name}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(comment.created_at).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder="Agregar un comentario..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    rows={3}
-                  />
-                  <Button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim() || submittingComment}
-                    className="flex items-center gap-2"
-                  >
-                    <MessageSquare size={16} />
-                    {submittingComment ? 'agregando...' : 'Agregar Comentario'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <Card>
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Detalles</h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">
-                    Estado
-                  </label>
-                  <Select
-                    options={statusOptions}
-                    value={ticket.status}
-                    onChange={(e) => handleStatusChange(e.target.value as Ticket['status'])}
-                  />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Asignado a</label>
+              <div className="flex items-center gap-2 py-1.5">
+                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                  {assignedUser ? assignedUser.charAt(0).toUpperCase() : '?'}
                 </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
-                    <User size={14} />
-                    Asignado a
-                  </label>
-                  <p className="text-sm text-gray-900">
-                    {ticket.assigned_to || 'Sin asignar'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
-                    <Calendar size={14} />
-                    Creado
-                  </label>
-                  <p className="text-sm text-gray-900">
-                    {new Date(ticket.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-
-                {ticket.deadline && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
-                      <AlertCircle size={14} />
-                      Fecha límite
-                    </label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(ticket.deadline).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
-
-                {ticket.tags && ticket.tags.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
-                      <Tag size={14} />
-                      Etiquetas
-                    </label>
-                    <div className="flex flex-wrap gap-1">
-                      {ticket.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <span className="text-sm font-medium text-gray-700 truncate">{assignedUser || 'Sin asignar'}</span>
               </div>
-            </Card>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Creado</label>
+              <div className="flex items-center gap-2 py-1.5 text-sm text-gray-600">
+                <Calendar size={14} className="text-gray-400" />
+                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Edit size={14} className="text-gray-400" />
+            Descripción
+          </h3>
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
+            {ticket.description || 'No hay descripción disponible para este ticket.'}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Tag size={14} className="text-gray-400" />
+              Programas ({programs.length})
+            </h3>
+          </div>
+
+          {programs.length > 0 ? (
+            <div className="space-y-2">
+              {programs.map(p => (
+                <div key={p.id} className="bg-white border border-gray-200 rounded-md p-3 text-sm hover:border-indigo-300 transition-colors flex justify-between items-start group">
+                  <div>
+                    <div className="font-mono text-indigo-600 font-medium text-xs mb-1">{p.object_name}</div>
+                    <div className="text-gray-600">{p.description}</div>
+                  </div>
+                  {user?.role !== 'guest' && (
+                    <button
+                      onClick={() => handleDeleteProgram(p.id)}
+                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Eliminar programa"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 italic">No hay programas asociados.</p>
+          )}
+
+          {user?.role !== 'guest' && (
+            <div className="mt-3">
+              {!addingProgram ? (
+                <button
+                  onClick={() => setAddingProgram(true)}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                >
+                  <Plus size={12} /> Agregar Programa
+                </button>
+              ) : (
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-200 space-y-2">
+                  <input
+                    className="w-full text-xs border-gray-300 rounded"
+                    placeholder="Nombre Objeto"
+                    value={newProgram.object_name}
+                    onChange={e => setNewProgram({ ...newProgram, object_name: e.target.value })}
+                  />
+                  <input
+                    className="w-full text-xs border-gray-300 rounded"
+                    placeholder="Tipo"
+                    value={newProgram.object_type}
+                    onChange={e => setNewProgram({ ...newProgram, object_type: e.target.value })}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setAddingProgram(false)} className="text-xs text-gray-500">Cancelar</button>
+                    <button onClick={handleAddProgram} className="text-xs font-medium text-indigo-600">Guardar</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Paperclip size={14} className="text-gray-400" />
+              Archivos
+            </h3>
+            {user?.role !== 'guest' && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1 disabled:opacity-50 disabled:cursor-wait"
+              >
+                {uploading ? (
+                  <span className="animate-pulse">Subiendo...</span>
+                ) : (
+                  <><Plus size={12} /> Subir</>
+                )}
+              </button>
+            )}
+            <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
+          </div>
+
+          {ticket.attachments && ticket.attachments.length > 0 ? (
+            <div className="space-y-2">
+              {ticket.attachments.map((file, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded-lg group hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Paperclip size={14} className="text-gray-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                      <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleDownloadAttachment(file.url, file.name)} className="p-1.5 text-gray-400 hover:text-indigo-600"><Download size={14} /></button>
+                    {user?.role !== 'guest' && (
+                      <button onClick={() => handleDeleteAttachment(idx)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 border-2 border-dashed border-gray-100 rounded-lg">
+              <p className="text-xs text-gray-400">No hay archivos adjuntos</p>
+            </div>
+          )}
+        </div>
+
+        <div className="pb-4">
+          <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <MessageSquare size={14} className="text-gray-400" />
+            Comentarios
+          </h3>
+
+          <div className="space-y-6">
+            {comments.map((comment) => (
+              <div key={comment.id} className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-1">
+                  {comment.user_name[0].toUpperCase()}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-semibold text-gray-900">{comment.user_name}</span>
+                    <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg rounded-tl-none leading-relaxed">
+                    {comment.content}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 sticky bottom-0 bg-white pt-2">
+            <div className="relative">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Escribe un comentario..."
+                className="w-full text-sm border-gray-200 rounded-lg pl-3 pr-10 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none min-h-[50px]"
+                rows={2}
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={!newComment.trim() || submittingComment}
+                className="absolute right-2 bottom-2 text-indigo-600 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed p-1.5"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
