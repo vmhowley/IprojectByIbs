@@ -16,7 +16,8 @@ export interface UserProfile {
   role: 'admin' | 'user' | 'guest';
   avatar?: string;
   contact_id?: string | null;
-  subscription?: any | null; // Typed loosely to avoid circular dependency, or use imported type
+  subscription_tier?: 'free' | 'pro';
+  subscription?: any | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,4 +1,5 @@
 export * from './Auth';
+export * from './ChatMessage';
 export * from './Client';
 export * from './Comment';
 export * from './Project';

@@ -1,13 +1,18 @@
-import { Calendar, Download, Edit, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Calendar, CheckSquare, Download, Edit, FileText, MessageSquare, Microscope, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { commentService } from '../../services/commentService';
+import { documentService } from '../../services/documentService';
 import { programService } from '../../services/programService';
+import { projectService } from '../../services/projectService';
 import { storageService } from '../../services/storageService';
+import { subtaskService } from '../../services/subtaskService';
 import { ticketService } from '../../services/ticketService';
 import { getUserById } from '../../services/usersService';
-import { Comment, Ticket, TicketProgram } from '../../types';
+import { Comment, Project, Subtask, Ticket, TicketProgram } from '../../types';
+import { confirmAction } from '../../utils/confirmationToast';
 import { Select } from '../ui/Select';
 import { StatusBadge } from '../ui/StatusBadge';
 import { UrgencyBadge } from '../ui/UrgencyBadge';
@@ -22,6 +27,7 @@ interface TicketDetailViewProps {
 export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: TicketDetailViewProps) {
   const { user } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [assignedUser, setAssignedUser] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -38,11 +44,17 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Subtasks state
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [newSubtask, setNewSubtask] = useState('');
+  const [addingSubtask, setAddingSubtask] = useState(false);
+
   useEffect(() => {
     if (ticketId) {
       loadTicket();
       loadComments();
       loadPrograms();
+      loadSubtasks();
       subscribeToComments();
     }
   }, [ticketId]);
@@ -50,8 +62,19 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   useEffect(() => {
     if (ticket) {
       loadUser();
+      loadProject();
     }
   }, [ticket]);
+
+  const loadProject = async () => {
+    if (!ticket?.project_id) return;
+    try {
+      const data = await projectService.getById(ticket.project_id);
+      setProject(data);
+    } catch (error) {
+      console.error("Error loading project", error);
+    }
+  };
 
   const loadUser = async () => {
     if (!ticket?.assigned_to) {
@@ -105,6 +128,15 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
     }
   };
 
+  const loadSubtasks = async () => {
+    try {
+      const data = await subtaskService.getByTicketId(ticketId);
+      setSubtasks(data);
+    } catch (error) {
+      console.error('Error loading subtasks:', error);
+    }
+  };
+
   const subscribeToComments = () => {
     const subscription = supabase
       .channel(`ticket_comments_${ticketId}`)
@@ -135,6 +167,31 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
     }
   };
 
+  const handleQaStatusChange = async (newQaStatus: string) => {
+    if (!ticket) return;
+    try {
+      const updated = await ticketService.update(ticket.id, { qa_status: newQaStatus as any });
+      setTicket(updated);
+      if (onUpdate) onUpdate(updated);
+    } catch (error) {
+      console.error('Error updating QA status:', error);
+    }
+  };
+
+  const handleQaNotesChange = async (newNotes: string) => {
+    if (!ticket) return;
+    // Debouncing could be good here, but for simplicity we update on blur or a explicit save button if needed. 
+    // For now, let's assume we update state locally and handle save on blur?
+    // Or just direct update to keep it simple with atomic updates
+    try {
+      const updated = await ticketService.update(ticket.id, { qa_notes: newNotes });
+      setTicket(updated);
+      if (onUpdate) onUpdate(updated);
+    } catch (error) {
+      console.error('Error updating QA notes:', error);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim() || !ticketId) return;
 
@@ -155,14 +212,20 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   };
 
   const handleDeleteTicket = async () => {
-    if (!ticket || !confirm('¿Estás seguro de que deseas eliminar este ticket?')) return;
+    if (!ticket) return;
 
-    try {
-      await ticketService.delete(ticket.id);
-      if (onDelete) onDelete(ticket.id);
-    } catch (error) {
-      console.error('Error deleting ticket:', error);
-    }
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar este ticket?',
+      onConfirm: async () => {
+        try {
+          await ticketService.delete(ticket.id);
+          if (onDelete) onDelete(ticket.id);
+        } catch (error) {
+          console.error('Error deleting ticket:', error);
+          toast.error('Error al eliminar el ticket, por favor intente nuevamente');
+        }
+      }
+    });
   };
 
   const handleAddProgram = async () => {
@@ -190,14 +253,67 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   };
 
   const handleDeleteProgram = async (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este programa?')) return;
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar este programa?',
+      onConfirm: async () => {
+        // Optimistic update
+        setPrograms(prev => prev.filter(p => p.id !== id));
+
+        try {
+          await programService.delete(id);
+          if (ticket && onUpdate) onUpdate(ticket);
+        } catch (error) {
+          console.error('Error deleting program:', error);
+          toast.error('Error al eliminar el programa');
+          loadPrograms(); // Re-fetch to sync
+        }
+      }
+    });
+  };
+
+  const handleAddSubtask = async () => {
+    if (!ticketId || !newSubtask.trim()) return;
+
+    setAddingSubtask(true);
     try {
-      await programService.delete(id);
-      loadPrograms();
-      if (ticket && onUpdate) onUpdate(ticket);
+      await subtaskService.create({
+        ticket_id: ticketId,
+        title: newSubtask.trim()
+      });
+      setNewSubtask('');
+      loadSubtasks();
     } catch (error) {
-      console.error('Error deleting program:', error);
+      console.error('Error adding subtask:', error);
+    } finally {
+      setAddingSubtask(false);
     }
+  };
+
+  const handleToggleSubtask = async (subtask: Subtask) => {
+    try {
+      await subtaskService.updateStatus(subtask.id, !subtask.is_completed);
+      loadSubtasks(); // Refresh to ensure sync, or optimist update
+    } catch (error) {
+      console.error('Error updating subtask:', error);
+    }
+  };
+
+  const handleDeleteSubtask = async (id: string) => {
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar esta subtarea?',
+      onConfirm: async () => {
+        // Optimistic update
+        setSubtasks(prev => prev.filter(t => t.id !== id));
+
+        try {
+          await subtaskService.delete(id);
+        } catch (error) {
+          console.error('Error deleting subtask:', error);
+          toast.error('Error al eliminar la subtarea');
+          loadSubtasks(); // Re-fetch
+        }
+      }
+    });
   };
 
   const handleDownloadAttachment = async (url: string, filename: string) => {
@@ -220,29 +336,47 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   };
 
   const handleDeleteAttachment = async (attachmentIndex: number) => {
-    if (!ticket || !confirm('¿Estás seguro de que deseas eliminar este archivo adjunto?')) return;
+    if (!ticket) return;
 
-    try {
-      if (!ticket.attachments) return;
-      const attachment = ticket.attachments[attachmentIndex];
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar este archivo adjunto?',
+      onConfirm: async () => {
+        try {
+          if (!ticket.attachments) return;
+          const attachment = ticket.attachments[attachmentIndex];
 
-      const urlObj = new URL(attachment.url);
-      const pathParts = urlObj.pathname.split('/ticket-attachments/');
-      if (pathParts.length > 1) {
-        const filePath = decodeURIComponent(pathParts[1]);
-        await storageService.deleteFile(filePath);
+          const urlObj = new URL(attachment.url);
+          const pathParts = urlObj.pathname.split('/ticket-attachments/');
+          if (pathParts.length > 1) {
+            const filePath = decodeURIComponent(pathParts[1]);
+            await storageService.deleteFile(filePath);
+          }
+
+          const newAttachments = (ticket.attachments || []).filter((_, index) => index !== attachmentIndex);
+          const updatedTicket = await ticketService.update(ticket.id, { attachments: newAttachments });
+          setTicket(updatedTicket);
+          if (onUpdate) onUpdate(updatedTicket);
+
+        } catch (error) {
+          console.error('Error deleting attachment:', error);
+          toast.error("Error al eliminar el archivo adjunto");
+        }
       }
+    });
+  };
 
-      const newAttachments = (ticket.attachments || []).filter((_, index) => index !== attachmentIndex);
-      const updatedTicket = await ticketService.update(ticket.id, { attachments: newAttachments });
-      setTicket(updatedTicket);
-      if (onUpdate) onUpdate(updatedTicket);
 
+  const handleGeneratePass = async () => {
+    if (!ticket) return;
+    try {
+      await documentService.generateProductionPass(ticket, subtasks, programs, project);
     } catch (error) {
-      console.error('Error deleting attachment:', error);
-      alert('Error al eliminar el archivo adjunto');
+      console.error("Error generating pass:", error);
+      console.error("Error generating pass:", error);
+      toast.error("Error al generar el pase a producción");
     }
   };
+
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !ticket) return;
@@ -267,7 +401,8 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
       if (onUpdate) onUpdate(updatedTicket);
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Error al subir el archivo');
+      console.error('Error uploading file:', error);
+      toast.error('Error al subir el archivo');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -311,6 +446,15 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
           <div className="flex items-center gap-1">
             {user?.role !== 'guest' && (
               <>
+                {(ticket.status === 'completed' || ticket.status === 'done' || ticket.status === 'approved') && (
+                  <button
+                    onClick={handleGeneratePass}
+                    className="p-2 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full transition-colors"
+                    title="Generar Pase a Producción"
+                  >
+                    <FileText size={16} />
+                  </button>
+                )}
                 <button
                   onClick={handleDeleteTicket}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
@@ -380,6 +524,103 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
             {ticket.description || 'No hay descripción disponible para este ticket.'}
           </div>
+        </div>
+
+        {/* QA Section */}
+        <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
+          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Microscope size={14} className="text-indigo-600" />
+            QA / Testing
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Estado de Pruebas</label>
+              <div className="flex gap-2">
+                {['pending', 'in_progress', 'verified', 'failed'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => handleQaStatusChange(status)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${ticket.qa_status === status
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                      }`}
+                  >
+                    {status === 'pending' && 'Pendiente'}
+                    {status === 'in_progress' && 'En Proceso'}
+                    {status === 'verified' && 'Verificado'}
+                    {status === 'failed' && 'Fallido'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Notas / Evidencia</label>
+              <textarea
+                className="w-full text-sm border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[60px]"
+                placeholder="Observaciones de QA..."
+                value={ticket.qa_notes || ''}
+                onChange={(e) => setTicket(prev => prev ? ({ ...prev, qa_notes: e.target.value }) : null)}
+                onBlur={(e) => handleQaNotesChange(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Subtasks Section */}
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <CheckSquare size={14} className="text-gray-400" />
+            Subtareas
+          </h3>
+
+          <div className="space-y-2 mb-3">
+            {subtasks.map(task => (
+              <div key={task.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group transition-colors">
+                <input
+                  type="checkbox"
+                  checked={task.is_completed}
+                  onChange={() => handleToggleSubtask(task)}
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  disabled={user?.role === 'guest'}
+                />
+                <span className={`flex-1 text-sm ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                  {task.title}
+                </span>
+                {user?.role !== 'guest' && (
+                  <button
+                    onClick={() => handleDeleteSubtask(task.id)}
+                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Eliminar subtarea"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {subtasks.length === 0 && (
+              <p className="text-xs text-gray-400 italic px-2">No hay subtareas.</p>
+            )}
+          </div>
+
+          {user?.role !== 'guest' && (
+            <div className="flex gap-2">
+              <input
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                placeholder="Nueva subtarea..."
+                className="flex-1 text-sm border-gray-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                disabled={addingSubtask}
+              />
+              <button
+                onClick={handleAddSubtask}
+                disabled={addingSubtask || !newSubtask.trim()}
+                className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {addingSubtask ? '...' : <Plus size={16} />}
+              </button>
+            </div>
+          )}
         </div>
 
         <div>

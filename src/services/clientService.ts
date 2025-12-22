@@ -27,7 +27,7 @@ export const clientService = {
     return handleSupabaseResponse(
       supabase
         .from('clients')
-        .insert([{ ...client, created_by: user?.id }])
+        .insert([{ ...client}])
         .select()
         .single()
     );

@@ -1,5 +1,7 @@
-import { Search, Bell, Settings, User } from 'lucide-react';
+import { Bell, Search, Settings, User } from 'lucide-react';
 import { useState } from 'react';
+
+import { Link } from 'react-router-dom';
 
 export function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,10 +23,10 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3 ml-6">
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative">
+          <Link to="/inbox" className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative">
             <Bell size={20} />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          </Link>
 
           <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
             <Settings size={20} />

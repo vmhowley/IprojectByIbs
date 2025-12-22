@@ -10,6 +10,7 @@ export const projectService = {
     const { data: projectsData, error } = await supabase
         .from('projects')
         .select('*, clients(name)')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -30,12 +31,51 @@ export const projectService = {
         .eq('id', user.id)
         .single();
 
-    // 4. Admin sees all, otherwise filter
-    let filteredProjects = projectsData as Project[];
-    if (profile?.role !== 'admin') {
-      filteredProjects = filteredProjects.filter(p => 
-          p.created_by === user.id || memberProjectIds.includes(p.id)
-      );
+    // 4. Client-side filtering as failsafe (in case RLS is permissive)
+    let filteredProjects = (projectsData || []) as Project[];
+    
+    // Public domains blacklist
+    const publicDomains = [
+      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 
+      'icloud.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'mail.com', 'gmx.com'
+    ];
+    
+    const getDomain = (email: string) => email?.split('@')[1]?.toLowerCase();
+
+    if (profile?.role !== 'admin' && user?.email) {
+      const userDomain = getDomain(user.email);
+      const isPublic = publicDomains.includes(userDomain || '');
+
+      // Fetch creators to check their domains
+      const creatorIds = [...new Set(filteredProjects.map(p => p.created_by).filter(Boolean))] as string[];
+      let creatorMap = new Map<string, { email: string }>();
+      
+      if (creatorIds.length > 0) {
+        const { data: creators } = await supabase
+          .from('user_profiles')
+          .select('id, email')
+          .in('id', creatorIds);
+        creatorMap = new Map(creators?.map(c => [c.id, c]) || []);
+      }
+
+      filteredProjects = filteredProjects.filter(p => {
+        // 1. Own project or Assigned or Member
+        if (p.created_by === user.id || memberProjectIds.includes(p.id) || p.assignee === user.id) return true;
+
+        // 2. Client Access
+        // (If we had client_id in profile, we check it here. Assuming RLS handles strict client access mostly, 
+        // but we can trust RLS for client-isolation if the domain logic below is the main leak)
+
+        // 3. Domain Logic
+        if (!isPublic && userDomain) {
+           const creator = creatorMap.get(p.created_by || '');
+           if (creator && getDomain(creator.email) === userDomain) {
+             return true;
+           }
+        }
+        
+        return false;
+      });
     }
 
     // 5. Fetch assignee profiles manually to avoid join issues
@@ -64,6 +104,7 @@ export const projectService = {
         .from('projects')
         .select('*, clients(name)')
         .eq('id', id)
+        .is('deleted_at', null)
         .maybeSingle()
     );
   },
@@ -104,11 +145,14 @@ export const projectService = {
   },
 
   async delete(id: string): Promise<void> {
-    await handleSupabaseResponse(
-      supabase
+    const { error } = await supabase
         .from('projects')
-        .delete()
-        .eq('id', id)
-    );
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+
+    if (error) throw error;
+    
+    // Log activity for soft delete
+    await activityService.logActivity(id, 'deleted (archived)', {});
   }
 };

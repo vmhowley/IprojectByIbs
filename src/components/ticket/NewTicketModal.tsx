@@ -1,10 +1,11 @@
-import { FileIcon, Upload, X, XCircle } from 'lucide-react';
+import { FileIcon, Sparkles, Upload, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { UserPicker } from '../ui/UserPicker';
+import { type } from 'os';
 
 interface NewTicketModalProps {
   projectId: string;
@@ -25,6 +26,7 @@ export interface TicketFormData {
   urgency: 'low' | 'medium' | 'high' | 'critical' | 'minor' | 'moderate';
   assigned_to?: string | null;
   files?: File[];
+  subtasks?: string[];
 }
 
 export function NewTicketModal({ projectId, projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
@@ -36,10 +38,15 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
     description: '',
     status: 'pending_analysis',
     urgency: 'medium',
-    files: []
+    files: [],
+    subtasks: []
   });
+  const [newSubtask, setNewSubtask] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [magicPrompt, setMagicPrompt] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -88,6 +95,68 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const handleAddSubtask = () => {
+    if (!newSubtask.trim()) return;
+    setFormData(prev => ({
+      ...prev,
+      subtasks: [...(prev.subtasks || []), newSubtask.trim()]
+    }));
+    setNewSubtask('');
+  };
+
+  const handleRemoveSubtask = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      subtasks: prev.subtasks?.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSubtaskKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSubtask();
+    }
+  };
+
+  const handleMagicFill = async () => {
+    // If we have a description, try to enhance it. If empty, ask user.
+    // Actually, following the "Text-to-Ticket" idea:
+    const textToAnalyze = formData.description || formData.subject;
+    if (!textToAnalyze || textToAnalyze.length < 5) {
+      setError("Por favor escribe una idea básica en el asunto o descripción primero.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+    try {
+      // Lazy load service to avoid issues if not set up
+      const { aiService } = await import('../../services/aiService');
+
+      // Temporary: Check if key exists, if not, prompt user (for development/demo)
+      if (!aiService.hasKey()) {
+        const key = prompt("Para probar la IA, por favor introduce tu Google Gemini API Key:");
+        if (key) aiService.setApiKey(key);
+        else throw new Error("API Key requerida para usar IA");
+      }
+
+      const generated = await aiService.generateTicketFromText(textToAnalyze);
+
+      setFormData(prev => ({
+        ...prev,
+        subject: generated.subject || prev.subject,
+        description: generated.description || prev.description,
+        urgency: generated.priority as any || prev.urgency,
+        request_type: generated.type as any === 'bug' ? 'bug' : generated.type === 'feature_request' ? 'feature' : 'other',
+      }));
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Error generando ticket con IA");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -122,7 +191,19 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Nueva Solicitud</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Nueva Solicitud</h2>
+            <button
+              type="button"
+              onClick={handleMagicFill}
+              disabled={isGenerating}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200 transition-colors"
+              title="Escribe una idea en la descripción y haz clic para autocompletar"
+            >
+              <Sparkles className="w-3 h-3" />
+              {isGenerating ? 'Generando...' : 'Autocompletar con IA'}
+            </button>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -180,6 +261,45 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Detalles del Ticket</h3>
 
               <div className="space-y-4">
+                {/* Subtasks Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subtareas
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      onKeyDown={handleSubtaskKeyDown}
+                      placeholder="Escribir una subtarea (Enter para agregar)"
+                      disabled={isSubmitting}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleAddSubtask}
+                      disabled={isSubmitting || !newSubtask.trim()}
+                    >
+                      Agregar
+                    </Button>
+                  </div>
+                  {formData.subtasks && formData.subtasks.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {formData.subtasks.map((task, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 border border-gray-200 p-2 rounded-md text-sm">
+                          <span className="text-gray-700">{task}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubtask(index)}
+                            className="text-gray-400 hover:text-red-500"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                     Descripción

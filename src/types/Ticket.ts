@@ -5,8 +5,18 @@ export interface Attachment {
   type: string;
 }
 
+
+export interface Subtask {
+  id: string;
+  ticket_id: string;
+  title: string;
+  is_completed: boolean;
+  created_at: string;
+}
+
 export interface Ticket {
   id: string;
+  ticket_number?: number;
   project_id: string;
   description: string | null;
   status: 'pending_analysis' | 'pending_approval' | 'approved' | 'ongoing' | 'completed' | 'done' ;
@@ -26,10 +36,12 @@ export interface Ticket {
   subject?: string | null;
   request_type?: string | null;
   attachments?: Attachment[];
+  subtasks?: Subtask[];
   created_by?: string | null;
   created_at: string;
   updated_at: string;
   files?: File[];
-
+  qa_status?: 'pending' | 'in_progress' | 'verified' | 'failed';
+  qa_notes?: string | null;
 }
 

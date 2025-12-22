@@ -1,5 +1,5 @@
-import { supabase, handleSupabaseResponse } from './api';
 import { TicketProgram } from '../types';
+import { handleSupabaseResponse, supabase } from './api';
 
 export const programService = {
   async getByTicketId(ticketId: string): Promise<TicketProgram[]> {
@@ -34,11 +34,11 @@ export const programService = {
   },
 
   async delete(id: string): Promise<void> {
-    await handleSupabaseResponse(
-      supabase
+    const { error } = await supabase
         .from('ticket_programs')
         .delete()
-        .eq('id', id)
-    );
+        .eq('id', id);
+
+    if (error) throw error;
   }
 };

@@ -5,15 +5,13 @@ import {
   ChevronDown,
   ChevronRight,
   Crown,
-  FileText,
   FolderKanban,
   Hash,
   HelpCircle,
   Home,
   Inbox,
-  Layers,
   Map,
-  Play,
+  Plus,
   Settings,
   Shield,
   Users,
@@ -24,8 +22,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
-import { projectService } from '../../services/projectService';
-import { Project } from '../../types';
+import { channelService } from '../../services/channelService';
+import { notificationService } from '../../services/notificationService';
+import { Channel as TeamChannel } from '../../types/Channel';
 
 interface SidebarProps {
   onNewProject?: () => void;
@@ -33,29 +32,92 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-export function Sidebar({ onNewProject, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPro } = useSubscription();
-  const [projects, setProjects] = useState<Project[]>([]);
+
+  const [channels, setChannels] = useState<TeamChannel[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [expandedSections, setExpandedSections] = useState({
     workspace: true,
     channels: true,
-    engineering: true
+    engineering: false // Deprecated, keeping false
   });
 
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (user && user.role !== 'guest') {
+      loadChannels();
+      loadUnreadCount();
 
-  const loadProjects = async () => {
+      // Listen for project deletions to refresh
+      const handleProjectDeleted = () => {
+        // Reloading the page is the safest way to ensure sidebar consistency if we can't force a re-fetch of projects easily 
+        // But let's try to just re-fetch if we had a project list in sidebar.
+        // Actually Sidebar only has links. If the user was on the deleted project page, they are redirected.
+        // But the Sidebar might have cached data if it had a projects list.
+        // Current Sidebar doesn't list projects directly, it links to /projects.
+        // However, if we added a "Recent Projects" section later, this would be useful.
+        // For now, let's just log it or if we had a project list here, reload it.
+        // Wait, the user complaint is "console error... cannot read what was deleted".
+        // This implies the UI is trying to render the deleted item.
+        // By dispatching this event, we can maybe trigger a reload of data if Sidebar was holding it.
+        // Since Sidebar doesn't seem to hold project list state (only channels), this might be future proofing,
+        // or maybe I missed where projects are listed.
+        // Ah, Sidebar has "workspace -> projects" link. 
+        // If `ProjectList` page is active, it will re-fetch on mount.
+        // If the user meant the Sidebar *Channels* or *Recent*, we need to be careful.
+        // Let's just keep the listener structure.
+        console.log('Project deleted event received');
+      };
+
+      window.addEventListener('project-deleted', handleProjectDeleted);
+
+      // Subscribe to notifications
+      const sub = notificationService.subscribe(user.id, (_notification) => {
+        // Simple increment on new notification
+        setUnreadCount(prev => prev + 1);
+      });
+
+      return () => {
+        sub.unsubscribe();
+      }
+    }
+  }, [user]);
+
+  const loadUnreadCount = async () => {
     try {
-      const data = await projectService.getAll();
-      setProjects(data);
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count || 0);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadChannels = async () => {
+    try {
+      const data = await channelService.getAll();
+      setChannels(data);
     } catch (error) {
-      console.error('Error loading projects:', error);
+      console.error('Error loading channels:', error);
+    }
+  };
+
+  const handleCreateChannel = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const name = prompt('Nombre del nuevo canal (ej. General):');
+    if (!name) return;
+
+    try {
+      // Normalize: remove # if present
+      const cleanName = name.replace(/^#/, '');
+      await channelService.create(cleanName);
+      loadChannels(); // Refresh
+    } catch (error) {
+      alert('Error creando canal');
+      console.error(error);
     }
   };
 
@@ -121,13 +183,20 @@ export function Sidebar({ onNewProject, isOpen = false, onClose }: SidebarProps)
             <Link
               to="/inbox"
               onClick={onClose}
-              className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/inbox')
+              className={`flex items-center justify-between px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/inbox')
                 ? 'bg-gray-200 text-gray-900'
                 : 'text-gray-700 hover:bg-gray-100'
                 }`}
             >
-              <Inbox size={18} />
-              <span>Bandeja de entrada</span>
+              <div className="flex items-center gap-2">
+                <Inbox size={18} />
+                <span>Notificaciones</span>
+              </div>
+              {unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
             <Link
               to="/saved"
@@ -200,79 +269,39 @@ export function Sidebar({ onNewProject, isOpen = false, onClose }: SidebarProps)
 
           {user?.role !== 'guest' && (
             <div className="px-2 mb-4">
-              <button
-                onClick={() => toggleSection('channels')}
-                className="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
-              >
-                <span>Canal</span>
-                {expandedSections.channels ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
+              <div className="flex items-center justify-between px-2 py-1 group">
+                <button
+                  onClick={() => toggleSection('channels')}
+                  className="flex-1 flex items-center justify-between text-xs font-semibold text-gray-600 hover:text-gray-900"
+                >
+                  <span>CANALES DE EQUIPO</span>
+                  {expandedSections.channels ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+                <button
+                  onClick={handleCreateChannel}
+                  title="Crear canal"
+                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded text-gray-500 transition-opacity"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+
               {expandedSections.channels && (
                 <div className="mt-1 space-y-0.5">
-                  <button
-                    onClick={() => toggleSection('engineering')}
-                    className="flex items-center justify-between w-full px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Hash size={16} className="text-gray-500" />
-                      <span>Canal</span>
-                    </div>
-                    {expandedSections.engineering ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </button>
-                  {expandedSections.engineering && (
-                    <div className="ml-6 space-y-0.5">
-                      <Link
-                        to="/engineering/docs"
-                        onClick={onClose}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        <FileText size={16} />
-                        <span>Documentos</span>
-                      </Link>
-                      <Link
-                        to="/engineering/teams"
-                        onClick={onClose}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        <Users size={16} />
-                        <span>Equipos</span>
-                      </Link>
-                      <Link
-                        to="/engineering/initiatives"
-                        onClick={onClose}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        <Layers size={16} />
-                        <span>Iniciativas</span>
-                      </Link>
-                      <Link
-                        to="/engineering/sprint"
-                        onClick={onClose}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        <Play size={16} />
-                        <span>Sprint activo</span>
-                      </Link>
-                    </div>
+                  {channels.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-gray-400 italic">No hay canales.</p>
                   )}
-                  <Link
-                    to="/design"
-                    onClick={onClose}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  >
-                    <Hash size={16} className="text-gray-500" />
-                    <span>Diseño</span>
-                    <ChevronRight size={14} className="ml-auto text-gray-400" />
-                  </Link>
-                  <Link
-                    to="/marketing"
-                    onClick={onClose}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  >
-                    <Hash size={16} className="text-gray-500" />
-                    <span>Marketing</span>
-                    <ChevronRight size={14} className="ml-auto text-gray-400" />
-                  </Link>
+                  {channels.map(channel => (
+                    <Link
+                      key={channel.id}
+                      to={`/channels/${channel.id}`}
+                      onClick={onClose}
+                      className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive(`/channels/${channel.id}`) ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      <Hash size={16} className={isActive(`/channels/${channel.id}`) ? "text-indigo-500" : "text-gray-400"} />
+                      <span>{channel.name}</span>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>

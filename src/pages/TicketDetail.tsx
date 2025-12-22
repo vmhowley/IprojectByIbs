@@ -1,22 +1,26 @@
+import { AlertCircle, Calendar, ChevronRight, Clock, Download, Edit, Paperclip, Plus, Tag, Trash2, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, Calendar, User, Tag, AlertCircle, Trash2, Edit, Paperclip, Download, Plus, MessageSquare, Clock } from 'lucide-react';
-import { Ticket, Comment, TicketProgram } from '../types';
-import { ticketService } from '../services/ticketService';
-import { commentService } from '../services/commentService';
-import { programService } from '../services/programService';
-import { Card } from '../components/ui/Card';
+import toast from 'react-hot-toast';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
-import { Textarea } from '../components/ui/Textarea';
 import { StatusBadge } from '../components/ui/StatusBadge';
+import { Textarea } from '../components/ui/Textarea';
 import { UrgencyBadge } from '../components/ui/UrgencyBadge';
 import { supabase } from '../lib/supabase';
+import { commentService } from '../services/commentService';
+import { programService } from '../services/programService';
+import { ticketService } from '../services/ticketService';
+import { getUserById } from '../services/usersService';
+import { Comment, Ticket, TicketProgram } from '../types';
+import { confirmAction } from '../utils/confirmationToast';
 
 export function TicketDetail() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [assignedUser, setAssignedUser] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -38,6 +42,12 @@ export function TicketDetail() {
       subscribeToComments();
     }
   }, [ticketId]);
+
+  useEffect(() => {
+    if (ticket?.assigned_to) {
+      loadUser();
+    }
+  }, [ticket?.assigned_to]);
 
   const loadTicket = async () => {
     try {
@@ -116,13 +126,34 @@ export function TicketDetail() {
   };
 
   const handleDeleteTicket = async () => {
-    if (!ticket || !confirm('¿Estás seguro de que deseas eliminar este ticket?')) return;
+    if (!ticket) return;
 
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar este ticket?',
+      onConfirm: async () => {
+        try {
+          await ticketService.delete(ticket.id);
+          navigate(`/project/${ticket.project_id}`);
+        } catch (error) {
+          console.error('Error deleting ticket:', error);
+          toast.error('Error al eliminar el ticket');
+        }
+      }
+    });
+  };
+
+  const loadUser = async () => {
+    if (!ticket?.assigned_to) return;
     try {
-      await ticketService.delete(ticket.id);
-      navigate(`/project/${ticket.project_id}`);
+      const data = await getUserById(ticket.assigned_to);
+      if (data) {
+        setAssignedUser(data.name);
+      } else {
+        setAssignedUser('Desconocido');
+      }
     } catch (error) {
-      console.error('Error deleting ticket:', error);
+      console.error('Error loading assigned user:', error);
+      setAssignedUser('Error');
     }
   };
 
@@ -150,13 +181,21 @@ export function TicketDetail() {
   };
 
   const handleDeleteProgram = async (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este programa?')) return;
-    try {
-      await programService.delete(id);
-      loadPrograms();
-    } catch (error) {
-      console.error('Error deleting program:', error);
-    }
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar este programa?',
+      onConfirm: async () => {
+        // Optimistic update
+        setPrograms(prev => prev.filter(p => p.id !== id));
+
+        try {
+          await programService.delete(id);
+        } catch (error) {
+          console.error('Error deleting program:', error);
+          toast.error('Error al eliminar el programa');
+          loadPrograms();
+        }
+      }
+    });
   };
 
   if (loading) {
@@ -169,18 +208,25 @@ export function TicketDetail() {
 
   if (!ticket) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-600">Ticket no encontrado</div>
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-gray-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Ticket no encontrado</h2>
+          <p className="text-gray-500 mb-6">
+            Es posible que el ticket haya sido eliminado o no tengas permisos para verlo.
+          </p>
+          <Button onClick={() => navigate(-1)} variant="secondary">
+            <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+            Volver
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const priorityColors = {
-    low: 'bg-gray-100 text-gray-700',
-    medium: 'bg-blue-100 text-blue-700',
-    high: 'bg-orange-100 text-orange-700',
-    critical: 'bg-red-100 text-red-700'
-  };
+
 
   const statusOptions = [
     { value: 'todo', label: 'Por hacer' },
@@ -242,7 +288,7 @@ export function TicketDetail() {
 
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Programas Modificados/Creados</h3>
-                
+
                 {programs.length > 0 && (
                   <div className="overflow-x-auto mb-4">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -309,8 +355,8 @@ export function TicketDetail() {
                     />
                   </div>
                   <div className="flex justify-end">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={handleAddProgram}
                       disabled={!newProgram.object_name || !newProgram.object_type || addingProgram}
                       className="flex items-center gap-2"
@@ -423,7 +469,7 @@ export function TicketDetail() {
                     Asignado a
                   </label>
                   <p className="text-sm text-gray-900">
-                    {ticket.assigned_to || 'Sin asignar'}
+                    {assignedUser || 'Sin asignar'}
                   </p>
                 </div>
 

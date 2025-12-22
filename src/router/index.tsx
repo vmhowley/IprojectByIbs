@@ -3,10 +3,11 @@ import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { useAuth } from '../hooks/useAuth';
 import { RootLayout } from '../layouts/RootLayout';
 import { AdminPanel } from '../pages/AdminPanel';
+import { ChannelPage } from '../pages/ChannelPage';
 import { Clients } from '../pages/Clients';
-import { ContactUs } from '../pages/ContactUs';
 import { DemoPage } from '../pages/DemoPage';
 import { Home } from '../pages/Home';
+import { InboxPage } from '../pages/InboxPage';
 import { LandingPage } from '../pages/LandingPage';
 import { Login } from '../pages/Login';
 import { PlaceholderPage } from '../pages/PlaceholderPage';
@@ -63,7 +64,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'inbox',
-        element: <ContactUs />,
+        element: <InboxPage />,
       },
       {
         path: 'saved',
@@ -108,6 +109,11 @@ export const router = createBrowserRouter([
       {
         path: 'admin',
         element: <AdminPanel />,
+      },
+
+      {
+        path: 'channels/:channelId',
+        element: <ChannelPage />,
       },
       {
         path: 'clients',

@@ -42,12 +42,31 @@ export async function getUsers() {
   fellowMembers?.forEach(m => userIds.add(m.user_id));
   owners?.forEach(p => { if(p.created_by) userIds.add(p.created_by) });
   
+  // ... (Project based logic stays)
+  
+  // Step 3: ALSO get users with the same email domain (Company/Team view)
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  if (currentUser?.email) {
+      const emailDomain = currentUser.email.split('@')[1];
+      // Exclude public domains from this automatic grouping
+      const publicDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com'];
+      
+      if (!publicDomains.includes(emailDomain)) {
+          const { data: domainUsers } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .ilike('email', `%@${emailDomain}`);
+              
+          domainUsers?.forEach(u => userIds.add(u.id));
+      }
+  }
+
   // Remove myself
   userIds.delete(user.id);
   
   if (userIds.size === 0) return [];
   
-  // Step 3: Fetch profiles
+  // Step 4: Fetch profiles
   const { data: usersData, error: usersError } = await supabase
     .from('user_profiles')
     .select('*')

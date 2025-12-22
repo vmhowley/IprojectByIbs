@@ -20,6 +20,9 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
     const [name, setName] = useState(project.name);
     const [description, setDescription] = useState(project.description || '');
     const [status, setStatus] = useState(project.status);
+    const [priority, setPriority] = useState(project.priority || 'medium');
+    const [startDate, setStartDate] = useState(project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '');
+    const [endDate, setEndDate] = useState(project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '');
     const [clientId, setClientId] = useState(project.client_id || '');
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
@@ -30,6 +33,9 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
             setName(project.name);
             setDescription(project.description || '');
             setStatus(project.status);
+            setPriority(project.priority || 'medium');
+            setStartDate(project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '');
+            setEndDate(project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '');
             setClientId(project.client_id || '');
             loadClients();
         }
@@ -52,6 +58,9 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                 name,
                 description,
                 status: status as 'active' | 'completed' | 'on_hold',
+                priority: priority as 'low' | 'medium' | 'high',
+                start_date: startDate || null,
+                end_date: endDate || null,
                 client_id: clientId || null // Allow clearing client if needed, or enforce it
             });
             onProjectUpdated(updated);
@@ -68,7 +77,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <Card className="w-full max-w-md relative animate-in fade-in zoom-in-95 duration-200">
+            <Card className="w-full max-w-md relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 <button
                     onClick={onClose}
                     className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
@@ -98,16 +107,43 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                         />
                     </div>
 
-                    <Select
-                        label="Estado"
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as any)}
-                        options={[
-                            { value: 'active', label: 'Activo' },
-                            { value: 'on_hold', label: 'En Espera' },
-                            { value: 'completed', label: 'Completado' },
-                        ]}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Select
+                            label="Estado"
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value as any)}
+                            options={[
+                                { value: 'active', label: 'Activo' },
+                                { value: 'on_hold', label: 'En Espera' },
+                                { value: 'completed', label: 'Completado' },
+                            ]}
+                        />
+                        <Select
+                            label="Prioridad"
+                            value={priority}
+                            onChange={(e) => setPriority(e.target.value as any)}
+                            options={[
+                                { value: 'low', label: 'Baja' },
+                                { value: 'medium', label: 'Media' },
+                                { value: 'high', label: 'Alta' },
+                            ]}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            type="date"
+                            label="Fecha Inicio"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                        />
+                        <Input
+                            type="date"
+                            label="Fecha Fin"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                        />
+                    </div>
 
                     <Select
                         label="Cliente Asignado"
