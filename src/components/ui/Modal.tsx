@@ -1,5 +1,5 @@
-import { ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { ReactNode, useEffect } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} mx-4 max-h-[90vh] overflow-hidden flex flex-col`}>
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">

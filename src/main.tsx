@@ -7,6 +7,6 @@ import './index.css';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
-    <Snowfall style={{ position: 'fixed' }} />
+    <Snowfall style={{ position: 'fixed', zIndex: 50 }} />
   </StrictMode>
 );

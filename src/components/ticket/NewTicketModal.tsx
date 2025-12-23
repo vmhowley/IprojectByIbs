@@ -5,7 +5,6 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { UserPicker } from '../ui/UserPicker';
-import { type } from 'os';
 
 interface NewTicketModalProps {
   projectId: string;
@@ -186,7 +185,7 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black bg-opacity-50"
+        className="fixed inset-0 bg-black/50"
         onClick={() => !isSubmitting && onClose()}
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">

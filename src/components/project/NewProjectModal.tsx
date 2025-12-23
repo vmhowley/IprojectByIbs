@@ -49,7 +49,7 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">Nuevo Proyecto</h2>
@@ -77,7 +77,7 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
                 autoFocus
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Cliente

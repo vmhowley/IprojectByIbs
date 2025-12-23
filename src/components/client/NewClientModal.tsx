@@ -1,10 +1,10 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Client } from '../../types/Client';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
-import { createPortal } from 'react-dom';
-import { Client } from '../../types/Client';
 
 interface NewClientModalProps {
   onClose: () => void;
@@ -56,7 +56,7 @@ export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black bg-opacity-50"
+        className="fixed inset-0 bg-black/50"
         onClick={() => !isSubmitting && onClose()}
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">

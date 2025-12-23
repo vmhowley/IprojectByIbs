@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useState } from 'react';
 
 interface NewTaskModalProps {
   projectId: string;
@@ -48,7 +48,7 @@ export function NewTaskModal({ projectId, onClose, onSubmit }: NewTaskModalProps
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">New Task</h2>
@@ -155,15 +155,14 @@ export function NewTaskModal({ projectId, onClose, onSubmit }: NewTaskModalProps
                   key={tag}
                   type="button"
                   onClick={() => toggleTag(tag)}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    selectedTags.includes(tag)
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${selectedTags.includes(tag)
                       ? tag === 'Features'
                         ? 'bg-cyan-100 text-cyan-700'
                         : tag === 'Bugs'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-green-100 text-green-700'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </button>

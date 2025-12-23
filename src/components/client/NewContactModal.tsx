@@ -58,7 +58,7 @@ export function NewContactModal({ clientId, isOpen, onClose, onSubmit }: NewCont
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black bg-opacity-50"
+        className="fixed inset-0 bg-black/50"
         onClick={() => !isSubmitting && onClose()}
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
