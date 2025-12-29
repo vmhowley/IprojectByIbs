@@ -8,13 +8,16 @@ import { Select } from '../components/ui/Select';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Textarea } from '../components/ui/Textarea';
 import { UrgencyBadge } from '../components/ui/UrgencyBadge';
+import NProgress from '../lib/nprogress';
 import { supabase } from '../lib/supabase';
 import { commentService } from '../services/commentService';
 import { programService } from '../services/programService';
 import { ticketService } from '../services/ticketService';
 import { getUserById } from '../services/usersService';
 import { Comment, Ticket, TicketProgram } from '../types';
+
 import { confirmAction } from '../utils/confirmationToast';
+
 
 export function TicketDetail() {
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -51,14 +54,17 @@ export function TicketDetail() {
 
   const loadTicket = async () => {
     try {
+      NProgress.start();
       const data = await ticketService.getById(ticketId!);
       setTicket(data);
     } catch (error) {
       console.error('Error loading ticket:', error);
     } finally {
       setLoading(false);
+      NProgress.done();
     }
   };
+
 
   const loadComments = async () => {
     try {
@@ -199,12 +205,9 @@ export function TicketDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-600">Cargando...</div>
-      </div>
-    );
+    return null;
   }
+
 
   if (!ticket) {
     return (

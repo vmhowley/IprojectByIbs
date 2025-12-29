@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
+import NProgress from '../lib/nprogress';
 import { supabase } from '../services/api';
 import { getUsers } from '../services/usersService';
 import { Client, Contact, UserProfile } from '../types';
+
 export function AdminPanel() {
   const { user, loading: loadingAuth } = useAuth();
   const { isAdmin } = usePermissions();
@@ -29,6 +31,7 @@ export function AdminPanel() {
 
   async function loadUsers() {
     try {
+      NProgress.start();
       setLoading(true);
 
       // 1. Load Users (Critical)
@@ -58,8 +61,10 @@ export function AdminPanel() {
       alert('Error cargando usuarios. Por favor revise la consola.');
     } finally {
       setLoading(false);
+      NProgress.done();
     }
   }
+
 
   async function updateUserRole(userId: string, newRole: 'admin' | 'user' | 'guest') {
     try {
@@ -136,15 +141,9 @@ export function AdminPanel() {
   };
 
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="mt-4 text-gray-600">Cargando...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
+
 
   return (
     <div className="flex-1 overflow-auto">

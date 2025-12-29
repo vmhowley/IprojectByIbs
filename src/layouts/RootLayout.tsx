@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { NewProjectModal } from '../components/project/NewProjectModal';
+import Logo from '../public/Logoibpulse.webp';
 import { projectService } from '../services/projectService';
-
 export function RootLayout() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -21,22 +21,22 @@ export function RootLayout() {
 
   return (
     <div className="h-screen bg-white flex overflow-hidden">
-      <Sidebar 
-        onNewProject={() => setIsNewProjectModalOpen(true)} 
+      <Sidebar
+        onNewProject={() => setIsNewProjectModalOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
-      
+
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Mobile Header with Menu Button */}
         <div className="md:hidden border-b border-gray-200 p-4 flex items-center bg-white sticky top-0 z-30 flex-shrink-0">
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(true)}
             className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-md"
           >
             <Menu size={24} />
           </button>
-          <span className="ml-2 font-semibold text-gray-900">IBS Project Tracker</span>
+          <span className="ml-2 font-semibold text-gray-900"><img className='w-30 h-8 object-cover object-center' src={Logo} alt="" /></span>
         </div>
 
         <main className="flex-1 overflow-y-auto">

@@ -9,9 +9,11 @@ import { ProjectCard } from '../components/project/ProjectCard';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { useSubscription } from '../hooks/useSubscription';
+import NProgress from '../lib/nprogress';
 import { projectService } from '../services/projectService';
 import { ticketService } from '../services/ticketService';
 import { Project, Ticket } from '../types';
+
 
 export function Home() {
   const { user } = useAuth();
@@ -29,6 +31,8 @@ export function Home() {
 
   const loadProjects = async () => {
     try {
+      NProgress.start();
+      setLoading(true);
       // Load projects first
       const projectsData = await projectService.getAll();
       setProjects(projectsData);
@@ -70,8 +74,10 @@ export function Home() {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
+      NProgress.done();
     }
   };
+
 
   const handleCreateProject = async (projectData: { name: string; description: string }) => {
     try {
@@ -104,18 +110,12 @@ export function Home() {
   const completedCount = statusStats.done + statusStats.completed;
 
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando dashboard...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
+
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50">
+    <div className="flex-1 overflow-y-auto ">
       <div className="max-w-7xl mx-auto p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -123,13 +123,13 @@ export function Home() {
             <p className="text-gray-600 mt-1">Resumen general de proyectos y solicitudes</p>
           </div>
           {user?.role !== 'guest' && (
-            <button
+            <Button
               onClick={() => setIsNewProjectModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Plus size={18} />
               Nuevo Proyecto
-            </button>
+            </Button>
           )}
         </div>
 

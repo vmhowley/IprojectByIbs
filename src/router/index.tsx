@@ -1,7 +1,10 @@
+import { useEffect } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { useAuth } from '../hooks/useAuth';
 import { RootLayout } from '../layouts/RootLayout';
+import NProgress from '../lib/nprogress';
+
 import { AdminPanel } from '../pages/AdminPanel';
 import { ChannelPage } from '../pages/ChannelPage';
 import { Clients } from '../pages/Clients';
@@ -126,15 +129,18 @@ export const router = createBrowserRouter([
 function LandingPageWrapper() {
   const { user, loading, initialized } = useAuth();
 
+  useEffect(() => {
+    if (loading || !initialized) {
+      NProgress.start();
+    } else {
+      NProgress.done();
+    }
+  }, [loading, initialized]);
+
   if (loading || !initialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        </div>
-      </div>
-    );
+    return null;
   }
+
 
   if (user) {
     return <Navigate to="/dashboard" replace />;

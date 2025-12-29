@@ -15,13 +15,16 @@ import { ViewSwitcher, ViewType } from '../components/ui/ViewSwitcher';
 import { BoardView } from '../components/views/BoardView';
 import { TableView } from '../components/views/TableView';
 import { useAuth } from '../hooks/useAuth';
+import NProgress from '../lib/nprogress';
 import { supabase } from '../lib/supabase';
 import { projectService } from '../services/projectService';
 import { storageService } from '../services/storageService';
 import { ticketService } from '../services/ticketService';
 import { getUsers } from '../services/usersService';
 import { Attachment, Project, Ticket, UserProfile } from '../types';
+
 import { confirmAction } from '../utils/confirmationToast';
+
 
 export function ProjectDetail() {
 
@@ -49,6 +52,7 @@ export function ProjectDetail() {
 
   const loadData = async () => {
     try {
+      NProgress.start();
       const projectData = await projectService.getById(projectId!);
       setProject(projectData);
 
@@ -74,8 +78,10 @@ export function ProjectDetail() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+      NProgress.done();
     }
   };
+
 
   const loadUsers = async () => {
     try {
@@ -235,12 +241,9 @@ export function ProjectDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return null;
   }
+
 
   // ... (rest of render logic, headers)
 

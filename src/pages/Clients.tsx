@@ -7,8 +7,10 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { useSubscription } from '../hooks/useSubscription';
+import NProgress from '../lib/nprogress';
 import { clientService } from '../services/clientService';
 import { Client, Contact } from '../types/Client';
+
 
 export function Clients() {
   const { limits } = useSubscription();
@@ -36,6 +38,7 @@ export function Clients() {
 
   const loadClients = async () => {
     try {
+      NProgress.start();
       setIsLoading(true);
       const data = await clientService.getAll();
       setClients(data);
@@ -43,8 +46,10 @@ export function Clients() {
       console.error('Error loading clients:', error);
     } finally {
       setIsLoading(false);
+      NProgress.done();
     }
   };
+
 
   const loadContacts = async (clientId: string) => {
     try {
@@ -131,8 +136,9 @@ export function Clients() {
         {/* Clients List */}
         <div className="w-1/3 border-r border-gray-200 bg-white overflow-y-auto">
           {isLoading ? (
-            <div className="p-6 text-center text-gray-500">Cargando clientes...</div>
+            null
           ) : filteredClients.length === 0 ? (
+
             <div className="p-6 text-center text-gray-500">No se encontraron clientes</div>
           ) : (
             <div className="divide-y divide-gray-100">

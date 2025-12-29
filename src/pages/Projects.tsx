@@ -2,6 +2,7 @@ import { FolderKanban, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NewProjectModal } from '../components/project/NewProjectModal';
+import { ProjectBoardCard } from '../components/project/ProjectBoardCard';
 import { ProjectCard } from '../components/project/ProjectCard';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,9 +12,10 @@ import { BoardView } from '../components/views/BoardView';
 import { TableView } from '../components/views/TableView';
 import { useAuth } from '../hooks/useAuth';
 import { useSubscription } from '../hooks/useSubscription';
+import NProgress from '../lib/nprogress';
 import { projectService } from '../services/projectService';
 import { Project } from '../types';
-import { ProjectBoardCard } from '../components/project/ProjectBoardCard';
+
 
 export function Projects() {
   const { user } = useAuth();
@@ -44,6 +46,7 @@ export function Projects() {
 
   const loadProjects = async () => {
     try {
+      NProgress.start();
       setIsLoading(true);
       const data = await projectService.getAll();
       setProjects(data);
@@ -52,8 +55,10 @@ export function Projects() {
       console.error('Error loading projects:', error);
     } finally {
       setIsLoading(false);
+      NProgress.done();
     }
   };
+
 
   const handleCreateProject = async (projectData: Partial<Project>) => {
     try {
@@ -78,15 +83,9 @@ export function Projects() {
 
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando proyectos...</p>
-          </div>
-        </div>
-      );
+      return null;
     }
+
 
     if (filteredProjects.length === 0) {
       return (

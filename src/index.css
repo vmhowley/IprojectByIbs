@@ -56,3 +56,18 @@
     --chart-5: 340 75% 55%
   }
 }
+
+/* NProgress Custom Styling */
+#nprogress .bar {
+  background: #ff0000 !important; /* blue-600 */
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #ff0000, 0 0 5px #ff0000 !important;
+}
+
+#nprogress .spinner-icon {
+  border-top-color: #ff0000 !important;
+  border-left-color: #ff0000 !important;
+}

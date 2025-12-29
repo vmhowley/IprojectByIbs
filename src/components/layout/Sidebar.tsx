@@ -22,10 +22,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
+import Logo from '../../public/Logoibpulse.webp';
 import { channelService } from '../../services/channelService';
 import { notificationService } from '../../services/notificationService';
 import { Channel as TeamChannel } from '../../types/Channel';
-
 interface SidebarProps {
   onNewProject?: () => void;
   isOpen?: boolean;
@@ -147,14 +147,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       `}>
         <div className="p-3 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-black rounded-md flex items-center justify-center text-white font-bold text-sm">
-              IBS
-            </div>
-            <div>
-              <h1 className="font-semibold text-sm text-gray-900">IBS Project Tracker</h1>
-              <p className="text-xs text-gray-500 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                Sincronizando
+            <div className="flex flex-col  ">
+              <img className="object-cover w-50 h-12" src={Logo} alt="Logo" />
+              <p className="text-[10px] text-gray-500 flex items-center gap-1 justify-end">
+                By IBSYSTEMS.SRL
               </p>
             </div>
           </div>

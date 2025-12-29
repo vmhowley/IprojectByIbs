@@ -2,7 +2,9 @@ import { Bell, Check, CheckCheck, ChevronRight, Clock, Info, MessageSquare, User
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import NProgress from '../lib/nprogress';
 import { Notification, notificationService } from '../services/notificationService';
+
 
 export const InboxPage = () => {
     const { user } = useAuth();
@@ -25,14 +27,17 @@ export const InboxPage = () => {
 
     const loadNotifications = async () => {
         try {
+            NProgress.start();
             const data = await notificationService.getAll();
             setNotifications(data);
         } catch (error) {
             console.error('Error loading notifications:', error);
         } finally {
             setLoading(false);
+            NProgress.done();
         }
     };
+
 
     const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -104,8 +109,9 @@ export const InboxPage = () => {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[400px]">
                 {loading ? (
-                    <div className="text-center py-12 text-gray-400">Cargando notificaciones...</div>
+                    null
                 ) : notifications.length === 0 ? (
+
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                             <Check className="w-8 h-8 text-gray-400" />
