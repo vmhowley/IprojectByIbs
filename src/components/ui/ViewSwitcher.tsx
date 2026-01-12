@@ -14,8 +14,8 @@ export function ViewSwitcher({ currentView, onViewChange }: ViewSwitcherProps) {
                 onClick={() => onViewChange('list')}
                 title="Lista"
                 className={`p-1.5 rounded-md transition-all ${currentView === 'list'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                     }`}
             >
                 <List size={18} />
@@ -24,8 +24,8 @@ export function ViewSwitcher({ currentView, onViewChange }: ViewSwitcherProps) {
                 onClick={() => onViewChange('board')}
                 title="Tablero"
                 className={`p-1.5 rounded-md transition-all ${currentView === 'board'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                     }`}
             >
                 <Kanban size={18} />
@@ -34,8 +34,8 @@ export function ViewSwitcher({ currentView, onViewChange }: ViewSwitcherProps) {
                 onClick={() => onViewChange('table')}
                 title="Tabla"
                 className={`p-1.5 rounded-md transition-all ${currentView === 'table'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                     }`}
             >
                 <Table2 size={18} />

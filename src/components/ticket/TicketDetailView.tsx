@@ -1,4 +1,4 @@
-import { Calendar, CheckSquare, Download, Edit, FileText, MessageSquare, Microscope, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Calendar, CheckSquare, Download, Edit, FileText, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -526,45 +526,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
           </div>
         </div>
 
-        {/* QA Section */}
-        <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
-          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Microscope size={14} className="text-indigo-600" />
-            QA / Testing
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Estado de Pruebas</label>
-              <div className="flex gap-2">
-                {['pending', 'in_progress', 'verified', 'failed'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => handleQaStatusChange(status)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${ticket.qa_status === status
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                      }`}
-                  >
-                    {status === 'pending' && 'Pendiente'}
-                    {status === 'in_progress' && 'En Proceso'}
-                    {status === 'verified' && 'Verificado'}
-                    {status === 'failed' && 'Fallido'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Notas / Evidencia</label>
-              <textarea
-                className="w-full text-sm border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[60px]"
-                placeholder="Observaciones de QA..."
-                value={ticket.qa_notes || ''}
-                onChange={(e) => setTicket(prev => prev ? ({ ...prev, qa_notes: e.target.value }) : null)}
-                onBlur={(e) => handleQaNotesChange(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+
 
         {/* Subtasks Section */}
         <div>
@@ -609,7 +571,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                 onChange={(e) => setNewSubtask(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
                 placeholder="Nueva subtarea..."
-                className="flex-1 text-sm border-gray-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="flex-1 text-sm border border-gray-400 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 disabled={addingSubtask}
               />
               <button
@@ -665,20 +627,26 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   <Plus size={12} /> Agregar Programa
                 </button>
               ) : (
-                <div className="bg-gray-50 p-3 rounded-md border border-gray-200 space-y-2">
+                <div className=" grid grid-cols-2 w-full gap-2 bg-gray-50 p-3 rounded-md border border-gray-200 space-y-2">
                   <input
-                    className="w-full text-xs border-gray-300 rounded"
-                    placeholder="Nombre Objeto"
+                    className="w-full ps-3 border h-8 text-xs border-gray-300 rounded"
+                    placeholder="Objeto"
                     value={newProgram.object_name}
                     onChange={e => setNewProgram({ ...newProgram, object_name: e.target.value })}
                   />
                   <input
-                    className="w-full text-xs border-gray-300 rounded"
+                    className="w-full ps-3 border h-8 text-xs border-gray-300 rounded"
                     placeholder="Tipo"
                     value={newProgram.object_type}
                     onChange={e => setNewProgram({ ...newProgram, object_type: e.target.value })}
                   />
-                  <div className="flex justify-end gap-2">
+                  <input
+                    className="w-full ps-3 col-span-2 border h-8 text-xs border-gray-300 rounded"
+                    placeholder="Descripción"
+                    value={newProgram.description}
+                    onChange={e => setNewProgram({ ...newProgram, description: e.target.value })}
+                  />
+                  <div className="flex col-span-2 gap-2 justify-end  ">
                     <button onClick={() => setAddingProgram(false)} className="text-xs text-gray-500">Cancelar</button>
                     <button onClick={handleAddProgram} className="text-xs font-medium text-indigo-600">Guardar</button>
                   </div>

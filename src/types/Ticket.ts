@@ -27,6 +27,12 @@ export interface Ticket {
   assigned_to_profile?: {
     name: string;
   } | null;
+  projects?: {
+    name: string;
+  } | null;
+  clients?: {
+    name: string;
+  } | null;
   date_added: string;
   deadline: string | null;
   tags: string[];

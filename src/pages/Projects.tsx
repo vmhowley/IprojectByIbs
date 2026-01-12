@@ -1,10 +1,10 @@
-import { FolderKanban, Plus, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+
+import { ChevronDown, ChevronRight, FolderKanban, Plus, Search, Users } from 'lucide-react'; // Added icons
+import { useEffect, useState } from 'react'; // Added useMemo
 import { useNavigate } from 'react-router-dom';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectBoardCard } from '../components/project/ProjectBoardCard';
 import { ProjectCard } from '../components/project/ProjectCard';
-import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ViewSwitcher, ViewType } from '../components/ui/ViewSwitcher';
@@ -27,6 +27,9 @@ export function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewType>('list');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+
+  // New state for collapsible sections
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadProjects();
@@ -51,6 +54,11 @@ export function Projects() {
       const data = await projectService.getAll();
       setProjects(data);
       setFilteredProjects(data);
+
+      // Auto-expand all clients by default
+      const allClientIds = new Set(data.map(p => p.client_id || 'unassigned'));
+      setExpandedClients(allClientIds);
+
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -81,6 +89,18 @@ export function Projects() {
     setShowNewProjectModal(true);
   };
 
+  const toggleClient = (clientId: string) => {
+    setExpandedClients(prev => {
+      const next = new Set(prev);
+      if (next.has(clientId)) {
+        next.delete(clientId);
+      } else {
+        next.add(clientId);
+      }
+      return next;
+    });
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return null;
@@ -101,10 +121,10 @@ export function Projects() {
                 : 'Comienza creando tu primer proyecto'}
             </p>
             {!searchQuery && user?.role !== 'guest' && (
-              <Button onClick={handleNewProjectClick}>
+              <button onClick={handleNewProjectClick}>
                 <Plus size={18} />
                 Crear Proyecto
-              </Button>
+              </button>
             )}
           </div>
         </div>
@@ -164,76 +184,64 @@ export function Projects() {
       );
     }
 
-    // Default: List (which was the old 'grid' actually, or 'list')
-    // The user had a Grid/List toggle before. "List" implies linear. "Grid" implies cards.
-    // The new "List" should probably be the Grid of Cards (Visual List).
-    // Or a ListView component?
-    // Let's keep the Grid of Cards as the default "List" view for now as it's the main UI.
-    // Actually, "List" usually means rows. "Board" means columns. "Grid" means Gallery.
-    // The previous implementation had "Grid" (Gallery) and "List" (Stacked).
-    // Let's map ViewSwitcher 'list' to the previous Grid/List UI? 
-    // No, let's map 'list' to a clean stacked list or grid.
-    // Let's treat 'list' as the Grid view (Gallery) because that's the most common "Project List" view.
-    // Wait, the icons in ViewSwitcher are specific. 'List' icon = rows.
-    // So 'list' should be rows.
-    // But 'table' is also rows.
-    // Maybe 'grid' should be added to ViewSwitcher if we want to keep the Gallery view.
-    // Let's assume 'list' = Grid of Cards (Visual) because that's what ProjectCard usually is.
-    // Actually, ViewSwitcher has `Grid3x3`. I used `List`, `Kanban`, `Table2`.
-    // Let's update `ViewSwitcher` to include 'grid' if needed, or just map 'list' to Grid.
-    // But 'list' icon is rows.
-    // Let's map 'list' to the Grid view for now, as it's the main view, OR add 'grid' option.
-    // The user asked for "Table, Board, List".
-    // "Board" = Kanban. 
-    // "Table" = Data Grid.
-    // "List" = ?? Maybe simple list of cards?
-    // Let's implement active/completed sections like before for "List" view.
+    // Default: List (Grid) organized by Client
 
-    // Grouping for List/Grid view
-    const activeProjects = filteredProjects.filter(p => p.status === 'active');
-    const completedProjects = filteredProjects.filter(p => p.status === 'completed');
-    const archivedProjects = filteredProjects.filter(p => !p.status || p.status === 'archived');
+    // Group Projects by Client
+    const groupedProjects = filteredProjects.reduce((groups, project) => {
+      const clientId = project.client_id || 'unassigned';
+      const clientName = project.clients?.name || 'Sin Cliente Asignado';
+
+      if (!groups[clientId]) {
+        groups[clientId] = {
+          id: clientId,
+          name: clientName,
+          projects: []
+        };
+      }
+      groups[clientId].projects.push(project);
+      return groups;
+    }, {} as Record<string, { id: string, name: string, projects: Project[] }>);
+
+    const sortedClientIds = Object.keys(groupedProjects).sort((a, b) =>
+      groupedProjects[a].name.localeCompare(groupedProjects[b].name)
+    );
 
     return (
-      <div className="space-y-8">
-        {activeProjects.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Activos ({activeProjects.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="space-y-6">
+        {sortedClientIds.map(clientId => {
+          const group = groupedProjects[clientId];
+          const isExpanded = expandedClients.has(clientId);
 
-        {completedProjects.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Completados ({completedProjects.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {completedProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          </div>
-        )}
+          return (
+            <div key={clientId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              {/* Client Header */}
+              <div
+                className="flex items-center gap-2 px-4 py-3 bg-indigo-50/50 cursor-pointer hover:bg-indigo-50 transition-colors border-b border-gray-100"
+                onClick={() => toggleClient(clientId)}
+              >
+                <button className="text-gray-400 hover:text-indigo-600">
+                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                </button>
+                <Users className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-semibold text-gray-900">{group.name}</h2>
+                <span className="text-sm text-gray-500 ml-auto bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                  {group.projects.length} proyectos
+                </span>
+              </div>
 
-        {archivedProjects.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Archivados ({archivedProjects.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {archivedProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
+              {/* Projects Grid */}
+              {isExpanded && (
+                <div className="p-6 bg-gray-50/30">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {group.projects.map((project) => (
+                      <ProjectCard key={project.id} project={project} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })}
       </div>
     );
   };
@@ -254,10 +262,10 @@ export function Projects() {
             </div>
           </div>
           {user?.role !== 'guest' && (
-            <Button onClick={() => setShowNewProjectModal(true)}>
+            <button onClick={() => setShowNewProjectModal(true)}>
               <Plus size={18} />
               Nuevo Proyecto
-            </Button>
+            </button>
           )}
         </div>
 

@@ -1,20 +1,20 @@
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import { buttonHTMLAttributes, ReactNode } from 'react';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface buttonProps extends buttonHTMLAttributes<HTMLbuttonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   children: ReactNode;
 }
 
-export function Button({
+export function button({
   variant = 'primary',
   size = 'md',
   children,
   className = '',
   isLoading,
   ...props
-}: ButtonProps) {
+}: buttonProps) {
   const baseClasses = 'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
 
   const variantClasses = {

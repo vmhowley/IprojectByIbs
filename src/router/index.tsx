@@ -18,6 +18,8 @@ import { PricingPage } from '../pages/PricingPage';
 import { ProjectDetail } from '../pages/ProjectDetail';
 import { Projects } from '../pages/Projects';
 import { Register } from '../pages/Register';
+import { SettingsPage } from '../pages/SettingsPage';
+import { TasksPage } from '../pages/TasksPage';
 import { TicketDetail } from '../pages/TicketDetail';
 
 // Authentication enabled
@@ -75,7 +77,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'tasks',
-        element: <PlaceholderPage />,
+        element: <TasksPage />,
       },
       {
         path: 'projects',
@@ -103,7 +105,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <PlaceholderPage />,
+        element: <SettingsPage />,
       },
       {
         path: 'help',

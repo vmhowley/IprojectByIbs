@@ -1,6 +1,4 @@
 import {
-  Bookmark,
-  Calendar,
   CheckSquare,
   ChevronDown,
   ChevronRight,
@@ -10,7 +8,6 @@ import {
   HelpCircle,
   Home,
   Inbox,
-  Map,
   Plus,
   Settings,
   Shield,
@@ -85,7 +82,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         sub.unsubscribe();
       }
     }
-  }, [user]);
+  }, [user?.id, user?.role]);
 
   const loadUnreadCount = async () => {
     try {
@@ -194,7 +191,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 </span>
               )}
             </Link>
-            <Link
+            {/* <Link
               to="/saved"
               onClick={onClose}
               className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/saved')
@@ -204,7 +201,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             >
               <Bookmark size={18} />
               <span>Items guardados</span>
-            </Link>
+            </Link> */}
           </div>
 
           <div className="px-2 mb-4">
@@ -233,22 +230,22 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   <FolderKanban size={18} />
                   <span>Proyectos</span>
                 </Link>
-                <Link
+                {/* <Link
                   to="/calendar"
                   onClick={onClose}
                   className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   <Calendar size={18} />
                   <span>Calendario</span>
-                </Link>
-                <Link
+                </Link> */}
+                {/* <Link
                   to="/roadmaps"
                   onClick={onClose}
                   className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   <Map size={18} />
                   <span>Mapas</span>
-                </Link>
+                </Link> */}
                 {user?.role !== 'guest' && (
                   <Link
                     to="/clients"

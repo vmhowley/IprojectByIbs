@@ -22,16 +22,20 @@ export const paymentService = {
 
     if (error) {
       console.error('Error creating checkout session:', error);
-      alert(`Error del servidor: ${error.message || JSON.stringify(error)}`); // Show user the error
+      
+
+
+      // Enhanced error reporting
+      let errorMessage = error.message || JSON.stringify(error);
+      if (errorMessage.includes('FunctionsHttpError')) {
+          errorMessage += "\n\n(Esto suele significar que la Edge Function de Supabase falló. Revisa si 'STRIPE_SECRET_KEY' está configurada en los Secretos de Supabase.)";
+      }
+      
+      alert(`Error iniciando sesión de pago: ${errorMessage}`);
       throw error;
     }
 
     const session = data?.session;
-
-    if (error) {
-      console.error('Error creating checkout session:', error);
-      throw error;
-    }
 
     if (!session?.url) {
        throw new Error('No checkout URL returned from backend');

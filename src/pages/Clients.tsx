@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NewClientModal } from '../components/client/NewClientModal';
 import { NewContactModal } from '../components/client/NewContactModal';
-import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { useSubscription } from '../hooks/useSubscription';
@@ -13,7 +12,7 @@ import { Client, Contact } from '../types/Client';
 
 
 export function Clients() {
-  const { limits } = useSubscription();
+  const { limits, isPro } = useSubscription();
   const navigate = useNavigate();
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -85,9 +84,9 @@ export function Clients() {
   };
 
   const handleNewClientClick = () => {
-    // If limit is 0, it means blocked feature
-    if (limits.maxClients === 0) {
-      if (confirm('La gestión de clientes es una función premium.\n\n¿Deseas actualizar a Pro?')) {
+    // If limit is reached
+    if (!isPro && clients.length >= limits.maxClients) {
+      if (confirm(`Has alcanzado el límite de ${limits.maxClients} clientes de tu plan Gratis.\n\n¿Deseas actualizar a Pro para gestionar clientes ilimitados?`)) {
         navigate('/pricing');
       }
       return;
@@ -114,10 +113,10 @@ export function Clients() {
               </p>
             </div>
           </div>
-          <Button onClick={handleNewClientClick}>
+          <button onClick={handleNewClientClick}>
             <Plus size={18} />
             Nuevo Cliente
-          </Button>
+          </button>
         </div>
 
         <div className="relative max-w-md">
@@ -197,9 +196,9 @@ export function Clients() {
                       )}
                     </div>
                   </div>
-                  <Button variant="secondary" size="sm">
+                  <button variant="secondary" size="sm">
                     Editar
-                  </Button>
+                  </button>
                 </div>
                 {selectedClient.notes && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
@@ -215,10 +214,10 @@ export function Clients() {
                     <Users size={20} />
                     Contactos
                   </h3>
-                  <Button size="sm" onClick={() => setShowNewContactModal(true)}>
+                  <button size="sm" onClick={() => setShowNewContactModal(true)}>
                     <Plus size={16} />
                     Agregar Contacto
-                  </Button>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

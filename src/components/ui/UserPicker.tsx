@@ -36,7 +36,7 @@ export function UserPicker({ value, onChange, placeholder = 'Seleccionar usuario
   }
 
   const selectedUser = users.find(u => u.id === value);
-  
+
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -124,9 +124,8 @@ export function UserPicker({ value, onChange, placeholder = 'Seleccionar usuario
                     key={user.id}
                     type="button"
                     onClick={() => handleSelect(user.id)}
-                    className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                      value === user.id ? 'bg-indigo-50' : ''
-                    }`}
+                    className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-2 ${value === user.id ? 'bg-indigo-50' : ''
+                      }`}
                   >
                     <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                       {user.name.charAt(0).toUpperCase()}

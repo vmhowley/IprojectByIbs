@@ -2,7 +2,6 @@ import { AlertCircle, Calendar, ChevronRight, Clock, Download, Edit, Paperclip, 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { StatusBadge } from '../components/ui/StatusBadge';
@@ -220,10 +219,10 @@ export function TicketDetail() {
           <p className="text-gray-500 mb-6">
             Es posible que el ticket haya sido eliminado o no tengas permisos para verlo.
           </p>
-          <Button onClick={() => navigate(-1)} variant="secondary">
+          <button onClick={() => navigate(-1)} variant="secondary">
             <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
             Volver
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -273,12 +272,12 @@ export function TicketDetail() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
+                  <button variant="ghost" size="sm">
                     <Edit size={16} />
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={handleDeleteTicket}>
+                  </button>
+                  <button variant="danger" size="sm" onClick={handleDeleteTicket}>
                     <Trash2 size={16} />
-                  </Button>
+                  </button>
                 </div>
               </div>
 
@@ -358,7 +357,7 @@ export function TicketDetail() {
                     />
                   </div>
                   <div className="flex justify-end">
-                    <Button
+                    <button
                       size="sm"
                       onClick={handleAddProgram}
                       disabled={!newProgram.object_name || !newProgram.object_type || addingProgram}
@@ -366,7 +365,7 @@ export function TicketDetail() {
                     >
                       <Plus size={16} />
                       {addingProgram ? 'Agregando...' : 'Agregar Programa'}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -439,12 +438,12 @@ export function TicketDetail() {
                     onChange={(e) => setNewComment(e.target.value)}
                     rows={3}
                   />
-                  <Button
+                  <button
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || submittingComment}
                   >
                     {submittingComment ? 'Agregando...' : 'Agregar Comentario'}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </Card>

@@ -1,0 +1,320 @@
+import { AlertCircle, Bell, CreditCard, Mail, Plus, Settings, Trash2, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
+import { useSubscription } from '../hooks/useSubscription';
+import { requestTypeService, TicketRequestType } from '../services/requestTypeService';
+
+type SettingsTab = 'profile' | 'notifications' | 'system' | 'billing';
+
+export function SettingsPage() {
+    const { user, updateProfile } = useAuth();
+    const { isAdmin } = usePermissions();
+    const { isPro, plan } = useSubscription();
+
+    const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+    // Profile State
+    const [profileName, setProfileName] = useState(user?.name || '');
+
+    // Admin State (Request Types)
+    const [types, setTypes] = useState<TicketRequestType[]>([]);
+    const [newTypeLabel, setNewTypeLabel] = useState('');
+
+    useEffect(() => {
+        if (activeTab === 'system') {
+            loadTypes();
+        }
+    }, [activeTab]);
+
+    const loadTypes = async () => {
+        try {
+            setLoading(true);
+            const data = await requestTypeService.getAll();
+            setTypes(data);
+        } catch (err: any) {
+            console.error('Error loading request types:', err);
+            // 42P01 is Postgres error for "undefined table"
+            if (err.code === '42P01' || err.message?.includes('does not exist')) {
+                setError('La tabla de configuración no existe. Por favor ejecuta la migración de base de datos.');
+            } else {
+                setError('Error cargando los tipos de solicitud.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            setError(null);
+            setSuccessMessage(null);
+            await updateProfile({ name: profileName });
+            setSuccessMessage('Perfil actualizado correctamente.');
+        } catch (err: any) {
+            setError(err.message || 'Error actualizando perfil.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddType = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newTypeLabel.trim()) return;
+
+        try {
+            setError(null);
+            const newType = await requestTypeService.create(newTypeLabel.trim());
+            setTypes([...types, newType]);
+            setNewTypeLabel('');
+        } catch (err: any) {
+            console.error('Error adding request type:', err);
+            setError(err.message || 'Error agregando el tipo.');
+        }
+    };
+
+    const handleDeleteType = async (id: string) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar este tipo de solicitud?')) return;
+
+        try {
+            setError(null);
+            await requestTypeService.delete(id);
+            setTypes(types.filter(t => t.id !== id));
+        } catch (err: any) {
+            console.error('Error deleting request type:', err);
+            setError(err.message || 'Error eliminando el tipo.');
+        }
+    };
+
+    return (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Settings className="w-8 h-8 text-gray-700" />
+                Configuraciones
+            </h1>
+
+            <div className="flex flex-col md:flex-row gap-6">
+                {/* Sidebar Navigation */}
+                <nav className="w-full md:w-64 flex-shrink-0 space-y-1">
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'profile'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                    >
+                        <User size={18} />
+                        Mi Perfil
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('notifications')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'notifications'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                    >
+                        <Bell size={18} />
+                        Notificaciones
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('billing')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'billing'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                    >
+                        <CreditCard size={18} />
+                        Facturación & Plan
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('system')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'system'
+                            ? 'bg-purple-50 text-purple-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                    >
+                        <Settings size={18} />
+                        Configuración del Sistema
+                    </button>
+                </nav>
+
+                {/* Main Content Area */}
+                <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 min-h-[500px]">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            {activeTab === 'profile' && 'Perfil de Usuario'}
+                            {activeTab === 'notifications' && 'Preferencias de Notificaciones'}
+                            {activeTab === 'billing' && 'Suscripción y Facturación'}
+                            {activeTab === 'system' && 'Configuración del Sistema'}
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {activeTab === 'profile' && 'Gestiona tu información personal y cuenta.'}
+                            {activeTab === 'notifications' && 'Elige cómo y cuándo quieres ser notificado.'}
+                            {activeTab === 'billing' && 'Detalles de tu plan actual y método de pago.'}
+                            {activeTab === 'system' && 'Opciones avanzadas para administradores.'}
+                        </p>
+                    </div>
+
+                    <div className="p-6">
+                        {/* Global Alerts */}
+                        {error && (
+                            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
+                                <AlertCircle size={20} />
+                                <span>{error}</span>
+                            </div>
+                        )}
+                        {successMessage && (
+                            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+                                {successMessage}
+                            </div>
+                        )}
+
+                        {/* PROFILE TAB */}
+                        {activeTab === 'profile' && (
+                            <form onSubmit={handleUpdateProfile} className="max-w-md space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                                    <input
+                                        type="text"
+                                        value={profileName}
+                                        onChange={(e) => setProfileName(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                                    <input
+                                        type="email"
+                                        value={user?.email}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">El correo electrónico no se puede cambiar.</p>
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-100">
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {loading ? 'Guardando...' : 'Guardar Cambios'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* NOTIFICATIONS TAB (Mock UI for now) */}
+                        {activeTab === 'notifications' && (
+                            <div className="space-y-6 max-w-lg">
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <Mail className="text-gray-400" size={20} />
+                                        <div>
+                                            <p className="font-medium text-gray-900">Notificaciones por Email</p>
+                                            <p className="text-xs text-gray-500">Recibe actualizaciones importantes en tu correo.</p>
+                                        </div>
+                                    </div>
+                                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="toggle" id="toggle-email" className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-green-400" />
+                                        <label htmlFor="toggle-email" className="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <Bell className="text-gray-400" size={20} />
+                                        <div>
+                                            <p className="font-medium text-gray-900">Notificaciones Push</p>
+                                            <p className="text-xs text-gray-500">Recibe alertas en tu navegador.</p>
+                                        </div>
+                                    </div>
+                                    <button className="text-sm text-indigo-600 font-medium hover:underline">Configurar</button>
+                                </div>
+                                <p className="text-xs text-gray-400 italic">Más opciones próximamente...</p>
+                            </div>
+                        )}
+
+                        {/* BILLING TAB */}
+                        {activeTab === 'billing' && (
+                            <div className="space-y-6">
+                                <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-lg">
+                                    <div className="p-3 bg-white rounded-full shadow-sm">
+                                        <CreditCard className="text-indigo-600" size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-indigo-900">Plan Actual: {plan || 'Gratis'}</h3>
+                                        <p className="text-sm text-indigo-700 mt-1">
+                                            {isPro
+                                                ? 'Tienes acceso a todas las funciones premium.'
+                                                : 'Estás en el plan básico. Actualiza para desbloquear más funciones.'}
+                                        </p>
+                                        {!isPro && (
+                                            <a href="/pricing" className="inline-block mt-3 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                                                Actualizar a Pro
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ADMIN TAB */}
+                        {activeTab === 'system' && (
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="font-medium text-gray-900 mb-4">Tipos de Solicitud de Ticket</h3>
+                                    <div className="space-y-4 max-w-xl">
+                                        <div className="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200">
+                                            {types.length === 0 ? (
+                                                <div className="p-4 text-center text-gray-500 text-sm">No hay tipos definidos o cargando...</div>
+                                            ) : (
+                                                types.map(type => (
+                                                    <div key={type.id} className="p-3 flex items-center justify-between group">
+                                                        <div>
+                                                            <p className="font-medium text-gray-900">{type.label}</p>
+                                                            <p className="text-xs text-gray-500 font-mono">{type.value}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDeleteType(type.id)}
+                                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <form onSubmit={handleAddType} className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newTypeLabel}
+                                                onChange={(e) => setNewTypeLabel(e.target.value)}
+                                                placeholder="Nuevo tipo (ej. Mantenimiento)"
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={!newTypeLabel.trim()}
+                                                className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                <Plus size={16} />
+                                                Agregar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

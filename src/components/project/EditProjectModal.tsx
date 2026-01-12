@@ -1,6 +1,5 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -156,17 +155,17 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                     />
 
                     <div className="flex justify-end gap-3 pt-4">
-                        <Button
+                        <button
                             type="button"
                             variant="outline"
                             onClick={onClose}
                             disabled={loading}
                         >
                             Cancelar
-                        </Button>
-                        <Button type="submit" isLoading={loading}>
+                        </button>
+                        <button type="submit" isLoading={loading}>
                             Guardar Cambios
-                        </Button>
+                        </button>
                     </div>
                 </form>
             </Card>

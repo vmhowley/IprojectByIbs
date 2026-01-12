@@ -2,7 +2,6 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Client } from '../../types/Client';
-import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 
@@ -148,20 +147,20 @@ export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
           )}
 
           <div className="flex items-center justify-end gap-3 pt-4">
-            <Button
+            <button
               type="button"
               variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Creando...' : 'Crear Cliente'}
-            </Button>
+            </button>
           </div>
         </form>
       </div>

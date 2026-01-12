@@ -1,7 +1,7 @@
 import { Share2, Trash2, UserPlus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useSubscription } from '../../hooks/useSubscription';
 import { ProjectMember, memberService } from '../../services/memberService';
-import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
 interface ShareProjectModalProps {
@@ -30,8 +30,17 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
         }
     };
 
+    const { isPro, limits } = useSubscription();
+
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Enforce Plan Limits
+        if (!isPro && members.length >= limits.maxMembers) {
+            alert(`Has alcanzado el límite de ${limits.maxMembers} colaboradores en el plan Gratis.\n\nActualiza a Business para colaboradores ilimitados.`);
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
@@ -92,10 +101,10 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
                         </div>
                         {error && <p className="text-red-500 text-xs">{error}</p>}
 
-                        <Button type="submit" isLoading={isLoading} className="w-full">
+                        <button type="submit" isLoading={isLoading} className="w-full">
                             <UserPlus size={16} className="mr-2" />
                             Invitar
-                        </Button>
+                        </button>
                     </form>
 
                     <div className="space-y-4">

@@ -156,12 +156,12 @@ export function NewTaskModal({ projectId, onClose, onSubmit }: NewTaskModalProps
                   type="button"
                   onClick={() => toggleTag(tag)}
                   className={`px-3 py-1 rounded text-sm font-medium transition-colors ${selectedTags.includes(tag)
-                      ? tag === 'Features'
-                        ? 'bg-cyan-100 text-cyan-700'
-                        : tag === 'Bugs'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? tag === 'Features'
+                      ? 'bg-cyan-100 text-cyan-700'
+                      : tag === 'Bugs'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
                   {tag}

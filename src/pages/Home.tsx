@@ -6,7 +6,6 @@ import { TicketsByClientChart } from '../components/dashboard/TicketsByClientCha
 import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectCard } from '../components/project/ProjectCard';
-import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { useSubscription } from '../hooks/useSubscription';
 import NProgress from '../lib/nprogress';
@@ -123,13 +122,13 @@ export function Home() {
             <p className="text-gray-600 mt-1">Resumen general de proyectos y solicitudes</p>
           </div>
           {user?.role !== 'guest' && (
-            <Button
+            <button
               onClick={() => setIsNewProjectModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Plus size={18} />
               Nuevo Proyecto
-            </Button>
+            </button>
           )}
         </div>
 
@@ -175,9 +174,9 @@ export function Home() {
                 <p className="text-gray-600 mb-4 text-sm">
                   Obtén insights detallados sobre el rendimiento de tus proyectos con el plan Pro.
                 </p>
-                <Button onClick={() => navigate('/pricing')} className="w-full">
+                <button onClick={() => navigate('/pricing')} className="w-full">
                   Actualizar ahora
-                </Button>
+                </button>
               </div>
             </div>
           )}

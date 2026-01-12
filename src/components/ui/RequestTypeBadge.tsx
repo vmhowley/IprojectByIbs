@@ -9,8 +9,10 @@ export function RequestTypeBadge({ type }: RequestTypeBadgeProps) {
         return 'bg-blue-100 text-blue-700';
       case 'bug':
         return 'bg-red-100 text-red-700';
-        case 'enhancement':
+      case 'enhancement':
         return 'bg-purple-100 text-purple-700';
+      case 'consult':
+        return 'bg-yellow-100 text-yellow-700';
       case 'other':
         return 'bg-gray-100 text-gray-700';
       default:
@@ -26,6 +28,8 @@ export function RequestTypeBadge({ type }: RequestTypeBadgeProps) {
         return 'Incidencia Reportada';
       case 'enhancement':
         return 'Solicitud de Mejora';
+      case 'consult':
+        return 'Consulta';
       case 'other':
         return 'Otro';
       default:

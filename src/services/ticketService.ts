@@ -13,6 +13,15 @@ export const ticketService = {
     );
   },
 
+  async getAll(): Promise<Ticket[]> {
+    return handleSupabaseResponse(
+      supabase
+        .from('tickets')
+        .select('*, projects(name), clients(name)')
+        .order('created_at', { ascending: false })
+    );
+  },
+
   async getById(id: string): Promise<Ticket> {
     return handleSupabaseResponse(
       supabase

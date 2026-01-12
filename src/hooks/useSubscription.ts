@@ -12,7 +12,8 @@ export const useSubscription = () => {
     isLoading: loading,
     limits: {
       maxProjects: isPro ? Infinity : 3,
-      maxClients: isPro ? Infinity : 0, 
+      maxClients: isPro ? Infinity : 3, 
+      maxMembers: isPro ? Infinity : 3,
       hasChat: isPro,
       hasAdvancedAnalytics: isPro,
     },

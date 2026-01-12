@@ -23,7 +23,7 @@ export const InboxPage = () => {
                 sub.unsubscribe();
             };
         }
-    }, [user]);
+    }, [user?.id]);
 
     const loadNotifications = async () => {
         try {

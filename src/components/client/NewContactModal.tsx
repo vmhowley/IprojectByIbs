@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 
 interface NewContactModalProps {
@@ -136,20 +135,20 @@ export function NewContactModal({ clientId, isOpen, onClose, onSubmit }: NewCont
           )}
 
           <div className="flex items-center justify-end gap-3 pt-4">
-            <Button
+            <button
               type="button"
               variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Creando...' : 'Crear Contacto'}
-            </Button>
+            </button>
           </div>
         </form>
       </div>

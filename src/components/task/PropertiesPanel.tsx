@@ -1,4 +1,4 @@
-import { Calendar, Tag, User, Folder, Building2, Clock } from 'lucide-react';
+import { Building2, Calendar, Clock, Folder, Tag, User } from 'lucide-react';
 import { Task } from '../../lib/supabase';
 import { StatusBadge } from '../ui/StatusBadge';
 import { UrgencyBadge } from '../ui/UrgencyBadge';
@@ -143,13 +143,12 @@ export function PropertiesPanel({ task, onClose }: PropertiesPanelProps) {
               {task.tags.map((tag) => (
                 <span
                   key={tag}
-                  className={`px-3 py-1 rounded text-xs font-medium ${
-                    tag === 'Features'
-                      ? 'bg-cyan-100 text-cyan-700'
-                      : tag === 'Bugs'
+                  className={`px-3 py-1 rounded text-xs font-medium ${tag === 'Features'
+                    ? 'bg-cyan-100 text-cyan-700'
+                    : tag === 'Bugs'
                       ? 'bg-red-100 text-red-700'
                       : 'bg-green-100 text-green-700'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </span>

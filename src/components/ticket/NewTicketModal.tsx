@@ -1,6 +1,6 @@
 import { FileIcon, Sparkles, Upload, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from '../ui/Button';
+import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
@@ -28,7 +28,7 @@ export interface TicketFormData {
   subtasks?: string[];
 }
 
-export function NewTicketModal({ projectId, projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
+export function NewTicketModal({ projectId: _projectId, projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
   const [formData, setFormData] = useState<TicketFormData>({
     client_id: clientId || '',
     contact_id: contactId || '',
@@ -45,7 +45,22 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
   const [error, setError] = useState<string | null>(null);
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [magicPrompt, setMagicPrompt] = useState(false);
+  const [requestTypes, setRequestTypes] = useState<TicketRequestType[]>([]);
+
+  useEffect(() => {
+    const loadRequestTypes = async () => {
+      try {
+        const types = await requestTypeService.getAll();
+        setRequestTypes(types);
+        if (types.length > 0 && !formData.request_type) {
+          setFormData(prev => ({ ...prev, request_type: types[0].value }));
+        }
+      } catch (err) {
+        console.error("Error loading request types", err);
+      }
+    };
+    loadRequestTypes();
+  }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -145,8 +160,8 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
         ...prev,
         subject: generated.subject || prev.subject,
         description: generated.description || prev.description,
-        urgency: generated.priority as any || prev.urgency,
-        request_type: generated.type as any === 'bug' ? 'bug' : generated.type === 'feature_request' ? 'feature' : 'other',
+        urgency: (generated as any).priority || prev.urgency,
+        request_type: (generated as any).type === 'bug' ? 'bug' : (generated as any).type === 'feature_request' ? 'feature' : 'other',
       }));
     } catch (err) {
       console.error(err);
@@ -250,10 +265,19 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
                 disabled={isSubmitting}
                 required
               >
-                <option value="feature">Requerimiento de Adecuación</option>
-                <option value="bug">Incidencia Reportada</option>
-                <option value="enhancement">Solicitud de Mejora</option>
-                <option value="other">Otro</option>
+                {requestTypes.length === 0 ? (
+                  // Fallback if loading or error
+                  <>
+                    <option value="feature">Requerimiento de Adecuación</option>
+                    <option value="bug">Incidencia Reportada</option>
+                  </>
+                ) : (
+                  requestTypes.map(type => (
+                    <option key={type.id} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))
+                )}
               </Select>
             </div>
             <div className="border-t border-gray-200 pt-4">
@@ -273,14 +297,13 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
                       placeholder="Escribir una subtarea (Enter para agregar)"
                       disabled={isSubmitting}
                     />
-                    <Button
+                    <button
                       type="button"
-                      variant="secondary"
                       onClick={handleAddSubtask}
                       disabled={isSubmitting || !newSubtask.trim()}
                     >
                       Agregar
-                    </Button>
+                    </button>
                   </div>
                   {formData.subtasks && formData.subtasks.length > 0 && (
                     <div className="space-y-2 mt-2">
@@ -437,21 +460,20 @@ export function NewTicketModal({ projectId, projectName, clientId, contactId, on
         </form>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <Button
+          <button
             type="button"
-            variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
           >
             Cancelar
-          </Button>
-          <Button
+          </button>
+          <button
             type="submit"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Creando...' : 'Crear Solicitud'}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

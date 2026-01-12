@@ -2,7 +2,6 @@ import { RealtimeChat } from '@/components/chat/realtime-chat';
 import { Lock, MessageSquare, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
 import { useSubscription } from '../hooks/useSubscription';
@@ -62,9 +61,9 @@ export const ContactUs = () => {
               El chat en tiempo real está disponible exclusivamente en el plan Pro.
             </p>
           </div>
-          <Button className="w-full" onClick={() => navigate('/pricing')}>
+          <button className="w-full" onClick={() => navigate('/pricing')}>
             Actualizar a Pro
-          </Button>
+          </button>
         </Card>
       </div>
     );
