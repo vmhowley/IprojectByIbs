@@ -23,11 +23,13 @@ export const clientService = {
 
   async create(client: Partial<Client>): Promise<Client> {
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('User not authenticated');
     
     return handleSupabaseResponse(
       supabase
         .from('clients')
-        .insert([{ ...client}])
+        .insert([{ ...client, user_id: user.id }])
         .select()
         .single()
     );
