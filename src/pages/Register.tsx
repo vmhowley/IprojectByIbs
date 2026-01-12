@@ -1,10 +1,9 @@
 import { AlertCircle, Lock, Mail, User } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export function Register() {
-  const navigate = useNavigate();
   const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -12,6 +11,7 @@ export function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,12 +31,39 @@ export function Register() {
 
     try {
       await signUp({ name, email, password });
-      navigate('/dashboard');
+      setNeedsConfirmation(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse');
     } finally {
       setLoading(false);
     }
+  }
+
+  if (needsConfirmation) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
+              <Mail className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">¡Verifica tu correo!</h2>
+            <p className="text-gray-600 mb-8">
+              Hemos enviado un enlace de confirmación a <span className="font-semibold text-gray-800">{email}</span>.
+              <br className="mb-2" />
+              Por favor revisa tu bandeja de entrada para activar tu cuenta antes de iniciar sesión.
+            </p>
+
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 w-full transition-colors"
+            >
+              Ir a Iniciar Sesión
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
