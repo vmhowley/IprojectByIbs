@@ -10,12 +10,11 @@ import { projectService } from '../../services/projectService';
 import { storageService } from '../../services/storageService';
 import { subtaskService } from '../../services/subtaskService';
 import { ticketService } from '../../services/ticketService';
-import { getUserById } from '../../services/usersService';
-import { Comment, Project, Subtask, Ticket, TicketProgram } from '../../types';
+import { getUserById, getUsers } from '../../services/usersService';
+import { Comment, Project, Subtask, Ticket, TicketProgram, UserProfile } from '../../types';
 import { confirmAction } from '../../utils/confirmationToast';
 import { Select } from '../ui/Select';
 import { StatusBadge } from '../ui/StatusBadge';
-import { UrgencyBadge } from '../ui/UrgencyBadge';
 
 interface TicketDetailViewProps {
   ticketId: string;
@@ -32,6 +31,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [programs, setPrograms] = useState<TicketProgram[]>([]);
   const [newProgram, setNewProgram] = useState({
@@ -48,6 +48,32 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [newSubtask, setNewSubtask] = useState('');
   const [addingSubtask, setAddingSubtask] = useState(false);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  const handleUpdateTicket = async (updates: Partial<Ticket>) => {
+    if (!ticket) return;
+    try {
+      const updated = await ticketService.update(ticket.id, updates);
+      setTicket(updated);
+      if (onUpdate) onUpdate(updated);
+      toast.success('Ticket actualizado');
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      toast.error('Error al actualizar el ticket');
+    }
+  };
 
   useEffect(() => {
     if (ticketId) {
@@ -469,9 +495,16 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             </button>
           </div>
         </div>
-        <h1 className="text-lg font-bold text-gray-900 leading-snug">
-          {ticket.subject || 'Sin Asunto'}
-        </h1>
+        <div className="flex-1 mr-4">
+          <input
+            type="text"
+            value={ticket.subject || ''}
+            onChange={(e) => setTicket({ ...ticket, subject: e.target.value })}
+            onBlur={() => handleUpdateTicket({ subject: ticket.subject })}
+            className="text-lg font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400"
+            placeholder="Sin Asunto"
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
@@ -491,7 +524,17 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Prioridad</label>
               <div className="py-2">
-                <UrgencyBadge urgency={ticket.urgency} />
+                <Select
+                  options={[
+                    { value: 'low', label: 'Baja' },
+                    { value: 'medium', label: 'Media' },
+                    { value: 'high', label: 'Alta' },
+                    { value: 'urgent', label: 'Urgente' }
+                  ]}
+                  value={ticket.urgency}
+                  onChange={(e) => handleUpdateTicket({ urgency: e.target.value as any })}
+                  className="text-xs h-8 py-0 pl-2 pr-6 border-gray-200 w-full"
+                />
               </div>
             </div>
           </div>
@@ -499,11 +542,16 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Asignado a</label>
-              <div className="flex items-center gap-2 py-1.5">
-                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
-                  {assignedUser ? assignedUser.charAt(0).toUpperCase() : '?'}
-                </div>
-                <span className="text-sm font-medium text-gray-700 truncate">{assignedUser || 'Sin asignar'}</span>
+              <div className="py-1.5">
+                <Select
+                  options={[
+                    { value: '', label: 'Sin asignar' },
+                    ...users.map(u => ({ value: u.id, label: u.name }))
+                  ]}
+                  value={ticket.assigned_to || ''}
+                  onChange={(e) => handleUpdateTicket({ assigned_to: e.target.value || null })}
+                  className="text-sm h-8 py-0 pl-2 pr-6 border-gray-200 w-full"
+                />
               </div>
             </div>
             <div>
@@ -521,9 +569,13 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             <Edit size={14} className="text-gray-400" />
             Descripción
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
-            {ticket.description || 'No hay descripción disponible para este ticket.'}
-          </div>
+          <textarea
+            value={ticket.description || ''}
+            onChange={(e) => setTicket({ ...ticket, description: e.target.value })}
+            onBlur={() => handleUpdateTicket({ description: ticket.description })}
+            className="w-full bg-gray-50 rounded-lg p-4 border border-gray-100 text-sm text-gray-700 leading-relaxed min-h-[100px] focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            placeholder="No hay descripción disponible para este ticket."
+          />
         </div>
 
 
