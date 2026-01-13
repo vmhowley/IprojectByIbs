@@ -9,15 +9,16 @@ import { Textarea } from '../ui/Textarea';
 interface NewClientModalProps {
   onClose: () => void;
   onSubmit: (client: Partial<Client>) => Promise<void>;
+  initialData?: Client;
 }
 
-export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
+export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModalProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    notes: ''
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    address: initialData?.address || '',
+    notes: initialData?.notes || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
 
     try {
       await onSubmit({
+        ...initialData,
         name: formData.name,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
@@ -48,7 +50,7 @@ export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
       });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el cliente');
+      setError(err instanceof Error ? err.message : 'Error al guardar el cliente');
       setIsSubmitting(false);
     }
   };
@@ -61,7 +63,9 @@ export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
       />
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Nuevo Cliente</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {initialData ? 'Editar Cliente' : 'Nuevo Cliente'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -158,9 +162,10 @@ export function NewClientModal({ onClose, onSubmit }: NewClientModalProps) {
             </Button>
             <button
               type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creando...' : 'Crear Cliente'}
+              {isSubmitting ? 'Guardando...' : (initialData ? 'Guardar Cambios' : 'Crear Cliente')}
             </button>
           </div>
         </form>

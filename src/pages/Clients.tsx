@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, Plus, Search, User, Users } from 'lucide-react';
+import { Building2, Edit, Mail, Phone, Plus, Search, User, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NewClientModal } from '../components/client/NewClientModal';
@@ -21,6 +21,7 @@ export function Clients() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewClientModal, setShowNewClientModal] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
 
   useEffect(() => {
@@ -59,13 +60,28 @@ export function Clients() {
     }
   };
 
-  const handleCreateClient = async (clientData: Partial<Client>) => {
+  const handleSaveClient = async (clientData: Partial<Client>) => {
     try {
-      await clientService.create(clientData);
+      if (editingClient && editingClient.id === clientData.id) {
+        // Update
+        await clientService.update(editingClient.id, clientData);
+      } else {
+        // Create
+        await clientService.create(clientData);
+      }
+
       await loadClients();
+
+      // If we edited the currently selected client, update the view
+      if (selectedClient && editingClient && editingClient.id === selectedClient.id) {
+        const updated = (await clientService.getAll()).find(c => c.id === selectedClient.id);
+        if (updated) setSelectedClient(updated);
+      }
+
       setShowNewClientModal(false);
+      setEditingClient(null);
     } catch (error) {
-      console.error('Error creating client:', error);
+      console.error('Error saving client:', error);
       throw error;
     }
   };
@@ -91,6 +107,7 @@ export function Clients() {
       }
       return;
     }
+    setEditingClient(null);
     setShowNewClientModal(true);
   };
 
@@ -137,7 +154,6 @@ export function Clients() {
           {isLoading ? (
             null
           ) : filteredClients.length === 0 ? (
-
             <div className="p-6 text-center text-gray-500">No se encontraron clientes</div>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -196,7 +212,15 @@ export function Clients() {
                       )}
                     </div>
                   </div>
-                  <button className="cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded-lg flex items-center gap-2 bg-blue-600 text-white" variant="secondary" size="sm">
+                  <button
+                    onClick={() => {
+                      console.log('Edit clicked', selectedClient);
+                      setEditingClient(selectedClient);
+                      setShowNewClientModal(true);
+                    }}
+                    className="cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded-lg flex items-center gap-2 bg-blue-600 text-white"
+                  >
+                    <Edit size={16} />
                     Editar
                   </button>
                 </div>
@@ -214,7 +238,7 @@ export function Clients() {
                     <Users size={20} />
                     Contactos
                   </h3>
-                  <button className='cursor-pointer bg-blue-600 text-white p-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors' size="sm" onClick={() => setShowNewContactModal(true)}>
+                  <button className='cursor-pointer bg-blue-600 text-white p-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors' onClick={() => setShowNewContactModal(true)}>
                     <Plus size={16} />
                     Agregar Contacto
                   </button>
@@ -266,8 +290,12 @@ export function Clients() {
 
       {showNewClientModal && (
         <NewClientModal
-          onClose={() => setShowNewClientModal(false)}
-          onSubmit={handleCreateClient}
+          onClose={() => {
+            setShowNewClientModal(false);
+            setEditingClient(null);
+          }}
+          onSubmit={handleSaveClient}
+          initialData={editingClient || undefined}
         />
       )}
 
