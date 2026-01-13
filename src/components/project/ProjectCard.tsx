@@ -1,5 +1,6 @@
-import { AlertCircle, Calendar, CheckCircle2, ChevronRight, Clock, Star, User, Users } from 'lucide-react';
+import { AlertCircle, Building2, Calendar, CheckCircle2, Clock, User, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { Project } from '../../types';
 
 interface ProjectCardProps {
@@ -9,6 +10,11 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: ProjectCardProps) {
+  const { user } = useAuth();
+
+  // Check if this project belongs to the client the user is linked to
+  const isLinkedProject = user?.client_id && project.client_id === user.client_id;
+
   const formatDate = (date: string) => {
     if (!date) return '';
     return new Date(date).toLocaleDateString('es-ES', {
@@ -50,13 +56,21 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
   return (
     <Link
       to={`/project/${project.id}`}
-      className="group bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all"
+      className="group bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all relative overflow-hidden"
     >
+      {/* Visual Indicator for Linked Projects */}
+      {isLinkedProject && (
+        <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-bl-lg z-10 flex items-center gap-1 shadow-sm">
+          <Building2 size={10} />
+          <span>Vinculado</span>
+        </div>
+      )}
+
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-3 h-3 bg-blue-600 rounded-sm flex-shrink-0"></div>
+          <div className={`w-3 h-3 rounded-sm flex-shrink-0 ${isLinkedProject ? 'bg-indigo-600' : 'bg-blue-600'}`}></div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+            <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors pr-6">
               {project.name}
             </h2>
             <div className="flex items-center gap-2 mt-1">
@@ -72,12 +86,9 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Star size={16} className="text-gray-300 hover:text-yellow-500 hover:fill-yellow-500 transition-colors cursor-pointer" />
-          <ChevronRight
-            size={20}
-            className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all flex-shrink-0"
-          />
+        {/* Removed star/chevron to make space for badge if needed, or keeping them but ensuring title doesn't overlap */}
+        <div className="flex items-center gap-2 mt-1">
+          {/* Keep minimalist for now */}
         </div>
       </div>
 
@@ -115,7 +126,12 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
               {project.clients && (
                 <div className="flex items-center gap-1.5">
                   <Users size={14} />
-                  <span className="font-medium text-gray-700">{project.clients.name}</span>
+                  {/* If it is a Linked Project, we show a special text or the company name with 'Vinculado' context 
+                       User asked: "Let them know it is a linked project, not their own one" 
+                   */}
+                  <span className={`font-medium ${isLinkedProject ? 'text-blue-600' : 'text-gray-700'}`}>
+                    {isLinkedProject ? 'Proyecto de Empresa' : project.clients.name}
+                  </span>
                 </div>
               )}
               {project.assignee_profile ? (

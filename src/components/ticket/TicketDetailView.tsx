@@ -466,13 +466,51 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             value={ticket.subject || ''}
             onChange={(e) => setTicket({ ...ticket, subject: e.target.value })}
             onBlur={() => handleUpdateTicket({ subject: ticket.subject })}
-            className="text-xl md:text-2xl font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400 focus:outline-none"
+            className="text-xl md:text-2xl font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
             placeholder="Sin Asunto"
+            disabled={user?.role === 'guest'}
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+
+        {/* Client Approval Workflow */}
+        {user?.role === 'guest' && ticket.status === 'pending_approval' && (
+          <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-xl p-6 shadow-sm mb-6 animate-in slide-in-from-top-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-indigo-100 rounded-lg text-indigo-600">
+                <CheckSquare size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Aprobación de Entregable</h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  El equipo ha marcado este ticket como listo para revisión.
+                  Por favor revisa el trabajo y confirma si cumple con tus requerimientos.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleStatusChange('approved')}
+                    className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm hover:shadow active:scale-95 transform transition-transform"
+                  >
+                    Aprobar Trabajo
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Set status back to ongoing and focus comment
+                      handleStatusChange('ongoing');
+                      // Ideally focus comment box here
+                      document.querySelector('textarea[placeholder="Escribe un comentario..."]')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 bg-white text-gray-700 font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors hover:border-gray-300"
+                  >
+                    Solicitar Cambios
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -490,6 +528,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                 value={ticket.status}
                 onChange={(val) => handleStatusChange(val as any)}
                 renderValue={(val) => <StatusBadge status={val as any} />}
+                disabled={user?.role === 'guest'}
               />
             </div>
             <div>
@@ -519,6 +558,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     </span>
                   );
                 }}
+                disabled={user?.role === 'guest'}
               />
             </div>
           </div>
@@ -549,6 +589,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     <span className="text-sm">{option?.label || 'Sin asignar'}</span>
                   </div>
                 )}
+                disabled={user?.role === 'guest'}
               />
             </div>
             <div>
@@ -558,8 +599,9 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   type="date"
                   value={ticket.deadline ? new Date(ticket.deadline).toISOString().split('T')[0] : ''}
                   onChange={(e) => handleUpdateTicket({ deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                  className="w-full text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 transition-all hover:bg-gray-50"
+                  className="w-full text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 transition-all hover:bg-gray-50 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   style={{ colorScheme: 'light' }}
+                  disabled={user?.role === 'guest'}
                 />
               </div>
             </div>
@@ -579,8 +621,9 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     setTicket({ ...ticket, tags: e.target.value.split(',').map(s => s.trim()) });
                   }}
                   onBlur={() => handleUpdateTicket({ tags: ticket.tags?.filter(Boolean) })}
-                  className="w-full pl-9 pr-3 py-2 text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-gray-50"
+                  className="w-full pl-9 pr-3 py-2 text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-gray-50 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="Ej: bug, frontend (separado por comas)"
+                  disabled={user?.role === 'guest'}
                 />
               </div>
             </div>
@@ -598,8 +641,9 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             value={ticket.description || ''}
             onChange={(e) => setTicket({ ...ticket, description: e.target.value })}
             onBlur={() => handleUpdateTicket({ description: ticket.description })}
-            className="w-full bg-transparent border-none p-0 text-sm text-gray-700 leading-relaxed min-h-[120px] focus:ring-0 placeholder-gray-400 resize-y"
+            className="w-full bg-transparent border-none p-0 text-sm text-gray-700 leading-relaxed min-h-[120px] focus:ring-0 placeholder-gray-400 resize-y disabled:opacity-75 disabled:cursor-not-allowed"
             placeholder="Añade una descripción detallada..."
+            disabled={user?.role === 'guest'}
           />
         </div>
 

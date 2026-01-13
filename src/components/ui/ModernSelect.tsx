@@ -16,6 +16,7 @@ interface ModernSelectProps {
     placeholder?: string;
     className?: string;
     renderValue?: (value: string, option?: Option) => React.ReactNode;
+    disabled?: boolean;
 }
 
 export function ModernSelect({
@@ -25,7 +26,8 @@ export function ModernSelect({
     label,
     placeholder = 'Select...',
     className = '',
-    renderValue
+    renderValue,
+    disabled = false
 }: ModernSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -58,8 +60,11 @@ export function ModernSelect({
 
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-gray-300 hover:bg-gray-50 transition-all text-left group"
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                disabled={disabled}
+                className={`w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm transition-all text-left group
+                    ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'hover:border-gray-300 hover:bg-gray-50'}
+                `}
             >
                 <div className="flex items-center gap-2 overflow-hidden">
                     {renderValue ? (

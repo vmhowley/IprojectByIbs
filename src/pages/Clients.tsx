@@ -1,6 +1,8 @@
-import { Building2, Edit, Mail, Phone, Plus, Search, User, Users } from 'lucide-react';
+import { Building2, Edit, Link2, Mail, Phone, Plus, Search, Trash2, User, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { LinkUserModal } from '../components/client/LinkUserModal';
 import { NewClientModal } from '../components/client/NewClientModal';
 import { NewContactModal } from '../components/client/NewContactModal';
 import { Card } from '../components/ui/Card';
@@ -9,6 +11,8 @@ import { useSubscription } from '../hooks/useSubscription';
 import NProgress from '../lib/nprogress';
 import { clientService } from '../services/clientService';
 import { Client, Contact } from '../types/Client';
+import { User as UserType } from '../types/User';
+import { confirmAction } from '../utils/confirmationToast';
 
 
 export function Clients() {
@@ -24,6 +28,10 @@ export function Clients() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
 
+  // Linked Users state
+  const [linkedUsers, setLinkedUsers] = useState<UserType[]>([]);
+  const [showLinkUserModal, setShowLinkUserModal] = useState(false);
+
   useEffect(() => {
     loadClients();
   }, []);
@@ -31,8 +39,10 @@ export function Clients() {
   useEffect(() => {
     if (selectedClient) {
       loadContacts(selectedClient.id);
+      loadLinkedUsers(selectedClient.id);
     } else {
       setContacts([]);
+      setLinkedUsers([]);
     }
   }, [selectedClient]);
 
@@ -97,6 +107,46 @@ export function Clients() {
       console.error('Error creating contact:', error);
       throw error;
     }
+  };
+
+  const loadLinkedUsers = async (clientId: string) => {
+    try {
+      const data = await clientService.getLinkedUsers(clientId);
+      setLinkedUsers(data);
+    } catch (error) {
+      console.error('Error loading linked users:', error);
+    }
+  };
+
+  const handleLinkUser = async (email: string) => {
+    if (!selectedClient) return;
+    try {
+      await clientService.linkUser(email, selectedClient.id);
+      await loadLinkedUsers(selectedClient.id);
+      toast.success('Usuario vinculado correctamente');
+      setShowLinkUserModal(false);
+    } catch (error) {
+      console.error('Error linking user:', error);
+      throw error; // Let modal handle error display
+    }
+  };
+
+  const handleUnlinkUser = async (userId: string) => {
+    confirmAction({
+      message: '¿Estás seguro de que deseas desvincular este usuario? Perderá el acceso al portal de este cliente.',
+      onConfirm: async () => {
+        try {
+          await clientService.unlinkUser(userId);
+          if (selectedClient) {
+            await loadLinkedUsers(selectedClient.id);
+          }
+          toast.success('Usuario desvinculado');
+        } catch (error) {
+          console.error('Error unlinking user:', error);
+          toast.error('Error al desvincular usuario');
+        }
+      }
+    });
   };
 
   const handleNewClientClick = () => {
@@ -279,6 +329,59 @@ export function Clients() {
                   )}
                 </div>
               </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4 mt-8 pt-6 border-t border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <div className="bg-indigo-100 p-1 rounded-md text-indigo-600">
+                      <Link2 size={18} />
+                    </div>
+                    Acceso al Portal
+                  </h3>
+                  <button
+                    className='cursor-pointer bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 p-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium'
+                    onClick={() => setShowLinkUserModal(true)}
+                  >
+                    <Plus size={16} />
+                    Vincular Usuario
+                  </button>
+                </div>
+
+                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-4 text-sm text-blue-800">
+                  <p>
+                    Vincular un usuario le dará acceso al <strong>Portal de Clientes</strong>.
+                    Podrá ver proyectos y tickets asociados a este cliente, y aprobar entregables.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {linkedUsers.map(user => (
+                    <div key={user.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-indigo-200 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm">
+                          {user.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{user.name}</h4>
+                          <p className="text-sm text-gray-500">{user.email}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleUnlinkUser(user.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        title="Desvincular usuario"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                  {linkedUsers.length === 0 && (
+                    <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-lg">
+                      No hay usuarios vinculados con acceso al portal
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
@@ -305,6 +408,15 @@ export function Clients() {
           isOpen={showNewContactModal}
           onClose={() => setShowNewContactModal(false)}
           onSubmit={handleCreateContact}
+        />
+      )}
+
+      {selectedClient && showLinkUserModal && (
+        <LinkUserModal
+          clientId={selectedClient.id}
+          isOpen={showLinkUserModal}
+          onClose={() => setShowLinkUserModal(false)}
+          onSubmit={handleLinkUser}
         />
       )}
     </div>

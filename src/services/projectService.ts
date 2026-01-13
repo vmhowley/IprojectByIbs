@@ -27,7 +27,7 @@ export const projectService = {
     // 3. Get my profile for role check
     const { data: profile } = await supabase
         .from('user_profiles')
-        .select('role')
+        .select('role, client_id')
         .eq('id', user.id)
         .single();
 
@@ -59,14 +59,14 @@ export const projectService = {
       }
 
       filteredProjects = filteredProjects.filter(p => {
+        // 0. Client Access (Explicit Match)
+        // If I am linked to a client, I should see that client's projects
+        if (profile.client_id && p.client_id === profile.client_id) return true;
+
         // 1. Own project or Assigned or Member
         if (p.created_by === user.id || memberProjectIds.includes(p.id) || p.assignee === user.id) return true;
 
-        // 2. Client Access
-        // (If we had client_id in profile, we check it here. Assuming RLS handles strict client access mostly, 
-        // but we can trust RLS for client-isolation if the domain logic below is the main leak)
-
-        // 3. Domain Logic
+        // 2. Domain Logic (Only for non-public domains)
         if (!isPublic && userDomain) {
            const creator = creatorMap.get(p.created_by || '');
            if (creator && getDomain(creator.email) === userDomain) {
