@@ -139,6 +139,14 @@ export const projectService = {
     );
 
     if (updatedProject) {
+       // If client_id changed, update all tickets for this project
+       if (updates.client_id !== undefined) {
+         await supabase
+           .from('tickets')
+           .update({ client_id: updates.client_id })
+           .eq('project_id', id);
+       }
+       
        await activityService.logActivity(id, 'updated', updates);
     }
     return updatedProject;

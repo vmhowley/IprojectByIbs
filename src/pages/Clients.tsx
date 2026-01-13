@@ -113,7 +113,7 @@ export function Clients() {
               </p>
             </div>
           </div>
-          <button onClick={handleNewClientClick}>
+          <button className="flex items-center gap-2 bg-blue-600 text-white p-2 rounded-lg" onClick={handleNewClientClick}>
             <Plus size={18} />
             Nuevo Cliente
           </button>
@@ -196,7 +196,7 @@ export function Clients() {
                       )}
                     </div>
                   </div>
-                  <button variant="secondary" size="sm">
+                  <button className="cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded-lg flex items-center gap-2 bg-blue-600 text-white" variant="secondary" size="sm">
                     Editar
                   </button>
                 </div>
@@ -214,7 +214,7 @@ export function Clients() {
                     <Users size={20} />
                     Contactos
                   </h3>
-                  <button size="sm" onClick={() => setShowNewContactModal(true)}>
+                  <button className='cursor-pointer bg-blue-600 text-white p-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors' size="sm" onClick={() => setShowNewContactModal(true)}>
                     <Plus size={16} />
                     Agregar Contacto
                   </button>

@@ -6,6 +6,7 @@ import { TicketsByClientChart } from '../components/dashboard/TicketsByClientCha
 import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectCard } from '../components/project/ProjectCard';
+import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { useSubscription } from '../hooks/useSubscription';
 import NProgress from '../lib/nprogress';
@@ -122,13 +123,13 @@ export function Home() {
             <p className="text-gray-600 mt-1">Resumen general de proyectos y solicitudes</p>
           </div>
           {user?.role !== 'guest' && (
-            <button
+            <Button
               onClick={() => setIsNewProjectModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              variant="primary"
             >
               <Plus size={18} />
               Nuevo Proyecto
-            </button>
+            </Button>
           )}
         </div>
 

@@ -48,21 +48,18 @@ export async function getUsers() {
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   if (currentUser?.email) {
       const emailDomain = currentUser.email.split('@')[1];
-      // Exclude public domains from this automatic grouping
-      const publicDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com'];
-      
-      if (!publicDomains.includes(emailDomain)) {
-          const { data: domainUsers } = await supabase
-              .from('user_profiles')
-              .select('id')
-              .ilike('email', `%@${emailDomain}`);
-              
-          domainUsers?.forEach(u => userIds.add(u.id));
-      }
+      // Exclude public domains from this automatic grouping - REMOVED restriction to align with new DB policies
+       
+      const { data: domainUsers } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .ilike('email', `%@${emailDomain}`);
+          
+      domainUsers?.forEach(u => userIds.add(u.id));
   }
 
-  // Remove myself
-  userIds.delete(user.id);
+  // Remove myself - COMMENTED OUT to ensure we can resolve our own name in UI
+  // userIds.delete(user.id);
   
   if (userIds.size === 0) return [];
   

@@ -7,6 +7,7 @@ import { Select } from '../ui/Select';
 import { clientService } from '../../services/clientService';
 import { projectService } from '../../services/projectService';
 import { Client, Project } from '../../types';
+import { Button } from '../ui/Button';
 
 interface EditProjectModalProps {
     isOpen: boolean;
@@ -155,17 +156,17 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                     />
 
                     <div className="flex justify-end gap-3 pt-4">
-                        <button
+                        <Button
                             type="button"
-                            variant="outline"
+                            variant="secondary"
                             onClick={onClose}
                             disabled={loading}
                         >
                             Cancelar
-                        </button>
-                        <button type="submit" isLoading={loading}>
+                        </Button>
+                        <Button type="submit" isLoading={loading}>
                             Guardar Cambios
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Card>

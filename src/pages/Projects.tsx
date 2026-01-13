@@ -262,7 +262,7 @@ export function Projects() {
             </div>
           </div>
           {user?.role !== 'guest' && (
-            <button onClick={() => setShowNewProjectModal(true)}>
+            <button className="flex items-center gap-2 bg-blue-600 text-white p-2 rounded-lg" onClick={() => setShowNewProjectModal(true)}>
               <Plus size={18} />
               Nuevo Proyecto
             </button>

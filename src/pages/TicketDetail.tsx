@@ -6,14 +6,13 @@ import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Textarea } from '../components/ui/Textarea';
-import { UrgencyBadge } from '../components/ui/UrgencyBadge';
 import NProgress from '../lib/nprogress';
 import { supabase } from '../lib/supabase';
 import { commentService } from '../services/commentService';
 import { programService } from '../services/programService';
 import { ticketService } from '../services/ticketService';
-import { getUserById } from '../services/usersService';
-import { Comment, Ticket, TicketProgram } from '../types';
+import { getUsers } from '../services/usersService';
+import { Comment, Ticket, TicketProgram, UserProfile } from '../types';
 
 import { confirmAction } from '../utils/confirmationToast';
 
@@ -22,7 +21,7 @@ export function TicketDetail() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [assignedUser, setAssignedUser] = useState('');
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -35,7 +34,32 @@ export function TicketDetail() {
     description: ''
   });
   const [addingProgram, setAddingProgram] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
 
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  const handleUpdateTicket = async (updates: Partial<Ticket>) => {
+    if (!ticket) return;
+    try {
+      const updated = await ticketService.update(ticket.id, updates);
+      setTicket(updated);
+      toast.success('Ticket actualizado');
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      toast.error('Error al actualizar el ticket');
+    }
+  };
   useEffect(() => {
     if (ticketId) {
       loadTicket();
@@ -45,11 +69,7 @@ export function TicketDetail() {
     }
   }, [ticketId]);
 
-  useEffect(() => {
-    if (ticket?.assigned_to) {
-      loadUser();
-    }
-  }, [ticket?.assigned_to]);
+
 
   const loadTicket = async () => {
     try {
@@ -147,20 +167,7 @@ export function TicketDetail() {
     });
   };
 
-  const loadUser = async () => {
-    if (!ticket?.assigned_to) return;
-    try {
-      const data = await getUserById(ticket.assigned_to);
-      if (data) {
-        setAssignedUser(data.name);
-      } else {
-        setAssignedUser('Desconocido');
-      }
-    } catch (error) {
-      console.error('Error loading assigned user:', error);
-      setAssignedUser('Error');
-    }
-  };
+
 
   const handleAddProgram = async () => {
     if (!ticketId || !newProgram.object_name || !newProgram.object_type) return;
@@ -219,8 +226,7 @@ export function TicketDetail() {
           <p className="text-gray-500 mb-6">
             Es posible que el ticket haya sido eliminado o no tengas permisos para verlo.
           </p>
-          <button onClick={() => navigate(-1)} variant="secondary">
-            <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+          <button onClick={() => navigate(-1)} className="text-blue-600 hover:text-blue-800 font-medium">
             Volver
           </button>
         </div>
@@ -255,9 +261,16 @@ export function TicketDetail() {
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                      {ticket.subject || 'Sin Asunto'}
-                    </h1>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={ticket.subject || ''}
+                        onChange={(e) => setTicket({ ...ticket, subject: e.target.value })}
+                        onBlur={() => handleUpdateTicket({ subject: ticket.subject })}
+                        className="text-2xl font-bold text-gray-900 w-full border-none focus:ring-0 p-0"
+                        placeholder="Sin Asunto"
+                      />
+                    </div>
                     <StatusBadge status={ticket.status} />
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -268,7 +281,17 @@ export function TicketDetail() {
                       <Clock size={14} />
                       Creado {new Date(ticket.created_at).toLocaleDateString()}
                     </span>
-                    <UrgencyBadge urgency={ticket.urgency} />
+                    <Select
+                      options={[
+                        { value: 'low', label: 'Baja' },
+                        { value: 'medium', label: 'Media' },
+                        { value: 'high', label: 'Alta' },
+                        { value: 'urgent', label: 'Urgente' }
+                      ]}
+                      value={ticket.urgency}
+                      onChange={(e) => handleUpdateTicket({ urgency: e.target.value as any })}
+                      className="text-xs h-6 py-0 pl-2 pr-6 border-gray-200"
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -283,9 +306,13 @@ export function TicketDetail() {
 
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Descripción</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {ticket.description || 'No se proporcionó descripción.'}
-                </p>
+                <Textarea
+                  value={ticket.description || ''}
+                  onChange={(e) => setTicket({ ...ticket, description: e.target.value })}
+                  onBlur={() => handleUpdateTicket({ description: ticket.description })}
+                  className="w-full text-sm text-gray-600 min-h-[100px]"
+                  placeholder="Agregar una descripción..."
+                />
               </div>
 
               <div className="mb-6 pb-6 border-b border-gray-200">
@@ -470,9 +497,14 @@ export function TicketDetail() {
                     <User size={14} />
                     Asignado a
                   </label>
-                  <p className="text-sm text-gray-900">
-                    {assignedUser || 'Sin asignar'}
-                  </p>
+                  <Select
+                    options={[
+                      { value: '', label: 'Sin asignar' },
+                      ...users.map(u => ({ value: u.id, label: u.name }))
+                    ]}
+                    value={ticket.assigned_to || ''}
+                    onChange={(e) => handleUpdateTicket({ assigned_to: e.target.value || null })}
+                  />
                 </div>
 
                 <div>
@@ -485,36 +517,36 @@ export function TicketDetail() {
                   </p>
                 </div>
 
-                {ticket.deadline && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
-                      <AlertCircle size={14} />
-                      Fecha límite
-                    </label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(ticket.deadline).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
+                    <AlertCircle size={14} />
+                    Fecha límite
+                  </label>
+                  <input
+                    type="date"
+                    value={ticket.deadline ? new Date(ticket.deadline).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleUpdateTicket({ deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                    className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-full"
+                  />
+                </div>
 
-                {ticket.tags && ticket.tags.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
-                      <Tag size={14} />
-                      Etiquetas
-                    </label>
-                    <div className="flex flex-wrap gap-1">
-                      {ticket.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-2 mb-2">
+                    <Tag size={14} />
+                    Etiquetas (separadas por coma)
+                  </label>
+                  <input
+                    type="text"
+                    value={ticket.tags ? ticket.tags.join(', ') : ''}
+                    onChange={(e) => {
+                      const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                      setTicket({ ...ticket, tags });
+                    }}
+                    onBlur={() => handleUpdateTicket({ tags: ticket.tags })}
+                    className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-full"
+                    placeholder="Ej: bug, frontend, urgente"
+                  />
+                </div>
               </div>
             </Card>
           </div>

@@ -41,6 +41,19 @@ export const ticketService = {
     // Extract subtasks to avoid sending them to the tickets table
     const { subtasks, ...ticketData } = ticket;
 
+    // Auto-fill client_id from project if not provided
+    if (!ticketData.client_id && ticketData.project_id) {
+        const { data: project } = await supabase
+            .from('projects')
+            .select('client_id')
+            .eq('id', ticketData.project_id)
+            .single();
+            
+        if (project?.client_id) {
+            ticketData.client_id = project.client_id;
+        }
+    }
+
     const newTicket = await handleSupabaseResponse<Ticket>(
       supabase
         .from('tickets')

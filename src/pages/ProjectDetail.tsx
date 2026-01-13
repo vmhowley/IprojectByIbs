@@ -1,4 +1,4 @@
-import { Activity, Edit, LayoutGrid, Plus, Trash2 } from 'lucide-react';
+import { Activity, Edit, Filter, LayoutGrid, Plus, Search, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -42,6 +42,36 @@ export function ProjectDetail() {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   // Removed unused comment state
   const [users, setUsers] = useState<UserProfile[]>([]);
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState({
+    status: 'all',
+    urgency: 'all',
+    assignee: 'all'
+  });
+
+
+
+
+  const filteredTickets = tickets.filter(ticket => {
+    const matchesSearch = ((ticket.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ticket.description || '').toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesStatus = activeFilters.status === 'all' || ticket.status === activeFilters.status;
+    const matchesUrgency = activeFilters.urgency === 'all' || ticket.urgency === activeFilters.urgency;
+    const matchesAssignee = activeFilters.assignee === 'all' || ticket.assigned_to === activeFilters.assignee;
+
+    return matchesSearch && matchesStatus && matchesUrgency && matchesAssignee;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setActiveFilters({
+      status: 'all',
+      urgency: 'all',
+      assignee: 'all'
+    });
+  };
 
   useEffect(() => {
     if (projectId) {
@@ -141,22 +171,22 @@ export function ProjectDetail() {
         {
           id: 'pending',
           title: 'Pendiente',
-          items: tickets.filter(t => ['pending_analysis', 'pending_approval'].includes(t.status)),
+          items: filteredTickets.filter(t => ['pending_analysis', 'pending_approval'].includes(t.status)),
         },
         {
           id: 'approved',
           title: 'Aprobado',
-          items: tickets.filter(t => t.status === 'approved'),
+          items: filteredTickets.filter(t => t.status === 'approved'),
         },
         {
           id: 'ongoing',
           title: 'En Desarrollo',
-          items: tickets.filter(t => t.status === 'ongoing'),
+          items: filteredTickets.filter(t => t.status === 'ongoing'),
         },
         {
           id: 'completed',
           title: 'Completado',
-          items: tickets.filter(t => t.status === 'completed'),
+          items: filteredTickets.filter(t => t.status === 'completed'),
         },
       ];
 
@@ -179,7 +209,7 @@ export function ProjectDetail() {
     if (viewMode === 'table') {
       return (
         <TableView
-          data={tickets}
+          data={filteredTickets}
           onRowClick={(ticket) => handleSelection(ticket)}
           columns={[
             { header: 'ID', accessorKey: 'id', cell: (t) => <span className="font-mono text-xs text-gray-500">#{t.id.slice(0, 8)}</span> },
@@ -196,7 +226,7 @@ export function ProjectDetail() {
     // Default Grid/List View
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tickets.map((ticket) => (
+        {filteredTickets.map((ticket) => (
           <div
             key={ticket.id}
             onClick={() => handleSelection(ticket)}
@@ -218,7 +248,13 @@ export function ProjectDetail() {
             {ticket.assigned_to && (
               <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
                 <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs text-gray-600 font-medium">
-                  {users.find(u => u.id === ticket.assigned_to)?.name.charAt(0).toUpperCase()}
+                  {(() => {
+                    const user = users.find(u => u.id === ticket.assigned_to);
+                    if (!user) return '?';
+                    // If name starts with a letter, use it. Otherwise try email or hardcoded fallback.
+                    const initial = user.name.charAt(0).toUpperCase();
+                    return /[A-Z]/.test(initial) ? initial : (user.email ? user.email.charAt(0).toUpperCase() : '#');
+                  })()}
                 </div>
                 <span className="text-xs text-gray-500">
                   {users.find(u => u.id === ticket.assigned_to)?.name}
@@ -339,7 +375,77 @@ export function ProjectDetail() {
         {/* Content Area */}
         <main className="flex-1 overflow-auto p-6">
           {activeTab === 'tickets' ? (
-            renderTickets()
+            <div className="space-y-4">
+              {/* Search and Filters Toolbar */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4 md:space-y-0 md:flex md:items-center md:justify-between gap-4">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar tickets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <select
+                      value={activeFilters.status}
+                      onChange={(e) => setActiveFilters(prev => ({ ...prev, status: e.target.value }))}
+                      className="text-sm border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 py-2 pl-2 pr-8"
+                    >
+                      <option value="all">Todos los estados</option>
+                      <option value="pending_analysis">Análisis Pendiente</option>
+                      <option value="pending_approval">Aprobación Pendiente</option>
+                      <option value="approved">Aprobado</option>
+                      <option value="ongoing">En Desarrollo</option>
+                      <option value="completed">Completado</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
+                  </div>
+
+                  <select
+                    value={activeFilters.urgency}
+                    onChange={(e) => setActiveFilters(prev => ({ ...prev, urgency: e.target.value }))}
+                    className="text-sm border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 py-2 pl-2 pr-8"
+                  >
+                    <option value="all">Todas las prioridades</option>
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                    <option value="urgent">Urgente</option>
+                  </select>
+
+                  <select
+                    value={activeFilters.assignee}
+                    onChange={(e) => setActiveFilters(prev => ({ ...prev, assignee: e.target.value }))}
+                    className="text-sm border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 py-2 pl-2 pr-8"
+                  >
+                    <option value="all">Todos los asignados</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+
+                  {(searchQuery || activeFilters.status !== 'all' || activeFilters.urgency !== 'all' || activeFilters.assignee !== 'all') && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {renderTickets()}
+            </div>
           ) : (
             /* Timeline View */
             <div className="max-w-3xl mx-auto">
