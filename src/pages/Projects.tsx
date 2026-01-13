@@ -219,7 +219,17 @@ export function Projects() {
     // Group Projects by Client
     const groupedProjects = filteredProjects.reduce((groups, project) => {
       const clientId = project.client_id || 'unassigned';
-      const clientName = project.clients?.name || 'Sin Cliente Asignado';
+
+      let clientName = project.clients?.name || 'Sin Cliente Asignado';
+
+      // Customize labels
+      if (clientId === 'unassigned') {
+        clientName = 'Proyectos Personales';
+      }
+
+      if (user?.client_id && clientId === user.client_id) {
+        clientName = `${clientName} (Vinculado)`;
+      }
 
       if (!groups[clientId]) {
         groups[clientId] = {
