@@ -12,7 +12,7 @@ export function LandingPage() {
                             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                                 IBS
                             </div>
-                            <span className="font-bold text-xl text-gray-900">Project Tracker</span>
+                            <span className="font-bold text-xl text-gray-900">ibPulse</span>
                         </div>
                         <div className="flex items-center gap-4">
                             <Link to="/login" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
@@ -116,7 +116,7 @@ export function LandingPage() {
                         <div className="relative z-10">
                             <h2 className="text-3xl md:text-4xl font-bold mb-6">Únete a equipos de alto rendimiento</h2>
                             <p className="text-indigo-200 text-lg mb-8 max-w-2xl mx-auto">
-                                Descubre por qué las empresas líderes eligen IBS Project Tracker para gestionar sus iniciativas más críticas.
+                                Descubre por qué las empresas líderes eligen IBS ibPulse para gestionar sus iniciativas más críticas.
                             </p>
                             <div className="flex flex-wrap justify-center gap-8 text-indigo-300 font-semibold">
                                 <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ export function LandingPage() {
                                 <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                                     IBS
                                 </div>
-                                <span className="font-bold text-xl text-gray-900">Project Tracker</span>
+                                <span className="font-bold text-xl text-gray-900">ibPulse</span>
                             </div>
                             <p className="text-gray-500 text-sm">
                                 Simplificando la gestión de proyectos para equipos modernos.
@@ -185,7 +185,7 @@ export function LandingPage() {
                     </div>
                     <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                         <p className="text-sm text-gray-500">
-                            © {new Date().getFullYear()} IBS Project Tracker. Todos los derechos reservados.
+                            © {new Date().getFullYear()} IBS ibPulse. Todos los derechos reservados.
                         </p>
                         <div className="flex gap-6">
                             {/* Social icons could go here */}

@@ -18,7 +18,7 @@ serve(async (req) => {
     // In production, you would use: Deno.env.get('AZUL_MERCHANT_ID')
     const merchantId = Deno.env.get('AZUL_MERCHANT_ID') || '3900000000' // Default Test MerchantID
     const authKey = Deno.env.get('AZUL_AUTH_KEY') || 'test-key'     // IMPORTANT: SET THIS IN SUPABASE SECRETS
-    const merchantName = Deno.env.get('AZUL_MERCHANT_NAME') || 'IBS Project Tracker'
+    const merchantName = Deno.env.get('AZUL_MERCHANT_NAME') || 'IBS ibPulse'
     const merchantType = 'E-Commerce'
     const currencyCode = '$' // Default for Azul
 

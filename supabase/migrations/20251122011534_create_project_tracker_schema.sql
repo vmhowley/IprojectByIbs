@@ -1,5 +1,5 @@
 /*
-  # Project Tracker Schema
+  # ibPulse Schema
 
   1. New Tables
     - `projects`
