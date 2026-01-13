@@ -14,7 +14,7 @@ import {
   Settings,
   Shield,
   Users,
-  X,
+  X
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -330,10 +330,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               </button>
             </div>
           )}
-
-
-
+          <Link
+            to="/help"
+            className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <HelpCircle size={18} />
+            <span>Ayuda & soporte</span>
+          </Link>
           <UserProfile isPro={isPro} />
+
+
         </div>
       </aside>
     </>
@@ -410,7 +416,9 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
               <p className="text-sm font-medium text-gray-900">{user.name}</p>
               <p className="text-xs text-gray-500">{user.email}</p>
             </div>
+            <div className=" p-2  space-y-0.5">
 
+            </div>
             {/* <button
               onClick={async () => {
                 if (!confirm('¿Quieres reclamar todos los proyectos antiguos como tuyos?')) return;
@@ -444,13 +452,7 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
                     <Settings size={18} />
                     <span>Configuraciones</span>
                   </Link>
-                  <Link
-                    to="/help"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  >
-                    <HelpCircle size={18} />
-                    <span>Ayuda & soporte</span>
-                  </Link>
+
                 </>
               )}
             </div>

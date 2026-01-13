@@ -1,9 +1,9 @@
-import { AlertCircle, Bell, CreditCard, Mail, Plus, Settings, Trash2, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertCircle, Bell, CreditCard, Mail, Settings, User } from 'lucide-react';
+import { useState } from 'react';
+import { SystemSettings } from '../components/settings/SystemSettings';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
 import { useSubscription } from '../hooks/useSubscription';
-import { requestTypeService, TicketRequestType } from '../services/requestTypeService';
 
 type SettingsTab = 'profile' | 'notifications' | 'system' | 'billing';
 
@@ -14,80 +14,25 @@ export function SettingsPage() {
 
     const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [profileError, setProfileError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Profile State
     const [profileName, setProfileName] = useState(user?.name || '');
 
-    // Admin State (Request Types)
-    const [types, setTypes] = useState<TicketRequestType[]>([]);
-    const [newTypeLabel, setNewTypeLabel] = useState('');
-
-    useEffect(() => {
-        if (activeTab === 'system') {
-            loadTypes();
-        }
-    }, [activeTab]);
-
-    const loadTypes = async () => {
-        try {
-            setLoading(true);
-            const data = await requestTypeService.getAll();
-            setTypes(data);
-        } catch (err: any) {
-            console.error('Error loading request types:', err);
-            // 42P01 is Postgres error for "undefined table"
-            if (err.code === '42P01' || err.message?.includes('does not exist')) {
-                setError('La tabla de configuración no existe. Por favor ejecuta la migración de base de datos.');
-            } else {
-                setError('Error cargando los tipos de solicitud.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             setLoading(true);
-            setError(null);
+            setProfileError(null);
             setSuccessMessage(null);
             await updateProfile({ name: profileName });
             setSuccessMessage('Perfil actualizado correctamente.');
         } catch (err: any) {
-            setError(err.message || 'Error actualizando perfil.');
+            setProfileError(err.message || 'Error actualizando perfil.');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleAddType = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newTypeLabel.trim()) return;
-
-        try {
-            setError(null);
-            const newType = await requestTypeService.create(newTypeLabel.trim());
-            setTypes([...types, newType]);
-            setNewTypeLabel('');
-        } catch (err: any) {
-            console.error('Error adding request type:', err);
-            setError(err.message || 'Error agregando el tipo.');
-        }
-    };
-
-    const handleDeleteType = async (id: string) => {
-        if (!confirm('¿Estás seguro de que deseas eliminar este tipo de solicitud?')) return;
-
-        try {
-            setError(null);
-            await requestTypeService.delete(id);
-            setTypes(types.filter(t => t.id !== id));
-        } catch (err: any) {
-            console.error('Error deleting request type:', err);
-            setError(err.message || 'Error eliminando el tipo.');
         }
     };
 
@@ -161,14 +106,14 @@ export function SettingsPage() {
                     </div>
 
                     <div className="p-6">
-                        {/* Global Alerts */}
-                        {error && (
+                        {/* Global Alerts for Profile */}
+                        {activeTab === 'profile' && profileError && (
                             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
                                 <AlertCircle size={20} />
-                                <span>{error}</span>
+                                <span>{profileError}</span>
                             </div>
                         )}
-                        {successMessage && (
+                        {activeTab === 'profile' && successMessage && (
                             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
                                 {successMessage}
                             </div>
@@ -265,52 +210,7 @@ export function SettingsPage() {
 
                         {/* ADMIN TAB */}
                         {activeTab === 'system' && (
-                            <div className="space-y-8">
-                                <div>
-                                    <h3 className="font-medium text-gray-900 mb-4">Tipos de Solicitud de Ticket</h3>
-                                    <div className="space-y-4 max-w-xl">
-                                        <div className="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200">
-                                            {types.length === 0 ? (
-                                                <div className="p-4 text-center text-gray-500 text-sm">No hay tipos definidos o cargando...</div>
-                                            ) : (
-                                                types.map(type => (
-                                                    <div key={type.id} className="p-3 flex items-center justify-between group">
-                                                        <div>
-                                                            <p className="font-medium text-gray-900">{type.label}</p>
-                                                            <p className="text-xs text-gray-500 font-mono">{type.value}</p>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => handleDeleteType(type.id)}
-                                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                            title="Eliminar"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-
-                                        <form onSubmit={handleAddType} className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={newTypeLabel}
-                                                onChange={(e) => setNewTypeLabel(e.target.value)}
-                                                placeholder="Nuevo tipo (ej. Mantenimiento)"
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={!newTypeLabel.trim()}
-                                                className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                                            >
-                                                <Plus size={16} />
-                                                Agregar
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+                            <SystemSettings />
                         )}
                     </div>
                 </div>
