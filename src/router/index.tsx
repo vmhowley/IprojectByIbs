@@ -9,6 +9,8 @@ import { AdminPanel } from '../pages/AdminPanel';
 import { ChannelPage } from '../pages/ChannelPage';
 import { Clients } from '../pages/Clients';
 import { DemoPage } from '../pages/DemoPage';
+import { DocumentationPage } from '../pages/DocumentationPage';
+import { HelpPage } from '../pages/HelpPage';
 import { Home } from '../pages/Home';
 import { InboxPage } from '../pages/InboxPage';
 import { LandingPage } from '../pages/LandingPage';
@@ -114,7 +116,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'help',
-        element: <PlaceholderPage />,
+        element: <HelpPage />,
+      },
+      {
+        path: 'docs',
+        element: <DocumentationPage />,
       },
       {
         path: 'admin',
