@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectBoardCard } from '../components/project/ProjectBoardCard';
 import { ProjectCard } from '../components/project/ProjectCard';
+import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ViewSwitcher, ViewType } from '../components/ui/ViewSwitcher';
@@ -121,10 +122,11 @@ export function Projects() {
                 : 'Comienza creando tu primer proyecto'}
             </p>
             {!searchQuery && user?.role !== 'guest' && (
-              <button onClick={handleNewProjectClick}>
+              <Button onClick={handleNewProjectClick}
+              >
                 <Plus size={18} />
                 Crear Proyecto
-              </button>
+              </Button>
             )}
           </div>
         </div>
