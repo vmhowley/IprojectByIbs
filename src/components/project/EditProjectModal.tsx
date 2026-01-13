@@ -24,6 +24,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
     const [startDate, setStartDate] = useState(project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '');
     const [endDate, setEndDate] = useState(project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '');
     const [clientId, setClientId] = useState(project.client_id || '');
+    const [useCaseId, setUseCaseId] = useState(project.use_case_id || '');
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
 
@@ -37,6 +38,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
             setStartDate(project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '');
             setEndDate(project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '');
             setClientId(project.client_id || '');
+            setUseCaseId(project.use_case_id || '');
             loadClients();
         }
     }, [isOpen, project]);
@@ -61,7 +63,8 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                 priority: priority as 'low' | 'medium' | 'high',
                 start_date: startDate || null,
                 end_date: endDate || null,
-                client_id: clientId || null // Allow clearing client if needed, or enforce it
+                client_id: clientId || null, // Allow clearing client if needed, or enforce it
+                use_case_id: useCaseId || null
             });
             onProjectUpdated(updated);
             onClose();
@@ -94,6 +97,17 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                         onChange={(e) => setName(e.target.value)}
                         required
                     />
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Número de Caso de Uso
+                        </label>
+                        <Input
+                            value={useCaseId}
+                            onChange={(e) => setUseCaseId(e.target.value)}
+                            placeholder="Ej: CU-123"
+                        />
+                    </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">

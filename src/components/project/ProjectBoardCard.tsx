@@ -35,6 +35,11 @@ export function ProjectBoardCard({ project }: ProjectBoardCardProps) {
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide ${getStatusColor(project.status || 'active')}`}>
                     {project.status || 'active'}
                 </span>
+                {project.use_case_id && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                        {project.use_case_id}
+                    </span>
+                )}
                 {project.priority && (
                     <AlertCircle size={14} className={getPriorityColor(project.priority)} />
                 )}

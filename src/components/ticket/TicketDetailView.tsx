@@ -1,4 +1,4 @@
-import { Calendar, CheckSquare, Download, Edit, FileText, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
+import { CheckSquare, Download, Edit, FileText, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,11 +10,12 @@ import { projectService } from '../../services/projectService';
 import { storageService } from '../../services/storageService';
 import { subtaskService } from '../../services/subtaskService';
 import { ticketService } from '../../services/ticketService';
-import { getUserById, getUsers } from '../../services/usersService';
+import { getUsers } from '../../services/usersService';
 import { Comment, Project, Subtask, Ticket, TicketProgram, UserProfile } from '../../types';
 import { confirmAction } from '../../utils/confirmationToast';
-import { Select } from '../ui/Select';
+import { ModernSelect } from '../ui/ModernSelect';
 import { StatusBadge } from '../ui/StatusBadge';
+import console from 'console';
 
 interface TicketDetailViewProps {
   ticketId: string;
@@ -27,7 +28,6 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   const { user } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [project, setProject] = useState<Project | null>(null);
-  const [assignedUser, setAssignedUser] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -87,7 +87,6 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
   useEffect(() => {
     if (ticket) {
-      loadUser();
       loadProject();
     }
   }, [ticket]);
@@ -101,29 +100,6 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
       console.error("Error loading project", error);
     }
   };
-
-  const loadUser = async () => {
-    if (!ticket?.assigned_to) {
-      setAssignedUser('Sin asignar');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const data = await getUserById(ticket.assigned_to);
-      if (data) {
-        setAssignedUser(data.name);
-      } else {
-        setAssignedUser('Desconocido');
-      }
-    } catch (error) {
-      console.error('Error loading assigned user:', error);
-      setAssignedUser('Error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
 
   const loadTicket = async () => {
     try {
@@ -206,9 +182,6 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
   const handleQaNotesChange = async (newNotes: string) => {
     if (!ticket) return;
-    // Debouncing could be good here, but for simplicity we update on blur or a explicit save button if needed. 
-    // For now, let's assume we update state locally and handle save on blur?
-    // Or just direct update to keep it simple with atomic updates
     try {
       const updated = await ticketService.update(ticket.id, { qa_notes: newNotes });
       setTicket(updated);
@@ -453,14 +426,6 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
     );
   }
 
-  const statusOptions = [
-    { value: 'pending_analysis', label: 'pendiente de análisis' },
-    { value: 'pending_approval', label: 'pendiente de aprobación' },
-    { value: 'approved', label: 'aprobado' },
-    { value: 'ongoing', label: 'en desarrollo' },
-    { value: 'completed', label: 'completado' }
-  ];
-
   return (
     <div className="flex flex-col h-full bg-white relative">
       <div className="flex-none px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
@@ -512,53 +477,108 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Estado</label>
-              <Select
-                options={statusOptions}
+              <ModernSelect
+                label="Estado"
+                options={[
+                  { value: 'pending_analysis', label: 'Análisis Pendiente' },
+                  { value: 'pending_approval', label: 'Aprobación Pendiente' },
+                  { value: 'approved', label: 'Aprobado' },
+                  { value: 'ongoing', label: 'En Desarrollo' },
+                  { value: 'completed', label: 'Completado' },
+                  { value: 'cancelled', label: 'Cancelado' }
+                ]}
                 value={ticket.status}
-                onChange={(e) => handleStatusChange(e.target.value as Ticket['status'])}
-                disabled={user?.role === 'guest'}
-                className="bg-gray-50 border-gray-200 text-sm"
+                onChange={(val) => handleStatusChange(val as any)}
+                renderValue={(val) => <StatusBadge status={val as any} />}
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Prioridad</label>
-              <div className="py-2">
-                <Select
-                  options={[
-                    { value: 'low', label: 'Baja' },
-                    { value: 'medium', label: 'Media' },
-                    { value: 'high', label: 'Alta' },
-                    { value: 'urgent', label: 'Urgente' }
-                  ]}
-                  value={ticket.urgency}
-                  onChange={(e) => handleUpdateTicket({ urgency: e.target.value as any })}
-                  className="text-xs h-8 py-0 pl-2 pr-6 border-gray-200 w-full"
-                />
-              </div>
+              <ModernSelect
+                label="Prioridad"
+                options={[
+                  { value: 'low', label: 'Baja', color: 'bg-gray-500' },
+                  { value: 'medium', label: 'Media', color: 'bg-blue-500' },
+                  { value: 'high', label: 'Alta', color: 'bg-orange-500' },
+                  { value: 'urgent', label: 'Urgente', color: 'bg-red-500' }
+                ]}
+                value={ticket.urgency}
+                onChange={(val) => handleUpdateTicket({ urgency: val as any })}
+                renderValue={(val) => {
+                  const colors: Record<string, string> = {
+                    low: 'bg-gray-100 text-gray-700',
+                    medium: 'bg-blue-100 text-blue-700',
+                    high: 'bg-orange-100 text-orange-700',
+                    urgent: 'bg-red-100 text-red-700'
+                  };
+                  const labels: Record<string, string> = {
+                    low: 'Baja', medium: 'Media', high: 'Alta', urgent: 'Urgente'
+                  };
+                  return (
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[val] || 'bg-gray-100'}`}>
+                      {labels[val] || val}
+                    </span>
+                  );
+                }}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Asignado a</label>
+              <ModernSelect
+                label="Asignado a"
+                options={[
+                  { value: '', label: 'Sin asignar' },
+                  ...users.map(u => ({
+                    value: u.id,
+                    label: u.name,
+                    icon: (
+                      <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-medium text-indigo-700">
+                        {u.name.charAt(0).toUpperCase()}
+                      </div>
+                    )
+                  }))
+                ]}
+                value={ticket.assigned_to || ''}
+                onChange={(val) => handleUpdateTicket({ assigned_to: val || null })}
+                renderValue={(val, option) => (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-medium text-indigo-700">
+                      {option?.label ? option.label.charAt(0).toUpperCase() : '?'}
+                    </div>
+                    <span className="text-sm">{option?.label || 'Sin asignar'}</span>
+                  </div>
+                )}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Fecha límite</label>
               <div className="py-1.5">
-                <Select
-                  options={[
-                    { value: '', label: 'Sin asignar' },
-                    ...users.map(u => ({ value: u.id, label: u.name }))
-                  ]}
-                  value={ticket.assigned_to || ''}
-                  onChange={(e) => handleUpdateTicket({ assigned_to: e.target.value || null })}
-                  className="text-sm h-8 py-0 pl-2 pr-6 border-gray-200 w-full"
+                <input
+                  type="date"
+                  value={ticket.deadline ? new Date(ticket.deadline).toISOString().split('T')[0] : ''}
+                  onChange={(e) => handleUpdateTicket({ deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                  className="text-sm border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-full p-1"
                 />
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Creado</label>
-              <div className="flex items-center gap-2 py-1.5 text-sm text-gray-600">
-                <Calendar size={14} className="text-gray-400" />
-                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Etiquetas</label>
+              <div className="flex items-center gap-2 py-1.5">
+                <input
+                  type="text"
+                  value={ticket.tags ? ticket.tags.join(', ') : ''}
+                  onChange={(e) => {
+                    const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                    setTicket({ ...ticket, tags });
+                  }}
+                  onBlur={() => handleUpdateTicket({ tags: ticket.tags })}
+                  className="text-sm border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-full p-1"
+                  placeholder="Ej: bug, frontend"
+                />
               </div>
             </div>
           </div>
@@ -798,15 +818,11 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                 disabled={!newComment.trim() || submittingComment}
                 className="absolute right-2 bottom-2 text-indigo-600 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed p-1.5"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
+                <Plus size={20} />
               </button>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

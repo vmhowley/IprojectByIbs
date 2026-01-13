@@ -18,6 +18,7 @@ export interface Project {
   assignee_profile?: {
     name: string;
   } | null;
+  use_case_id?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;

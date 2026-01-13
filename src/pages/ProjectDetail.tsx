@@ -299,6 +299,11 @@ export function ProjectDetail() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
+                  {project?.use_case_id && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                      {project.use_case_id}
+                    </span>
+                  )}
                   <StatusBadge status={project?.status || 'active'} />
                 </div>
                 {project?.description && (
