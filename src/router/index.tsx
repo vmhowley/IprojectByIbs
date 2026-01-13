@@ -21,6 +21,7 @@ import { Register } from '../pages/Register';
 import { SettingsPage } from '../pages/SettingsPage';
 import { TasksPage } from '../pages/TasksPage';
 import { TicketDetail } from '../pages/TicketDetail';
+import { UpdatePassword } from '../pages/UpdatePassword';
 
 // Authentication enabled
 const ENABLE_AUTH = true;
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />,
+  },
+  {
+    path: '/update-password',
+    element: <UpdatePassword />,
   },
   {
     path: '/pricing',
