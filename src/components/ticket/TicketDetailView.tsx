@@ -1,5 +1,5 @@
 import console from 'console';
-import { CheckSquare, Download, Edit, FileText, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
+import { CheckSquare, Download, FileText, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -552,69 +552,79 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Fecha límite</label>
-              <div className="py-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Fecha límite</label>
+              <div className="relative">
                 <input
                   type="date"
                   value={ticket.deadline ? new Date(ticket.deadline).toISOString().split('T')[0] : ''}
                   onChange={(e) => handleUpdateTicket({ deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                  className="text-sm border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-full p-1"
+                  className="w-full text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 transition-all hover:bg-gray-50"
+                  style={{ colorScheme: 'light' }}
                 />
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mt-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Etiquetas</label>
-              <div className="flex items-center gap-2 py-1.5">
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Etiquetas</label>
+              <div className="relative">
+                <Tag size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={ticket.tags ? ticket.tags.join(', ') : ''}
                   onChange={(e) => {
-                    const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
-                    setTicket({ ...ticket, tags });
+                    const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean); // Keep logic but typing might be annoying
+                    // Better interaction: just let them type string and parse on blur
+                    setTicket({ ...ticket, tags: e.target.value.split(',').map(s => s.trim()) });
                   }}
-                  onBlur={() => handleUpdateTicket({ tags: ticket.tags })}
-                  className="text-sm border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-full p-1"
-                  placeholder="Ej: bug, frontend"
+                  onBlur={() => handleUpdateTicket({ tags: ticket.tags?.filter(Boolean) })}
+                  className="w-full pl-9 pr-3 py-2 text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-gray-50"
+                  placeholder="Ej: bug, frontend (separado por comas)"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div>
-          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Edit size={14} className="text-gray-400" />
+        <div className="bg-gray-50/50 rounded-xl border border-gray-200 p-4 transition-all focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500">
+          <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <div className="p-1.5 bg-indigo-100 rounded-md text-indigo-600">
+              <FileText size={16} />
+            </div>
             Descripción
           </h3>
           <textarea
             value={ticket.description || ''}
             onChange={(e) => setTicket({ ...ticket, description: e.target.value })}
             onBlur={() => handleUpdateTicket({ description: ticket.description })}
-            className="w-full bg-gray-50 rounded-lg p-4 border border-gray-100 text-sm text-gray-700 leading-relaxed min-h-[100px] focus:ring-indigo-500 focus:border-indigo-500 resize-none"
-            placeholder="No hay descripción disponible para este ticket."
+            className="w-full bg-transparent border-none p-0 text-sm text-gray-700 leading-relaxed min-h-[120px] focus:ring-0 placeholder-gray-400 resize-y"
+            placeholder="Añade una descripción detallada..."
           />
         </div>
 
 
 
         {/* Subtasks Section */}
-        <div>
-          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <CheckSquare size={14} className="text-gray-400" />
-            Subtareas
-          </h3>
+        <div className="bg-white p-2 rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <CheckSquare size={16} className="text-gray-500" />
+              Subtareas
+            </h3>
+            <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+              {subtasks.filter(t => t.is_completed).length}/{subtasks.length}
+            </span>
+          </div>
 
-          <div className="space-y-2 mb-3">
+          <div className="p-4 space-y-2">
             {subtasks.map(task => (
-              <div key={task.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group transition-colors">
+              <div key={task.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg group transition-colors -mx-2">
                 <input
                   type="checkbox"
                   checked={task.is_completed}
                   onChange={() => handleToggleSubtask(task)}
-                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
                   disabled={user?.role === 'guest'}
                 />
                 <span className={`flex-1 text-sm ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
@@ -632,29 +642,31 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
               </div>
             ))}
             {subtasks.length === 0 && (
-              <p className="text-xs text-gray-400 italic px-2">No hay subtareas.</p>
+              <div className="text-center py-6 text-gray-400 text-sm">
+                No hay subtareas pendientes
+              </div>
+            )}
+
+            {user?.role !== 'guest' && (
+              <div className="flex gap-2 pt-2 mt-2 border-t border-gray-100">
+                <input
+                  value={newSubtask}
+                  onChange={(e) => setNewSubtask(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                  placeholder="Agregar nueva subtarea..."
+                  className="flex-1 text-sm border-none bg-gray-50 rounded-md py-2 px-3 focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                  disabled={addingSubtask}
+                />
+                <button
+                  onClick={handleAddSubtask}
+                  disabled={addingSubtask || !newSubtask.trim()}
+                  className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {addingSubtask ? '...' : <Plus size={16} />}
+                </button>
+              </div>
             )}
           </div>
-
-          {user?.role !== 'guest' && (
-            <div className="flex gap-2">
-              <input
-                value={newSubtask}
-                onChange={(e) => setNewSubtask(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-                placeholder="Nueva subtarea..."
-                className="flex-1 text-sm border border-gray-400 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                disabled={addingSubtask}
-              />
-              <button
-                onClick={handleAddSubtask}
-                disabled={addingSubtask || !newSubtask.trim()}
-                className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {addingSubtask ? '...' : <Plus size={16} />}
-              </button>
-            </div>
-          )}
         </div>
 
         <div>
@@ -780,50 +792,67 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
         </div>
 
         <div className="pb-4">
-          <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <MessageSquare size={14} className="text-gray-400" />
-            Comentarios
-          </h3>
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquare size={16} className="text-gray-500" />
+            <h3 className="text-sm font-bold text-gray-900">Comentarios</h3>
+          </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 mb-6">
             {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-1">
+              <div key={comment.id} className="flex gap-4 group">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
                   {comment.user_name[0].toUpperCase()}
                 </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-baseline justify-between">
+                <div className="flex-1">
+                  <div className="flex items-baseline justify-between mb-1">
                     <span className="text-sm font-semibold text-gray-900">{comment.user_name}</span>
-                    <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleDateString()}</span>
+                    <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleDateString()} {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg rounded-tl-none leading-relaxed">
+                  <div className="bg-gray-50 p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm text-gray-700 leading-relaxed border border-gray-100 group-hover:border-indigo-100 transition-colors">
                     {comment.content}
                   </div>
                 </div>
               </div>
             ))}
+            {comments.length === 0 && (
+              <div className="text-center py-8 text-gray-400 text-sm italic bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                No hay actividad reciente
+              </div>
+            )}
           </div>
 
-          <div className="mt-6 sticky bottom-0 bg-white pt-2">
-            <div className="relative">
+          <div className="flex gap-3 items-start bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold flex-shrink-0">
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
+            </div>
+            <div className="flex-1 space-y-2">
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAddComment();
+                  }
+                }}
                 placeholder="Escribe un comentario..."
-                className="w-full text-sm border-gray-200 rounded-lg pl-3 pr-10 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none min-h-[50px]"
-                rows={2}
+                className="w-full bg-transparent border-0 border-b border-gray-200 p-0 pb-2 text-sm focus:ring-0 focus:border-indigo-500 placeholder-gray-400 resize-none min-h-[40px]"
               />
-              <button
-                onClick={handleAddComment}
-                disabled={!newComment.trim() || submittingComment}
-                className="absolute right-2 bottom-2 text-indigo-600 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed p-1.5"
-              >
-                <Plus size={20} />
-              </button>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-gray-400 hidden md:inline">Presiona Enter para enviar</span>
+                <button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim() || submittingComment}
+                  className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                >
+                  {submittingComment ? 'Enviando...' : 'Comentar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+
   );
 }

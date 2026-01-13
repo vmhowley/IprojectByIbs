@@ -1,4 +1,5 @@
 import {
+  Calendar,
   CheckSquare,
   ChevronDown,
   ChevronRight,
@@ -8,17 +9,17 @@ import {
   HelpCircle,
   Home,
   Inbox,
+  Map,
   Plus,
   Settings,
   Shield,
   Users,
-  X
+  X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
-import { supabase } from '../../lib/supabase';
 import Logo from '../../public/Logoibpulse.webp';
 import { channelService } from '../../services/channelService';
 import { notificationService } from '../../services/notificationService';
@@ -238,22 +239,23 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   <FolderKanban size={18} />
                   <span>Proyectos</span>
                 </Link>
-                {/* <Link
+                <Link
                   to="/calendar"
                   onClick={onClose}
                   className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   <Calendar size={18} />
                   <span>Calendario</span>
-                </Link> */}
-                {/* <Link
-                  to="/roadmaps"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                >
-                  <Map size={18} />
-                  <span>Mapas</span>
-                </Link> */}
+                </Link>
+                {user?.role !== 'guest' && (
+                  <Link
+                    to="/roadmaps"
+                    onClick={onClose}
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    <Map size={18} />
+                    <span>Mapas</span>
+                  </Link>)}
                 {user?.role !== 'guest' && (
                   <Link
                     to="/clients"
@@ -329,38 +331,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             </div>
           )}
 
-          <div className="px-2 pb-3 space-y-0.5">
-            {user?.role === 'admin' && (
-              <Link
-                to="/admin"
-                onClick={onClose}
-                className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors font-medium"
-              >
-                <Shield size={18} />
-                <span>Panel de Admin</span>
-              </Link>
-            )}
-            {user?.role !== 'guest' && (
-              <>
-                <Link
-                  to="/settings"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                >
-                  <Settings size={18} />
-                  <span>Configuraciones</span>
-                </Link>
-                <Link
-                  to="/help"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                >
-                  <HelpCircle size={18} />
-                  <span>Ayuda & soporte</span>
-                </Link>
-              </>
-            )}
-          </div>
+
 
           <UserProfile isPro={isPro} />
         </div>
@@ -440,7 +411,7 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
               <p className="text-xs text-gray-500">{user.email}</p>
             </div>
 
-            <button
+            {/* <button
               onClick={async () => {
                 if (!confirm('¿Quieres reclamar todos los proyectos antiguos como tuyos?')) return;
                 const { error } = await supabase.from('projects').update({ created_by: user.id }).is('created_by', null);
@@ -453,7 +424,36 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
               className="w-full px-3 py-2 text-left text-sm text-indigo-600 hover:bg-indigo-50 transition-colors border-b border-gray-100"
             >
               Recuperar proyectos antiguos
-            </button>
+            </button> */}
+            <div className=" p-2  space-y-0.5">
+              {user?.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors font-medium"
+                >
+                  <Shield size={18} />
+                  <span>Panel de Admin</span>
+                </Link>
+              )}
+              {user?.role !== 'guest' && (
+                <>
+                  <Link
+                    to="/settings"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    <Settings size={18} />
+                    <span>Configuraciones</span>
+                  </Link>
+                  <Link
+                    to="/help"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    <HelpCircle size={18} />
+                    <span>Ayuda & soporte</span>
+                  </Link>
+                </>
+              )}
+            </div>
 
             <button
               onClick={handleLogout}
