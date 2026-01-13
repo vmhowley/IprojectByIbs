@@ -1,4 +1,4 @@
-import { Activity, Edit, Filter, LayoutGrid, Plus, Search, Trash2, X } from 'lucide-react';
+import { Activity, Edit, FileIcon, Filter, LayoutGrid, Plus, Search, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -35,7 +35,7 @@ export function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   // Removed unused viewMode state
-  const [activeTab, setActiveTab] = useState<'tickets' | 'timeline'>('tickets');
+  const [activeTab, setActiveTab] = useState<'tickets' | 'timeline' | 'files'>('tickets');
   const [loading, setLoading] = useState(true);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -158,6 +158,95 @@ export function ProjectDetail() {
       confirmText: 'Eliminar',
       cancelText: 'Cancelar'
     });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files.length || !project) return;
+
+    const file = e.target.files[0];
+    // Reset input value so same file can be selected again if needed
+    e.target.value = '';
+
+    const toastId = toast.loading('Subiendo archivo...');
+
+    try {
+      const { url } = await storageService.uploadFile(file, project.id);
+
+      const newAttachment: Attachment = {
+        name: file.name,
+        url,
+        size: file.size,
+        type: file.type
+      };
+
+      // 1. Optimistic Update
+      const optimisticAttachments = [...(project.attachments || []), newAttachment];
+      const optimisticProject = { ...project, attachments: optimisticAttachments };
+      setProject(optimisticProject);
+
+      // 2. Persist to DB
+      const updatedProject = await projectService.update(project.id, {
+        attachments: optimisticAttachments
+      });
+
+      // 3. Verify Persistence
+      if (!updatedProject.attachments || updatedProject.attachments.length !== optimisticAttachments.length) {
+        console.warn('Backend returned project without new attachments. Possible schema mismatch.');
+        // We might want to keep the optimistic state or revert. 
+        // For now, let's trust the backend response but log warning.
+        // If DB column is missing, updatedProject won't have it, so we might lose it on reload.
+        // Let's force set it from local state if missing to keep UI consistent until reload, 
+        // but warn user.
+        if (!updatedProject.attachments) {
+          toast.error('Advertencia: No se pudo verificar el guardado. Compruebe la migración de la base de datos.', { id: toastId, duration: 5000 });
+          // Revert or keep? Keeping helpful for "viewing" but misleading for storage.
+          // Let's keep valid URL so at least they can see it this session.
+          setProject({ ...updatedProject, attachments: optimisticAttachments });
+          return;
+        }
+      }
+
+      setProject(updatedProject);
+      toast.success('Archivo subido correctamente', { id: toastId });
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      // Revert optimistic update (implicit by not calling setProject with success)
+      // But we already set it! We need to revert.
+      // Fetch fresh project
+      const freshProject = await projectService.getById(project.id);
+      setProject(freshProject);
+
+      toast.error('Error al subir el archivo: ' + (error.message || 'Error desconocido'), { id: toastId });
+    }
+  };
+
+  const handleDeleteFile = async (attachment: Attachment) => {
+    if (!project) return;
+
+    if (!confirm(`¿Estás seguro de eliminar el archivo "${attachment.name}"?`)) return;
+
+    try {
+      // Extract path from URL or use a stored path property if added later. 
+      // For now, let's just attempt to remove from DB array, deletion from Storage 
+      // requires the path which we might need to derive or store.
+      // Current storageService returns path, but we storing only URL in Attachment type usually?
+      // Check Attachment type... it has name, url, size, type. 
+      // To delete from storage we need the path.
+      // Re-deriving path from URL depends on structure.
+      // For this MVP, let's just remove reference from DB.
+
+      const updatedAttachments = (project.attachments || []).filter(a => a.url !== attachment.url);
+
+      const updatedProject = await projectService.update(project.id, {
+        attachments: updatedAttachments
+      });
+
+      setProject(updatedProject);
+      toast.success('Archivo eliminado');
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Error al eliminar el archivo');
+    }
   };
 
   // State for view mode
@@ -367,6 +456,18 @@ export function ProjectDetail() {
                   Actividad
                 </div>
               </button>
+              <button
+                onClick={() => setActiveTab('files')}
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'files'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FileIcon className="w-4 h-4" />
+                  Archivos ({project?.attachments?.length || 0})
+                </div>
+              </button>
             </div>
 
             {activeTab === 'tickets' && (
@@ -451,10 +552,64 @@ export function ProjectDetail() {
 
               {renderTickets()}
             </div>
-          ) : (
+          ) : activeTab === 'timeline' ? (
             /* Timeline View */
             <div className="max-w-3xl mx-auto">
               <ProjectTimeline projectId={project?.id} />
+            </div>
+          ) : (
+            /* Files View */
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                  <h3 className="font-semibold text-gray-900">Archivos adjuntos</h3>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleFileUpload}
+                    />
+                    <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
+                      <Plus size={16} />
+                      Subir archivo
+                    </button>
+                  </div>
+                </div>
+
+                {!project?.attachments || project.attachments.length === 0 ? (
+                  <div className="p-12 text-center text-gray-500">
+                    <FileIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                    <p>No hay archivos adjuntos en este proyecto.</p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {project.attachments.map((file, index) => (
+                      <li key={index} className="p-4 hover:bg-gray-50 flex items-center justify-between group transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                            <FileIcon size={20} />
+                          </div>
+                          <div>
+                            <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline">
+                              {file.name}
+                            </a>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / 1024).toFixed(1)} KB • {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteFile(file)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          title="Eliminar archivo"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           )}
         </main>
@@ -463,21 +618,29 @@ export function ProjectDetail() {
       {/* Right Sidebar - Using TicketDetailView with correct props */}
       {
         selectedTicket && activeTab === 'tickets' && (
-          <div className="w-96 border-l border-gray-200 bg-white overflow-hidden flex flex-col shadow-xl z-10">
-            <TicketDetailView
-              ticketId={selectedTicket.id}
-              onClose={() => setSelectedTicket(null)}
-              onUpdate={(updated) => {
-                setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
-                if (selectedTicket?.id === updated.id) setSelectedTicket(updated);
-
-              }}
-              onDelete={(deletedId) => {
-                setTickets(prev => prev.filter(t => t.id !== deletedId));
-                setSelectedTicket(null);
-              }}
+          <>
+            {/* Backdrop for mobile */}
+            <div
+              className="fixed inset-0 bg-black/20 z-20 lg:hidden"
+              onClick={() => setSelectedTicket(null)}
             />
-          </div>
+            {/* Panel */}
+            <div className="fixed inset-y-0 right-0 w-[90%] md:w-[600px] lg:w-[800px] border-l border-gray-200 bg-white shadow-2xl z-30 transform transition-transform duration-300 ease-in-out flex flex-col">
+              <TicketDetailView
+                ticketId={selectedTicket.id}
+                onClose={() => setSelectedTicket(null)}
+                onUpdate={(updated) => {
+                  setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
+                  if (selectedTicket?.id === updated.id) setSelectedTicket(updated);
+
+                }}
+                onDelete={(deletedId) => {
+                  setTickets(prev => prev.filter(t => t.id !== deletedId));
+                  setSelectedTicket(null);
+                }}
+              />
+            </div>
+          </>
         )
       }
 

@@ -72,14 +72,22 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       window.addEventListener('project-deleted', handleProjectDeleted);
 
+      const handleNotificationUpdate = () => {
+        loadUnreadCount();
+      };
+
+      window.addEventListener('notification-updated', handleNotificationUpdate);
+
       // Subscribe to notifications
       const sub = notificationService.subscribe(user.id, (_notification) => {
         // Simple increment on new notification
-        setUnreadCount(prev => prev + 1);
+        // Note: Ideally we should check if the new notification is unread (which it usually is)
+        loadUnreadCount(); // Safer to just reload count for consistency
       });
 
       return () => {
         sub.unsubscribe();
+        window.removeEventListener('notification-updated', handleNotificationUpdate);
       }
     }
   }, [user?.id, user?.role]);

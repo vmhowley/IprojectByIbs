@@ -10,7 +10,7 @@ import { UserPicker } from '../ui/UserPicker';
 
 interface NewProjectModalProps {
   onClose: () => void;
-  onSubmit: (project: Partial<Project>) => void;
+  onSubmit: (project: Partial<Project>, files: File[]) => void;
 }
 
 export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
@@ -26,6 +26,7 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   const [clientId, setClientId] = useState('');
   const [contactId, setContactId] = useState('');
   const [useCaseId, setUseCaseId] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +46,7 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
       use_case_id: useCaseId || undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    });
+    }, files);
 
     onClose();
   };
@@ -204,14 +205,23 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Adjuntar archivo
             </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors cursor-pointer">
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors cursor-pointer relative">
+              <input
+                type="file"
+                multiple
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setFiles(Array.from(e.target.files));
+                  }
+                }}
+              />
               <div className="space-y-1 text-center">
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="flex text-sm text-gray-600">
-                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                    <span>Subir un archivo</span>
-                    <input type="file" className="sr-only" />
-                  </label>
+                <div className="flex text-sm text-gray-600 justify-center">
+                  <span className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                    Subir un archivo
+                  </span>
                   <p className="pl-1">o arrastrar y soltar</p>
                 </div>
                 <p className="text-xs text-gray-500">
@@ -219,6 +229,27 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
                 </p>
               </div>
             </div>
+
+            {/* Selected Files List */}
+            {files.length > 0 && (
+              <ul className="mt-4 space-y-2">
+                {files.map((file, index) => (
+                  <li key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm border border-gray-100">
+                    <span className="truncate max-w-[200px] text-gray-700 font-medium">{file.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">{(file.size / 1024).toFixed(0)} KB</span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles(prev => prev.filter((_, i) => i !== index))}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div>

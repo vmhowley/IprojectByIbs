@@ -12,9 +12,36 @@ export function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const handleCreateProject = async (projectData: { name: string; description: string }) => {
+  const handleCreateProject = async (projectData: Partial<Project>, files: File[]) => {
     try {
+      // 1. Create Project
       const data = await projectService.create(projectData);
+
+      // 2. Upload Files
+      if (files.length > 0) {
+        const { storageService } = await import('../services/storageService');
+        const attachments = [];
+
+        for (const file of files) {
+          try {
+            const { url } = await storageService.uploadFile(file, data.id);
+            attachments.push({
+              name: file.name,
+              url,
+              size: file.size,
+              type: file.type
+            });
+          } catch (err) {
+            console.error('Failed to upload file:', file.name, err);
+          }
+        }
+
+        // 3. Update Project with Attachments
+        if (attachments.length > 0) {
+          await projectService.update(data.id, { attachments });
+        }
+      }
+
       navigate(`/project/${data.id}`);
     } catch (error) {
       console.error('Error creating project:', error);

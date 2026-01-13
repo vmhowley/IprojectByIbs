@@ -69,9 +69,37 @@ export function Projects() {
   };
 
 
-  const handleCreateProject = async (projectData: Partial<Project>) => {
+  const handleCreateProject = async (projectData: Partial<Project>, files: File[]) => {
     try {
-      await projectService.create(projectData);
+      // 1. Create Project
+      const newProject = await projectService.create(projectData);
+
+      // 2. Upload Files
+      if (files.length > 0) {
+        const { storageService } = await import('../services/storageService');
+        const attachments = [];
+
+        for (const file of files) {
+          try {
+            const { url } = await storageService.uploadFile(file, newProject.id);
+            attachments.push({
+              name: file.name,
+              url,
+              size: file.size,
+              type: file.type
+            });
+          } catch (err) {
+            console.error('Failed to upload file:', file.name, err);
+            // Continue with other files
+          }
+        }
+
+        // 3. Update Project with Attachments
+        if (attachments.length > 0) {
+          await projectService.update(newProject.id, { attachments });
+        }
+      }
+
       await loadProjects();
       setShowNewProjectModal(false);
     } catch (error) {

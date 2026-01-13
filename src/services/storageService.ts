@@ -1,10 +1,12 @@
 import { supabase } from './api';
 
 export const storageService = {
-  async uploadFile(file: File, projectId: string, ticketId: string): Promise<{ url: string; path: string }> {
+  async uploadFile(file: File, projectId: string, ticketId?: string): Promise<{ url: string; path: string }> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${projectId}/${ticketId}/${fileName}`;
+    const filePath = ticketId 
+      ? `${projectId}/${ticketId}/${fileName}`
+      : `projects/${projectId}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('ticket-attachments')

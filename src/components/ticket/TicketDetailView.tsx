@@ -1,3 +1,4 @@
+import console from 'console';
 import { CheckSquare, Download, Edit, FileText, MessageSquare, Paperclip, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -15,7 +16,6 @@ import { Comment, Project, Subtask, Ticket, TicketProgram, UserProfile } from '.
 import { confirmAction } from '../../utils/confirmationToast';
 import { ModernSelect } from '../ui/ModernSelect';
 import { StatusBadge } from '../ui/StatusBadge';
-import console from 'console';
 
 interface TicketDetailViewProps {
   ticketId: string;
@@ -466,7 +466,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             value={ticket.subject || ''}
             onChange={(e) => setTicket({ ...ticket, subject: e.target.value })}
             onBlur={() => handleUpdateTicket({ subject: ticket.subject })}
-            className="text-lg font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400"
+            className="text-xl md:text-2xl font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400 focus:outline-none"
             placeholder="Sin Asunto"
           />
         </div>

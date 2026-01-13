@@ -19,6 +19,12 @@ export interface Project {
     name: string;
   } | null;
   use_case_id?: string | null;
+  attachments?: {
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+  }[];
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;

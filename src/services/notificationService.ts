@@ -51,6 +51,7 @@ export const notificationService = {
       .eq('id', id);
 
     if (error) throw error;
+    window.dispatchEvent(new Event('notification-updated'));
   },
 
   // Mark all as read
@@ -65,6 +66,7 @@ export const notificationService = {
       .eq('is_read', false);
 
     if (error) throw error;
+    window.dispatchEvent(new Event('notification-updated'));
   },
 
   // Create a notification (Utility for other services)
