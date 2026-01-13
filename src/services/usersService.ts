@@ -22,25 +22,25 @@ export async function getUsers() {
     projectIds.push(...ownedProjects.map(p => p.id));
   }
   
-  if (projectIds.length === 0) return [];
-
   // Step 2: Get all User IDs related to these projects (Members + Owners)
-  
-  // 2a. Get Members of these projects
-  const { data: fellowMembers } = await supabase
-    .from('project_members')
-    .select('user_id')
-    .in('project_id', projectIds);
-    
-  // 2b. Get Owners of these projects
-  const { data: owners } = await supabase
-        .from('projects')
-        .select('created_by')
-        .in('id', projectIds);
-
   const userIds = new Set<string>();
-  fellowMembers?.forEach(m => userIds.add(m.user_id));
-  owners?.forEach(p => { if(p.created_by) userIds.add(p.created_by) });
+
+  if (projectIds.length > 0) {
+    // 2a. Get Members of these projects
+    const { data: fellowMembers } = await supabase
+      .from('project_members')
+      .select('user_id')
+      .in('project_id', projectIds);
+      
+    // 2b. Get Owners of these projects
+    const { data: owners } = await supabase
+          .from('projects')
+          .select('created_by')
+          .in('id', projectIds);
+
+    fellowMembers?.forEach(m => userIds.add(m.user_id));
+    owners?.forEach(p => { if(p.created_by) userIds.add(p.created_by) });
+  }
   
   // ... (Project based logic stays)
   
@@ -61,7 +61,13 @@ export async function getUsers() {
   // Remove myself - COMMENTED OUT to ensure we can resolve our own name in UI
   // userIds.delete(user.id);
   
-  if (userIds.size === 0) return [];
+  if (userIds.size === 0) {
+    // Fallback: If no related users found, at least return myself so I can assign to myself
+    // Or return all users if there are very few in the system (small team)
+    // For now, let's just make sure we check RLS isn't blocking everything.
+    // Let's add the current user explicitly to the set to be safe.
+    userIds.add(user.id);
+  }
   
   // Step 4: Fetch profiles
   const { data: usersData, error: usersError } = await supabase
