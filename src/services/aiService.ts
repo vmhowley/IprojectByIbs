@@ -35,6 +35,59 @@ export const aiService = {
     return !!localStorage.getItem('gemini_api_key');
   },
 
+  processMeetingAudio: async (audioBlob: Blob): Promise<{ summary: string, actionItems: string[], transcription?: string }> => {
+    const client = getGeminiClient();
+    
+    // Convert Blob to Base64
+    const fileToGenerativePart = async (file: Blob) => {
+      const base64EncodedDataPromise = new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+                resolve(reader.result.split(',')[1]);
+            }
+        };
+        reader.readAsDataURL(file);
+      });
+      return {
+        inlineData: {
+          data: await base64EncodedDataPromise,
+          mimeType: file.type,
+        },
+      };
+    };
+
+    const audioPart = await fileToGenerativePart(audioBlob);
+
+    const prompt = `
+      You are an expert meeting assistant. Listen to this recording and transcribe the key points.
+      
+      Return a JSON object with:
+      - summary: A comprehensive summary of the meeting (2-3 paragraphs).
+      - action_items: An array of strings, each describing a specific task or follow-up action mentioned.
+      - transcription: A rough transcription of the audio.
+      
+      Output JSON only.
+    `;
+
+    const response = await client.models.generateContent({
+      model: "gemini-2.5-flash", 
+      contents: [
+        { role: "user", parts: [{ text: prompt }, audioPart as any] }
+      ],
+    });
+
+    const textResponse = response.text || "{}";
+    const cleanJson = textResponse.replace(/^```json\n|\n```$/g, '').trim();
+    
+    try {
+        return JSON.parse(cleanJson);
+    } catch (e) {
+        console.error("Failed to parse AI response", e);
+        return { summary: "Error parsing AI response", actionItems: [] };
+    }
+  },
+
   generateTicketFromText: async (text: string): Promise<Partial<Ticket>> => {
     const client = getGeminiClient();
     

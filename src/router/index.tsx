@@ -15,6 +15,9 @@ import { Home } from '../pages/Home';
 import { InboxPage } from '../pages/InboxPage';
 import { LandingPage } from '../pages/LandingPage';
 import { Login } from '../pages/Login';
+import { MeetingDetail } from '../pages/MeetingDetail';
+import { Meetings } from '../pages/Meetings';
+import { NewMeeting } from '../pages/NewMeeting';
 import { PlaceholderPage } from '../pages/PlaceholderPage';
 import { PricingPage } from '../pages/PricingPage';
 import { ProjectDetail } from '../pages/ProjectDetail';
@@ -24,6 +27,7 @@ import { SettingsPage } from '../pages/SettingsPage';
 import { TasksPage } from '../pages/TasksPage';
 import { TicketDetail } from '../pages/TicketDetail';
 import { UpdatePassword } from '../pages/UpdatePassword';
+import path from 'path';
 
 // Authentication enabled
 const ENABLE_AUTH = true;
@@ -134,6 +138,18 @@ export const router = createBrowserRouter([
       {
         path: 'clients',
         element: <Clients />,
+      },
+      {
+        path: 'meetings',
+        element: <Meetings />,
+      },
+      {
+        path: 'meetings/new',
+        element: <NewMeeting />,
+      },
+      {
+        path: 'meetings/:id',
+        element: <MeetingDetail />,
       },
     ],
   },

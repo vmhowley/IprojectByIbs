@@ -10,6 +10,7 @@ import {
   Home,
   Inbox,
   Map,
+  Mic,
   Plus,
   Settings,
   Shield,
@@ -247,6 +248,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   <Calendar size={18} />
                   <span>Calendario</span>
                 </Link>
+                <Link
+                  to="/meetings"
+                  onClick={onClose}
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <Mic size={18} />
+                  <span>Reuniones</span>
+                </Link>
                 {user?.role !== 'guest' && (
                   <Link
                     to="/roadmaps"
@@ -314,7 +323,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <div className="border-t border-gray-200">
           {/* Upgrade Plan Widget */}
           {!isPro && user?.role !== 'guest' && (
-            <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 mx-3 my-3 rounded-lg border border-indigo-100">
+            <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 mx-3 my-3 rounded-lg border border-indigo-100">
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={16} className="text-indigo-600" />
                 <p className="text-xs font-semibold text-indigo-900">Plan Gratis</p>
@@ -399,7 +408,7 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
           <div className="flex-1  space-x-2 text-left">
             <p className="text-sm font-medium text-gray-900 ">{user.name}</p>
             {isPro && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white animate-pulse">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-linear-to-r from-indigo-500 to-purple-500 text-white animate-pulse">
                 PRO
               </span>
             )}
