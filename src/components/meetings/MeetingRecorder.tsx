@@ -59,10 +59,19 @@ export function MeetingRecorder() {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (!file.type.startsWith('audio/')) {
-                toast.error('Por favor sube un archivo de audio válido');
+            // Relaxed validation for testing: Accept almost any audio/video
+            // Log for debugging but allow it
+
+            const isMedia = file.type.startsWith('audio/') || file.type.startsWith('video/');
+            const hasMediaExt = /\.(webm|mp3|mp4|m4a|wav|ogg|mkv|mov|avi|wma|aac|flac)$/i.test(file.name);
+
+            if (!isMedia && !hasMediaExt) {
+                // Only block if it looks completely wrong (like a PDF or image)
+                toast.error('El archivo no parece ser audio o video válido.');
+                console.warn('Rejected file type:', file.type, file.name);
                 return;
             }
+
             setAudioBlob(file);
         }
     };
@@ -180,7 +189,7 @@ export function MeetingRecorder() {
                                     <label className="inline-block cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg transition-colors">
                                         <input
                                             type="file"
-                                            accept="audio/*"
+                                            accept="audio/*,video/*,.mkv,.mov,.avi,.wmv,.flac"
                                             className="hidden"
                                             onChange={handleFileUpload}
                                         />

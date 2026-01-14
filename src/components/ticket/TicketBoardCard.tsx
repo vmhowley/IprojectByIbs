@@ -23,7 +23,7 @@ export function TicketBoardCard({ ticket, user, onClick, isSelected }: TicketBoa
             </div>
 
             <h4 className="text-sm font-medium text-gray-900 line-clamp-3 mb-3 leading-snug group-hover:text-indigo-600 transition-colors">
-                {ticket.subject}
+                {ticket.subject}sadasd
             </h4>
 
             <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-2">

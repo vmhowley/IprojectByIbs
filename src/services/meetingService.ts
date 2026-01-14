@@ -71,9 +71,9 @@ export const meetingService = {
 
     if (uploadError) throw uploadError;
 
-    // const { data: { publicUrl } } = supabase.storage
-    //   .from('meeting-recordings')
-    //   .getPublicUrl(fileName); 
+    const { data: { publicUrl } } = supabase.storage
+      .from('meeting-recordings')
+      .getPublicUrl(fileName); // Note: bucket is private, so we might need signed URL or change bucket to public. 
       // The migration said public=false. So we actually need createSignedUrl.
     
     // For playback in the app for the owner, signed URL is better.
