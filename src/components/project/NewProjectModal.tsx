@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Project } from '../../types';
 import { ClientPicker } from '../client/ClientPicker';
-import { ContactPicker } from '../client/ContactPicker';
 import { Select } from '../ui/Select';
 import { UserPicker } from '../ui/UserPicker';
 
@@ -24,7 +23,6 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [team, setTeam] = useState('');
   const [clientId, setClientId] = useState('');
-  const [contactId, setContactId] = useState('');
   const [useCaseId, setUseCaseId] = useState('');
   const [files, setFiles] = useState<File[]>([]);
 
@@ -42,7 +40,6 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
       priority,
       team: team || undefined,
       client_id: clientId || undefined,
-      contact_id: contactId || undefined,
       use_case_id: useCaseId || undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -54,7 +51,7 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+        <div className="flex items-center justify-between mb-6 flex-0">
           <h2 className="text-xl font-semibold text-gray-900">Nuevo Proyecto</h2>
           <button
             onClick={onClose}
@@ -102,28 +99,9 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
                 value={clientId}
                 onChange={(id) => {
                   setClientId(id);
-                  setContactId(''); // Reset contact when client changes
                 }}
                 placeholder="Seleccionar cliente"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contacto
-              </label>
-              {clientId ? (
-                <ContactPicker
-                  clientId={clientId}
-                  value={contactId}
-                  onChange={(id) => setContactId(id)}
-                  disabled={!clientId}
-                />
-              ) : (
-                <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-500">
-                  Selecciona un cliente primero
-                </div>
-              )}
             </div>
 
             <div>

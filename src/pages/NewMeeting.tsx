@@ -6,17 +6,17 @@ export function NewMeeting() {
     const navigate = useNavigate();
 
     return (
-        <div className="p-6 max-w-4xl mx-auto space-y-6">
+        <div className="w-full p-6  mx-auto space-y-6">
             <button
                 onClick={() => navigate('/meetings')}
-                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                className="flex md:hidden items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
             >
                 <ArrowLeft className="w-4 h-4" />
                 Volver a Reuniones
             </button>
 
             <div>
-                <h1 className="text-2xl font-bold text-slate-100">Nueva Reunión</h1>
+                <h1 className="text-2xl font-bold text-black">Nueva Reunión</h1>
                 <p className="text-slate-400">Graba o sube una reunión para que la IA genere un resumen</p>
             </div>
 

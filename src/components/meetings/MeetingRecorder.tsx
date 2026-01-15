@@ -20,10 +20,32 @@ export function MeetingRecorder() {
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
+    const getSupportedMimeType = () => {
+        const types = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/ogg;codecs=opus',
+            'audio/mp4',
+            'audio/aac',
+        ];
+
+        for (const type of types) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                return type;
+            }
+        }
+        return '';
+    };
+
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderRef.current = new MediaRecorder(stream);
+            const mimeType = getSupportedMimeType();
+
+            console.log('Using mimeType for recording:', mimeType);
+
+            const options = mimeType ? { mimeType } : {};
+            mediaRecorderRef.current = new MediaRecorder(stream, options);
             chunksRef.current = [];
 
             mediaRecorderRef.current.ondataavailable = (e) => {
@@ -31,7 +53,8 @@ export function MeetingRecorder() {
             };
 
             mediaRecorderRef.current.onstop = () => {
-                const blob = new Blob(chunksRef.current, { type: 'audio/webm' }); // webm is standard for MediaRecorder
+                const blob = new Blob(chunksRef.current, { type: mediaRecorderRef.current?.mimeType || mimeType || 'audio/webm' });
+                console.log('Recording stopped. Blob size:', blob.size, 'type:', blob.type);
                 setAudioBlob(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
@@ -59,16 +82,11 @@ export function MeetingRecorder() {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Relaxed validation for testing: Accept almost any audio/video
-            // Log for debugging but allow it
-
             const isMedia = file.type.startsWith('audio/') || file.type.startsWith('video/');
             const hasMediaExt = /\.(webm|mp3|mp4|m4a|wav|ogg|mkv|mov|avi|wma|aac|flac)$/i.test(file.name);
 
             if (!isMedia && !hasMediaExt) {
-                // Only block if it looks completely wrong (like a PDF or image)
                 toast.error('El archivo no parece ser audio o video válido.');
-                console.warn('Rejected file type:', file.type, file.name);
                 return;
             }
 
@@ -90,32 +108,34 @@ export function MeetingRecorder() {
         const loadingToast = toast.loading('Procesando audio con IA...');
 
         try {
-            // 1. Upload to Supabase Storage
-            // Convert Blob to File
-            const fileExt = audioBlob.type.includes('mp3') ? 'mp3' : 'webm';
+            // Determine file extension based on mimeType
+            let fileExt = 'webm';
+            if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) fileExt = 'm4a';
+            else if (audioBlob.type.includes('mpeg') || audioBlob.type.includes('mp3')) fileExt = 'mp3';
+            else if (audioBlob.type.includes('wav')) fileExt = 'wav';
+            else if (audioBlob.type.includes('aac')) fileExt = 'aac';
+
             const file = new File([audioBlob], `recording.${fileExt}`, { type: audioBlob.type });
             const audioPath = await meetingService.uploadRecording(file);
 
-            // 2. Process with AI
             const aiResult = await aiService.processMeetingAudio(audioBlob);
 
-            // 3. Save to Database
             await meetingService.create({
                 title,
                 date: new Date().toISOString(),
                 audio_url: audioPath,
                 summary: aiResult.summary,
-                action_items: aiResult.actionItems,
-                transcription: aiResult.transcription // Assuming AI returns this
+                action_items: aiResult.action_items,
+                transcription: aiResult.transcription
             });
 
             toast.dismiss(loadingToast);
             toast.success('Reunión guardada y procesada correctamente');
             navigate('/meetings');
         } catch (error) {
-            console.error(error);
+            console.error('Error processing meeting:', error);
             toast.dismiss(loadingToast);
-            toast.error('Error al procesar la reunión');
+            toast.error('Error al procesar la reunión con IA');
         } finally {
             setProcessing(false);
         }
@@ -146,56 +166,68 @@ export function MeetingRecorder() {
 
 
     return (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 max-w-2xl mx-auto">
-            <div className="space-y-6">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm max-w-2xl mx-auto">
+            <div className="space-y-8">
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Título de la Reunión</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Título de la Reunión</label>
                     <input
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Ej: Daily Standup de Ingeniería"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-emerald-500 focus:outline-none"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all"
                     />
                 </div>
 
-                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-700 rounded-xl bg-slate-900/50">
+                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                     {!audioBlob ? (
                         <>
                             {isRecording ? (
                                 <div className="text-center">
-                                    <div className="animate-pulse text-red-500 mb-4">
-                                        <Mic className="w-12 h-12 mx-auto" />
+                                    <div className="relative mb-6">
+                                        <div className="absolute inset-0 animate-ping bg-red-100 rounded-full scale-150 opacity-75"></div>
+                                        <div className="relative bg-red-500 text-white p-4 rounded-full">
+                                            <Mic className="w-10 h-10" />
+                                        </div>
                                     </div>
-                                    <div className="text-2xl font-mono text-white mb-6">{formatTime(recordingTime)}</div>
+                                    <div className="text-4xl font-mono text-slate-900 mb-8 tracking-wider">{formatTime(recordingTime)}</div>
                                     <button
                                         onClick={stopRecording}
-                                        className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full flex items-center gap-2 mx-auto transition-colors"
+                                        className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-xl flex items-center gap-2 mx-auto transition-all shadow-lg hover:shadow-red-500/20"
                                     >
-                                        <Square className="w-4 h-4" />
-                                        Detener Grabación
+                                        <Square className="w-5 h-5 fill-current" />
+                                        <span className="font-semibold">Detener Grabación</span>
                                     </button>
                                 </div>
                             ) : (
-                                <div className="text-center space-y-4">
+                                <div className="text-center space-y-6">
                                     <button
                                         onClick={startRecording}
-                                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full p-4 mb-2 transition-transform hover:scale-105"
+                                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full p-6 mb-2 transition-all hover:scale-110 shadow-lg hover:shadow-emerald-500/20 group"
                                     >
-                                        <Mic className="w-8 h-8" />
+                                        <Mic className="w-10 h-10 group-hover:scale-110 transition-transform" />
                                     </button>
-                                    <p className="text-slate-400">Haz clic para empezar a grabar</p>
-                                    <div className="text-slate-600 text-sm">- O -</div>
-                                    <label className="inline-block cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg transition-colors">
+                                    <div>
+                                        <p className="text-slate-900 font-semibold text-lg">Empezar a grabar</p>
+                                        <p className="text-slate-500 text-sm mt-1">Asegúrate de permitir el acceso al micrófono</p>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-slate-300 py-2">
+                                        <div className="h-px flex-1 bg-slate-200"></div>
+                                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400">O</div>
+                                        <div className="h-px flex-1 bg-slate-200"></div>
+                                    </div>
+
+                                    <label className="inline-block cursor-pointer group">
                                         <input
                                             type="file"
-                                            accept="audio/*,video/*,.mkv,.mov,.avi,.wmv,.flac"
+                                            accept="audio/*,video/*"
                                             className="hidden"
                                             onChange={handleFileUpload}
                                         />
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-white hover:border-emerald-500 hover:text-emerald-600 transition-all font-medium">
                                             <Upload className="w-4 h-4" />
-                                            Subir archivo de audio
+                                            Subir archivo existente
                                         </div>
                                     </label>
                                 </div>
@@ -203,12 +235,18 @@ export function MeetingRecorder() {
                         </>
                     ) : (
                         <div className="text-center w-full">
-                            <div className="flex items-center justify-between bg-slate-800 p-4 rounded-lg mb-4">
-                                <div className="flex items-center gap-3">
-                                    <button onClick={togglePlayback} className="p-2 bg-slate-700 rounded-full text-white hover:bg-slate-600">
-                                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                            <div className="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl mb-6 shadow-sm">
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={togglePlayback}
+                                        className="w-12 h-12 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors"
+                                    >
+                                        {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
                                     </button>
-                                    <span className="text-slate-300 text-sm">Grabación lista</span>
+                                    <div className="text-left">
+                                        <p className="text-slate-900 font-semibold text-sm">Grabación lista</p>
+                                        <p className="text-slate-500 text-xs">{(audioBlob.size / (1024 * 1024)).toFixed(2)} MB • {audioBlob.type || 'audio/media'}</p>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => {
@@ -220,26 +258,27 @@ export function MeetingRecorder() {
                                         }
                                         setIsPlaying(false);
                                     }}
-                                    className="text-red-400 hover:text-red-300 text-sm"
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    title="Eliminar"
                                 >
-                                    Eliminar
+                                    <Square className="w-5 h-5" />
                                 </button>
                             </div>
 
                             <button
                                 onClick={handleSave}
                                 disabled={processing}
-                                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-wait"
                             >
                                 {processing ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        Procesando con IA...
+                                        <Loader2 className="w-6 h-6 animate-spin" />
+                                        <span className="font-semibold text-lg">Procesando con IA...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Save className="w-5 h-5" />
-                                        Guardar y Procesar Reunión
+                                        <Save className="w-6 h-6" />
+                                        <span className="font-semibold text-lg">Guardar y Procesar Reunión</span>
                                     </>
                                 )}
                             </button>
@@ -247,7 +286,8 @@ export function MeetingRecorder() {
                     )}
                 </div>
 
-                <div className="text-xs text-slate-500 text-center">
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-400 font-medium">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                     La IA generará automáticamente un resumen y lista de tareas.
                 </div>
             </div>

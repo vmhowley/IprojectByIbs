@@ -57,6 +57,7 @@ export function TasksPage() {
                     status: t.status as any,
                     urgency: t.urgency as any,
                     category: t.request_type || null,
+                    request_type: t.request_type || null,
                     department: t.department,
                     assigned_to: t.assigned_to,
                     date_added: t.date_added,

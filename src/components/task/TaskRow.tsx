@@ -1,8 +1,8 @@
 import { MessageSquare } from 'lucide-react';
 import { Task } from '../../lib/supabase';
+import { RequestTypeBadge } from '../ui/RequestTypeBadge';
 import { StatusBadge } from '../ui/StatusBadge';
 import { UrgencyBadge } from '../ui/UrgencyBadge';
-import { RequestTypeBadge } from '../ui/RequestTypeBadge';
 
 interface TaskRowProps {
   task: Task;
@@ -19,23 +19,21 @@ export function TaskRow({ task, isSelected, onClick }: TaskRowProps) {
   return (
     <div
       onClick={onClick}
-      className={`group grid grid-cols-[auto_1fr_120px_140px_140px_100px] gap-4 items-center px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-        isSelected ? 'bg-blue-50 hover:bg-blue-50' : ''
-      }`}
+      className={`group grid grid-cols-[auto_1fr_120px_140px_140px_100px] gap-4 items-center px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 hover:bg-blue-50' : ''
+        }`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-          task.status === 'completed'
-            ? 'bg-blue-600 text-white'
-            : 'border-2 border-gray-300'
-        }`}>
+        <div className={`w-5 h-5 rounded flex items-center justify-center flex-0 ${task.status === 'completed'
+          ? 'bg-blue-600 text-white'
+          : 'border-2 border-gray-300'
+          }`}>
           {getStatusIcon(task.status) && (
             <span className="text-xs font-bold">{getStatusIcon(task.status)}</span>
           )}
         </div>
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm text-gray-600 font-medium whitespace-nowrap">
-            {task.id}
+            {task.id.slice(0, 8)}
           </span>
           <span className="text-sm text-gray-900 truncate">{task.title}</span>
           {task.comment_count > 0 && (

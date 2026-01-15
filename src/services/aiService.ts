@@ -126,7 +126,7 @@ export const aiService = {
     return !!localStorage.getItem('gemini_api_key');
   },
 
-  processMeetingAudio: async (audioBlob: Blob): Promise<{ summary: string, actionItems: string[], transcription?: string }> => {
+  processMeetingAudio: async (audioBlob: Blob): Promise<{ summary: string, action_items: string[], transcription?: string }> => {
     const ai = getGeminiClient();
     const model = await getWorkingModel(ai);
 
@@ -165,7 +165,7 @@ export const aiService = {
     const response = await result.response;
     const textResponse = response.text();
     
-    return cleanAndParseJson(textResponse) || { summary: "Error al procesar la respuesta de la IA", actionItems: [] };
+    return cleanAndParseJson(textResponse) || { summary: "Error al procesar la respuesta de la IA", action_items: [] };
   },
 
   generateTicketFromText: async (text: string): Promise<Partial<Ticket>> => {
