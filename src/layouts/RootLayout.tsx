@@ -4,8 +4,10 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import SplashScreen from '../components/layout/SplashScreen';
 import { NewProjectModal } from '../components/project/NewProjectModal';
+import { SupportChatWidget } from '../components/support/SupportChatWidget';
 import Logo from '../public/Logoibpulse.webp';
 import { projectService } from '../services/projectService';
+import { Project } from '../types';
 export function RootLayout() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -95,6 +97,7 @@ export function RootLayout() {
           onSubmit={handleCreateProject}
         />
       )}
+      <SupportChatWidget />
     </div>
   );
 }

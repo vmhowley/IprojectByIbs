@@ -1,6 +1,6 @@
-import { buttonHTMLAttributes, ReactNode } from 'react';
+import { ButtonHTMLAttributes, ReactNode } from 'react';
 
-interface buttonProps extends buttonHTMLAttributes<HTMLbuttonElement> {
+interface buttonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;

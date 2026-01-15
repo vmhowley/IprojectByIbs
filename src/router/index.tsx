@@ -24,10 +24,10 @@ import { ProjectDetail } from '../pages/ProjectDetail';
 import { Projects } from '../pages/Projects';
 import { Register } from '../pages/Register';
 import { SettingsPage } from '../pages/SettingsPage';
+import SupportDashboard from '../pages/SupportDashboard';
 import { TasksPage } from '../pages/TasksPage';
 import { TicketDetail } from '../pages/TicketDetail';
 import { UpdatePassword } from '../pages/UpdatePassword';
-import path from 'path';
 
 // Authentication enabled
 const ENABLE_AUTH = true;
@@ -129,6 +129,10 @@ export const router = createBrowserRouter([
       {
         path: 'admin',
         element: <AdminPanel />,
+      },
+      {
+        path: 'admin/support',
+        element: <SupportDashboard />,
       },
 
       {
