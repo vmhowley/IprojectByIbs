@@ -352,7 +352,7 @@ export function ProjectDetail() {
             )}
           </div>
         ))}
-        {user?.role !== 'guest' && (
+        {!user?.client_id && (
           <div
             onClick={() => setIsNewTicketModalOpen(true)}
             className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-gray-400 hover:border-indigo-500 hover:text-indigo-500 cursor-pointer transition-colors min-h-[200px]"
@@ -410,7 +410,7 @@ export function ProjectDetail() {
                 <Plus className="w-5 h-5" />
               </button>
 
-              {user?.role !== 'guest' && (
+              {!user?.client_id && (
                 <>
                   <button
                     onClick={() => setIsEditProjectModalOpen(true)}

@@ -1,13 +1,12 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Card } from '../ui/Card';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
-// Assuming Project and Client types
 import { clientService } from '../../services/clientService';
 import { projectService } from '../../services/projectService';
 import { Client, Project } from '../../types';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 
 interface EditProjectModalProps {
     isOpen: boolean;

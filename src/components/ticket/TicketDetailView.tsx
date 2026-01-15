@@ -435,7 +435,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             <StatusBadge status={ticket.status} />
           </div>
           <div className="flex items-center gap-1">
-            {user?.role !== 'guest' && (
+            {!user?.client_id && (
               <>
                 {(ticket.status === 'completed' || ticket.status === 'done' || ticket.status === 'approved') && (
                   <button
@@ -468,7 +468,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             onBlur={() => handleUpdateTicket({ subject: ticket.subject })}
             className="text-xl md:text-2xl font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
             placeholder="Sin Asunto"
-            disabled={user?.role === 'guest'}
+            disabled={!!user?.client_id}
           />
         </div>
       </div>
@@ -528,7 +528,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                 value={ticket.status}
                 onChange={(val) => handleStatusChange(val as any)}
                 renderValue={(val) => <StatusBadge status={val as any} />}
-                disabled={user?.role === 'guest'}
+                disabled={!!user?.client_id}
               />
             </div>
             <div>
@@ -558,7 +558,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     </span>
                   );
                 }}
-                disabled={user?.role === 'guest'}
+                disabled={!!user?.client_id}
               />
             </div>
           </div>
@@ -589,7 +589,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     <span className="text-sm">{option?.label || 'Sin asignar'}</span>
                   </div>
                 )}
-                disabled={user?.role === 'guest'}
+                disabled={!!user?.client_id}
               />
             </div>
             <div>
@@ -601,7 +601,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   onChange={(e) => handleUpdateTicket({ deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
                   className="w-full text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 transition-all hover:bg-gray-50 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   style={{ colorScheme: 'light' }}
-                  disabled={user?.role === 'guest'}
+                  disabled={!!user?.client_id}
                 />
               </div>
             </div>
@@ -623,7 +623,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   onBlur={() => handleUpdateTicket({ tags: ticket.tags?.filter(Boolean) })}
                   className="w-full pl-9 pr-3 py-2 text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-gray-50 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="Ej: bug, frontend (separado por comas)"
-                  disabled={user?.role === 'guest'}
+                  disabled={!!user?.client_id}
                 />
               </div>
             </div>
@@ -643,7 +643,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             onBlur={() => handleUpdateTicket({ description: ticket.description })}
             className="w-full bg-transparent border-none p-0 text-sm text-gray-700 leading-relaxed min-h-[120px] focus:ring-0 placeholder-gray-400 resize-y disabled:opacity-75 disabled:cursor-not-allowed"
             placeholder="Añade una descripción detallada..."
-            disabled={user?.role === 'guest'}
+            disabled={!!user?.client_id}
           />
         </div>
 
@@ -669,12 +669,12 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   checked={task.is_completed}
                   onChange={() => handleToggleSubtask(task)}
                   className="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                  disabled={user?.role === 'guest'}
+                  disabled={!!user?.client_id}
                 />
                 <span className={`flex-1 text-sm ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                   {task.title}
                 </span>
-                {user?.role !== 'guest' && (
+                {!user?.client_id && (
                   <button
                     onClick={() => handleDeleteSubtask(task.id)}
                     className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -729,7 +729,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     <div className="font-mono text-indigo-600 font-medium text-xs mb-1">{p.object_name}</div>
                     <div className="text-gray-600">{p.description}</div>
                   </div>
-                  {user?.role !== 'guest' && (
+                  {!user?.client_id && (
                     <button
                       onClick={() => handleDeleteProgram(p.id)}
                       className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -745,7 +745,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             <p className="text-xs text-gray-400 italic">No hay programas asociados.</p>
           )}
 
-          {user?.role !== 'guest' && (
+          {!user?.client_id && (
             <div className="mt-3">
               {!addingProgram ? (
                 <button
@@ -790,7 +790,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
               <Paperclip size={14} className="text-gray-400" />
               Archivos
             </h3>
-            {user?.role !== 'guest' && (
+            {!user?.client_id && (
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
@@ -821,7 +821,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => handleDownloadAttachment(file.url, file.name)} className="p-1.5 text-gray-400 hover:text-indigo-600"><Download size={14} /></button>
-                    {user?.role !== 'guest' && (
+                    {!user?.client_id && (
                       <button onClick={() => handleDeleteAttachment(idx)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
                     )}
                   </div>

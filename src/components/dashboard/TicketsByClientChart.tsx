@@ -54,7 +54,7 @@ export function TicketsByClientChart({ stats }: TicketsByClientChartProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Solicitudes por Cliente</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tickets por Cliente</h3>
 
       {topClients.length > 0 ? (
         <>

@@ -21,7 +21,7 @@ export function TicketsByStatusChart({ stats }: TicketsByStatusChartProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Solicitudes por Estado</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tickets por Estado</h3>
 
       <div className="mb-6">
         <div className="flex h-8 rounded-lg overflow-hidden">

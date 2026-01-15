@@ -16,6 +16,7 @@ export interface UserProfile {
   role: 'admin' | 'user' | 'guest' | 'support_agent';
   avatar?: string;
   contact_id?: string | null;
+  client_id?: string | null;
   subscription_tier?: 'free' | 'pro';
   subscription?: any | null;
   created_at: string;

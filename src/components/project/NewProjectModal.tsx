@@ -172,8 +172,9 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
               onChange={(e) => setTeam(e.target.value)}
               options={[
                 { value: '', label: 'Seleccionar equipo' },
-                { value: 'engineering', label: 'Ingeniería' },
-                { value: 'design', label: 'Diseño' },
+                { value: 'software', label: 'Desarrollo de software' },
+                { value: 'design', label: 'Diseño web' },
+                { value: 'soluciones', label: 'Soluciones y servicios' },
                 { value: 'marketing', label: 'Marketing' },
               ]}
             />
