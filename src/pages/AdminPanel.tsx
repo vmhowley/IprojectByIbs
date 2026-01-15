@@ -19,13 +19,13 @@ export function AdminPanel() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loadingAuth && user && isAdmin()) {
+    if (!loadingAuth && user && user.role === 'support_agent') {
       loadUsers();
     }
   }, [loadingAuth, user]);
 
-  // Redirect if not admin or not authenticated
-  if (!loadingAuth && (!user || !isAdmin())) {
+  // Redirect if not support_agent
+  if (!loadingAuth && (!user || user.role !== 'support_agent')) {
     return <Navigate to="/" replace />;
   }
 
@@ -118,6 +118,8 @@ export function AdminPanel() {
     switch (role) {
       case 'admin':
         return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'support_agent':
+        return 'bg-green-100 text-green-700 border-green-200';
       case 'user':
         return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'guest':
@@ -131,6 +133,8 @@ export function AdminPanel() {
     switch (role) {
       case 'admin':
         return 'Administrador';
+      case 'support_agent':
+        return 'Agente de Soporte';
       case 'user':
         return 'Usuario';
       case 'guest':
@@ -240,6 +244,7 @@ export function AdminPanel() {
                         className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="admin">Administrador</option>
+                        <option value="support_agent">Agente de Soporte</option>
                         <option value="user">Usuario</option>
                         <option value="guest">Invitado</option>
                       </select>

@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'user' | 'guest';
+  role: 'admin' | 'user' | 'guest' | 'support_agent';
   subscription_tier?: 'free' | 'pro';
   client_id?: string | null;
   created_at: string;

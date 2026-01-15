@@ -10,6 +10,7 @@ import {
   Home,
   Inbox,
   Map,
+  MessageCircle,
   Mic,
   Plus,
   Settings,
@@ -443,14 +444,23 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
               Recuperar proyectos antiguos
             </button> */}
             <div className=" p-2  space-y-0.5">
-              {user?.role === 'admin' && (
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors font-medium"
-                >
-                  <Shield size={18} />
-                  <span>Panel de Admin</span>
-                </Link>
+              {user?.role === 'support_agent' && (
+                <>
+                  <Link
+                    to="/admin/support"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-green-700 bg-green-50 hover:bg-green-100 rounded-md transition-colors font-medium mb-1"
+                  >
+                    <MessageCircle size={18} />
+                    <span>Soporte (Agente)</span>
+                  </Link>
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors font-medium"
+                  >
+                    <Shield size={18} />
+                    <span>Panel Global</span>
+                  </Link>
+                </>
               )}
               {user?.role !== 'guest' && (
                 <>

@@ -13,7 +13,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user' | 'guest';
+  role: 'admin' | 'user' | 'guest' | 'support_agent';
   avatar?: string;
   contact_id?: string | null;
   subscription_tier?: 'free' | 'pro';
