@@ -123,5 +123,10 @@ export const clientService = {
         .eq('client_id', clientId)
         .order('name', { ascending: true })
     );
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
   }
 };

@@ -16,31 +16,36 @@ export const contactService = {
   async getById(id: string): Promise<Contact> {
     return handleSupabaseResponse(
       supabase
-        .from('contacts')
-        .select('*')
-        .eq('id', id)
-        .single()
+      .from('contacts')
+      .select('*')
+      .eq('id', id)
+      .single()
     );
   },
 
   async create(contact: Partial<Contact>): Promise<Contact> {
     return handleSupabaseResponse(
       supabase
-        .from('contacts')
+      .from('contacts')
         .insert([contact])
         .select()
         .single()
-    );
-  },
-
-  async update(id: string, updates: Partial<Contact>): Promise<Contact> {
-    return handleSupabaseResponse(
-      supabase
+      );
+    },
+    
+    async update(id: string, updates: Partial<Contact>): Promise<Contact> {
+      return handleSupabaseResponse(
+        supabase
         .from('contacts')
         .update(updates)
         .eq('id', id)
         .select()
         .single()
-    );
-  }
-};
+      );
+    },
+
+    async delete(id: string): Promise<void> {
+      await supabase.from('contacts').delete().eq('id', id);
+      return;
+    }
+  };

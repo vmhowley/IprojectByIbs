@@ -2,6 +2,7 @@ import { Building2, Edit, Link2, Mail, Phone, Plus, Search, Trash2, User, Users 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { DeleteClientModal } from '../components/client/DeleteClientModal';
 import { LinkUserModal } from '../components/client/LinkUserModal';
 import { NewClientModal } from '../components/client/NewClientModal';
 import { NewContactModal } from '../components/client/NewContactModal';
@@ -10,6 +11,7 @@ import { Input } from '../components/ui/Input';
 import { useSubscription } from '../hooks/useSubscription';
 import NProgress from '../lib/nprogress';
 import { clientService } from '../services/clientService';
+import { contactService } from '../services/contactService';
 import { Client, Contact } from '../types/Client';
 import { User as UserType } from '../types/User';
 import { confirmAction } from '../utils/confirmationToast';
@@ -27,10 +29,43 @@ export function Clients() {
   const [showNewClientModal, setShowNewClientModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   // Linked Users state
   const [linkedUsers, setLinkedUsers] = useState<UserType[]>([]);
   const [showLinkUserModal, setShowLinkUserModal] = useState(false);
+  const [showDeleteClientModal, setShowDeleteClientModal] = useState(false);
+
+  const handleDeleteContact = async (contactId: string) => {
+    confirmAction({
+      message: '¿Estás seguro de que deseas eliminar este contacto?',
+      onConfirm: async () => {
+        try {
+          await contactService.delete(contactId);
+          toast.success('Contacto eliminado correctamente');
+          loadContacts(selectedClient?.id || '');
+        } catch (error) {
+          console.error('Error al eliminar el contacto:', error);
+          toast.error('Error al eliminar el contacto');
+        }
+      }
+    });
+  };
+
+  const handleDeleteClient = async () => {
+    if (!selectedClient) return;
+    try {
+      await clientService.delete(selectedClient.id);
+      toast.success('Cliente eliminado correctamente');
+      setSelectedClient(null);
+      await loadClients();
+    } catch (error) {
+      console.error('Error al eliminar el cliente:', error);
+      toast.error('Error al eliminar el cliente');
+    }
+  };
+
+
 
   useEffect(() => {
     loadClients();
@@ -96,15 +131,23 @@ export function Clients() {
     }
   };
 
-  const handleCreateContact = async (contactData: any) => {
+
+
+  const handleSaveContact = async (contactData: Partial<Contact>) => {
     try {
-      await clientService.createContact(contactData);
-      if (selectedClient) {
-        await loadContacts(selectedClient.id);
+      if (editingContact) {
+        // Update
+        await contactService.update(editingContact.id, contactData);
+      } else {
+        // Create
+        await contactService.create(contactData);
       }
+
+      await loadContacts(selectedClient?.id || '');
       setShowNewContactModal(false);
+      setEditingContact(null);
     } catch (error) {
-      console.error('Error creating contact:', error);
+      console.error('Error saving contact:', error);
       throw error;
     }
   };
@@ -237,7 +280,7 @@ export function Clients() {
         <div className="flex-1 overflow-y-auto p-6">
           {selectedClient ? (
             <div className="space-y-6">
-              <Card>
+              <Card className="group">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{selectedClient.name}</h2>
@@ -262,17 +305,28 @@ export function Clients() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      console.log('Edit clicked', selectedClient);
-                      setEditingClient(selectedClient);
-                      setShowNewClientModal(true);
-                    }}
-                    className="cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded-lg flex items-center gap-2 bg-blue-600 text-white"
-                  >
-                    <Edit size={16} />
-                    Editar
-                  </button>
+                  <div className="flex items-center gap-2">
+
+                    <button
+                      onClick={() => {
+                        console.log('Edit clicked', selectedClient);
+                        setEditingClient(selectedClient);
+                        setShowNewClientModal(true);
+                      }}
+                      className="cursor-pointer p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Edit size={16} />
+
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteClientModal(true)}
+                      className="cursor-pointer p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                      title="Eliminar cliente"
+                    >
+                      <Trash2 size={16} />
+
+                    </button>
+                  </div>
                 </div>
                 {selectedClient.notes && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
@@ -296,9 +350,9 @@ export function Clients() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {contacts.map(contact => (
-                    <Card key={contact.id} className="hover:shadow-md transition-shadow">
+                    <Card key={contact.id} className="hover:shadow-md transition-shadow flex justify-between items-center group">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                           <User size={20} className="text-gray-500" />
                         </div>
                         <div>
@@ -319,6 +373,23 @@ export function Clients() {
                             )}
                           </div>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          onClick={() => {
+                            console.log('Edit clicked', contact);
+                            setEditingContact(contact);
+                            setShowNewContactModal(true);
+                          }}>
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteContact(contact.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          title="Eliminar contacto"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </Card>
                   ))}
@@ -407,7 +478,8 @@ export function Clients() {
           clientId={selectedClient.id}
           isOpen={showNewContactModal}
           onClose={() => setShowNewContactModal(false)}
-          onSubmit={handleCreateContact}
+          onSubmit={handleSaveContact}
+          initialData={editingContact || undefined}
         />
       )}
 
@@ -417,6 +489,15 @@ export function Clients() {
           isOpen={showLinkUserModal}
           onClose={() => setShowLinkUserModal(false)}
           onSubmit={handleLinkUser}
+        />
+      )}
+
+      {selectedClient && showDeleteClientModal && (
+        <DeleteClientModal
+          client={selectedClient}
+          isOpen={showDeleteClientModal}
+          onClose={() => setShowDeleteClientModal(false)}
+          onConfirm={handleDeleteClient}
         />
       )}
     </div>
