@@ -427,11 +427,11 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
   }
 
   return (
-    <div className="flex flex-col h-full bg-white relative">
-      <div className="flex-none px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 relative">
+      <div className="flex-none px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-gray-400">#{ticket.id.slice(0, 8)}</span>
+            <span className="font-mono text-xs text-gray-400 dark:text-slate-500">#{ticket.id.slice(0, 8)}</span>
             <StatusBadge status={ticket.status} />
           </div>
           <div className="flex items-center gap-1">
@@ -440,7 +440,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                 {(ticket.status === 'completed' || ticket.status === 'done' || ticket.status === 'approved') && (
                   <button
                     onClick={handleGeneratePass}
-                    className="p-2 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full transition-colors"
+                    className="p-2 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-full transition-colors"
                     title="Generar Pase a Producción"
                   >
                     <FileText size={16} />
@@ -448,14 +448,14 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                 )}
                 <button
                   onClick={handleDeleteTicket}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                  className="p-2 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
                   title="Eliminar Ticket"
                 >
                   <Trash2 size={16} />
                 </button>
               </>
             )}
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+            <button onClick={onClose} className="p-2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -466,7 +466,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             value={ticket.subject || ''}
             onChange={(e) => setTicket({ ...ticket, subject: e.target.value })}
             onBlur={() => handleUpdateTicket({ subject: ticket.subject })}
-            className="text-xl md:text-2xl font-bold text-gray-900 leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
+            className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-snug w-full border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400 dark:placeholder-slate-600 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
             placeholder="Sin Asunto"
             disabled={!!user?.client_id}
           />
@@ -477,14 +477,14 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
         {/* Client Approval Workflow */}
         {user?.role === 'guest' && ticket.status === 'pending_approval' && (
-          <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-xl p-6 shadow-sm mb-6 animate-in slide-in-from-top-4">
+          <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/30 rounded-xl p-6 shadow-sm mb-6 animate-in slide-in-from-top-4">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-indigo-100 rounded-lg text-indigo-600">
+              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400">
                 <CheckSquare size={24} />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Aprobación de Entregable</h3>
-                <p className="text-gray-600 text-sm mb-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Aprobación de Entregable</h3>
+                <p className="text-gray-600 dark:text-slate-400 text-sm mb-4">
                   El equipo ha marcado este ticket como listo para revisión.
                   Por favor revisa el trabajo y confirma si cumple con tus requerimientos.
                 </p>
@@ -502,7 +502,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                       // Ideally focus comment box here
                       document.querySelector('textarea[placeholder="Escribe un comentario..."]')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="px-4 py-2 bg-white text-gray-700 font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors hover:border-gray-300"
+                    className="px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 font-medium border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors hover:border-gray-300 dark:hover:border-slate-600"
                   >
                     Solicitar Cambios
                   </button>
@@ -593,14 +593,14 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Fecha límite</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-slate-500 uppercase tracking-wider block mb-1.5">Fecha límite</label>
               <div className="relative">
                 <input
                   type="date"
                   value={ticket.deadline ? new Date(ticket.deadline).toISOString().split('T')[0] : ''}
                   onChange={(e) => handleUpdateTicket({ deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                  className="w-full text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 transition-all hover:bg-gray-50 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  style={{ colorScheme: 'light' }}
+                  className="w-full text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 transition-all hover:bg-gray-50 dark:hover:bg-slate-900 disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed"
+                  style={{ colorScheme: 'dark' }}
                   disabled={!!user?.client_id}
                 />
               </div>
@@ -609,7 +609,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="col-span-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Etiquetas</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-slate-500 uppercase tracking-wider block mb-1.5">Etiquetas</label>
               <div className="relative">
                 <Tag size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -621,7 +621,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                     setTicket({ ...ticket, tags: e.target.value.split(',').map(s => s.trim()) });
                   }}
                   onBlur={() => handleUpdateTicket({ tags: ticket.tags?.filter(Boolean) })}
-                  className="w-full pl-9 pr-3 py-2 text-sm font-medium text-gray-900 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-gray-50 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-full pl-9 pr-3 py-2 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-gray-50 dark:hover:bg-slate-900 disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed"
                   placeholder="Ej: bug, frontend (separado por comas)"
                   disabled={!!user?.client_id}
                 />
@@ -630,9 +630,9 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
           </div>
         </div>
 
-        <div className="bg-gray-50/50 rounded-xl border border-gray-200 p-4 transition-all focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500">
-          <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <div className="p-1.5 bg-indigo-100 rounded-md text-indigo-600">
+        <div className="bg-gray-50/50 dark:bg-slate-800/20 rounded-xl border border-gray-200 dark:border-slate-800 p-4 transition-all focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md text-indigo-600 dark:text-indigo-400">
               <FileText size={16} />
             </div>
             Descripción
@@ -641,7 +641,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             value={ticket.description || ''}
             onChange={(e) => setTicket({ ...ticket, description: e.target.value })}
             onBlur={() => handleUpdateTicket({ description: ticket.description })}
-            className="w-full bg-transparent border-none p-0 text-sm text-gray-700 leading-relaxed min-h-[120px] focus:ring-0 placeholder-gray-400 resize-y disabled:opacity-75 disabled:cursor-not-allowed"
+            className="w-full bg-transparent border-none p-0 text-sm text-gray-700 dark:text-slate-300 leading-relaxed min-h-[120px] focus:ring-0 placeholder-gray-400 dark:placeholder-slate-600 resize-y disabled:opacity-75 disabled:cursor-not-allowed"
             placeholder="Añade una descripción detallada..."
             disabled={!!user?.client_id}
           />
@@ -650,28 +650,28 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
 
         {/* Subtasks Section */}
-        <div className="bg-white p-2 rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <CheckSquare size={16} className="text-gray-500" />
+        <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <CheckSquare size={16} className="text-gray-500 dark:text-slate-400" />
               Subtareas
             </h3>
-            <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
               {subtasks.filter(t => t.is_completed).length}/{subtasks.length}
             </span>
           </div>
 
           <div className="p-4 space-y-2">
             {subtasks.map(task => (
-              <div key={task.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg group transition-colors -mx-2">
+              <div key={task.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg group transition-colors -mx-2">
                 <input
                   type="checkbox"
                   checked={task.is_completed}
                   onChange={() => handleToggleSubtask(task)}
-                  className="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-slate-700 focus:ring-indigo-500 cursor-pointer"
                   disabled={!!user?.client_id}
                 />
-                <span className={`flex-1 text-sm ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                <span className={`flex-1 text-sm ${task.is_completed ? 'text-gray-400 dark:text-slate-500 line-through' : 'text-gray-700 dark:text-slate-300'}`}>
                   {task.title}
                 </span>
                 {!user?.client_id && (
@@ -692,19 +692,19 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
             )}
 
             {user?.role !== 'guest' && (
-              <div className="flex gap-2 pt-2 mt-2 border-t border-gray-100">
+              <div className="flex gap-2 pt-2 mt-2 border-t border-gray-100 dark:border-slate-800">
                 <input
                   value={newSubtask}
                   onChange={(e) => setNewSubtask(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
                   placeholder="Agregar nueva subtarea..."
-                  className="flex-1 text-sm border-none bg-gray-50 rounded-md py-2 px-3 focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                  className="flex-1 text-sm border-none bg-gray-50 dark:bg-slate-950 rounded-md py-2 px-3 focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-600"
                   disabled={addingSubtask}
                 />
                 <button
                   onClick={handleAddSubtask}
                   disabled={addingSubtask || !newSubtask.trim()}
-                  className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                  className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-700 dark:hover:text-indigo-300 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   {addingSubtask ? '...' : <Plus size={16} />}
                 </button>
@@ -715,8 +715,8 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Tag size={14} className="text-gray-400" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Tag size={14} className="text-gray-400 dark:text-slate-500" />
               Programas ({programs.length})
             </h3>
           </div>
@@ -724,10 +724,10 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
           {programs.length > 0 ? (
             <div className="space-y-2">
               {programs.map(p => (
-                <div key={p.id} className="bg-white border border-gray-200 rounded-md p-3 text-sm hover:border-indigo-300 transition-colors flex justify-between items-start group">
+                <div key={p.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-3 text-sm hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors flex justify-between items-start group">
                   <div>
-                    <div className="font-mono text-indigo-600 font-medium text-xs mb-1">{p.object_name}</div>
-                    <div className="text-gray-600">{p.description}</div>
+                    <div className="font-mono text-indigo-600 dark:text-indigo-400 font-medium text-xs mb-1">{p.object_name}</div>
+                    <div className="text-gray-600 dark:text-slate-400">{p.description}</div>
                   </div>
                   {!user?.client_id && (
                     <button
@@ -742,7 +742,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400 italic">No hay programas asociados.</p>
+            <p className="text-xs text-gray-400 dark:text-slate-600 italic">No hay programas asociados.</p>
           )}
 
           {!user?.client_id && (
@@ -755,28 +755,28 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
                   <Plus size={12} /> Agregar Programa
                 </button>
               ) : (
-                <div className=" grid grid-cols-2 w-full gap-2 bg-gray-50 p-3 rounded-md border border-gray-200 space-y-2">
+                <div className=" grid grid-cols-2 w-full gap-2 bg-gray-50 dark:bg-slate-950 p-3 rounded-md border border-gray-200 dark:border-slate-800 space-y-2">
                   <input
-                    className="w-full ps-3 border h-8 text-xs border-gray-300 rounded"
+                    className="w-full ps-3 border h-8 text-xs bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded"
                     placeholder="Objeto"
                     value={newProgram.object_name}
                     onChange={e => setNewProgram({ ...newProgram, object_name: e.target.value })}
                   />
                   <input
-                    className="w-full ps-3 border h-8 text-xs border-gray-300 rounded"
+                    className="w-full ps-3 border h-8 text-xs bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded"
                     placeholder="Tipo"
                     value={newProgram.object_type}
                     onChange={e => setNewProgram({ ...newProgram, object_type: e.target.value })}
                   />
                   <input
-                    className="w-full ps-3 col-span-2 border h-8 text-xs border-gray-300 rounded"
+                    className="w-full ps-3 col-span-2 border h-8 text-xs bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded"
                     placeholder="Descripción"
                     value={newProgram.description}
                     onChange={e => setNewProgram({ ...newProgram, description: e.target.value })}
                   />
                   <div className="flex col-span-2 gap-2 justify-end  ">
-                    <button onClick={() => setAddingProgram(false)} className="text-xs text-gray-500">Cancelar</button>
-                    <button onClick={handleAddProgram} className="text-xs font-medium text-indigo-600">Guardar</button>
+                    <button onClick={() => setAddingProgram(false)} className="text-xs text-gray-500 dark:text-slate-500">Cancelar</button>
+                    <button onClick={handleAddProgram} className="text-xs font-medium text-indigo-600 dark:text-indigo-400">Guardar</button>
                   </div>
                 </div>
               )}
@@ -786,8 +786,8 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate }: Tick
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Paperclip size={14} className="text-gray-400" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Paperclip size={14} className="text-gray-400 dark:text-slate-500" />
               Archivos
             </h3>
             {!user?.client_id && (

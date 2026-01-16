@@ -30,3 +30,14 @@ export interface Project {
   deleted_at?: string | null;
 }
 
+export interface ProjectDocument {
+  id: string;
+  project_id: string | null;
+  name: string;
+  description: string | null;
+  url: string;
+  file_type: string;
+  file_size: number;
+  created_by: string;
+  created_at: string;
+}

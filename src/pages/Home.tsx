@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/dashboard/StatCard';
 import { TicketsByClientChart } from '../components/dashboard/TicketsByClientChart';
 import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
+import { PageHeader } from '../components/layout/PageHeader';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectCard } from '../components/project/ProjectCard';
 import { Button } from '../components/ui/Button';
@@ -124,6 +125,7 @@ export function Home() {
     pending_analysis: allTickets.filter(t => t.status === 'pending_analysis').length,
     pending_approval: allTickets.filter(t => t.status === 'pending_approval').length,
     approved: allTickets.filter(t => t.status === 'approved').length,
+    ongoing: allTickets.filter(t => t.status === 'ongoing').length,
     completed: allTickets.filter(t => t.status === 'completed').length,
     done: allTickets.filter(t => t.status === 'done').length,
   };
@@ -146,23 +148,20 @@ export function Home() {
 
 
   return (
-    <div className="flex-1 overflow-y-auto ">
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">Resumen general de proyectos y solicitudes</p>
-          </div>
-          {user?.role !== 'guest' && (
-            <Button
-              onClick={() => setIsNewProjectModalOpen(true)}
-              variant="primary"
-            >
-              <Plus size={18} />
-              Nuevo Proyecto
-            </Button>
-          )}
-        </div>
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="Dashboard"
+        subtitle="Resumen general de proyectos y solicitudes"
+        actions={user?.role !== 'guest' ? [
+          {
+            label: 'Nuevo Proyecto',
+            icon: Plus,
+            onClick: () => setIsNewProjectModalOpen(true)
+          }
+        ] : []}
+      />
+
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
@@ -188,7 +187,7 @@ export function Home() {
           />
           <StatCard
             title="En Progreso"
-            value={statusStats.in_progress}
+            value={statusStats.ongoing}
             icon={CheckCircle}
             color="yellow"
             subtitle="Solicitudes activas"
@@ -197,13 +196,13 @@ export function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 relative">
           {!limits.hasAdvancedAnalytics && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200">
-              <div className="text-center p-6 bg-white rounded-xl shadow-lg border border-gray-100 max-w-sm">
-                <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                  <Lock className="w-6 h-6 text-indigo-600" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-slate-950/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-800">
+              <div className="text-center p-6 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 max-w-sm">
+                <div className="mx-auto w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-4">
+                  <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Análisis Avanzados</h3>
-                <p className="text-gray-600 mb-4 text-sm">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Análisis Avanzados</h3>
+                <p className="text-gray-600 dark:text-slate-400 mb-4 text-sm">
                   Obtén insights detallados sobre el rendimiento de tus proyectos con el plan Pro.
                 </p>
                 <button onClick={() => navigate('/pricing')} className="w-full">
@@ -221,7 +220,7 @@ export function Home() {
         </div>
 
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Proyectos Recientes</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Proyectos Recientes</h2>
         </div>
 
         {projects.length > 0 ? (
@@ -236,20 +235,19 @@ export function Home() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-              <FolderPlus size={32} className="text-gray-400" />
+          <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full mb-4">
+              <FolderPlus size={32} className="text-gray-400 dark:text-slate-500" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay proyectos</h3>
-            <p className="text-gray-600 mb-6">Comienza creando tu primer proyecto</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay proyectos</h3>
+            <p className="text-gray-600 dark:text-slate-400 mb-6">Comienza creando tu primer proyecto</p>
             {user?.role !== 'guest' && (
-              <button
+              <Button
                 onClick={() => setIsNewProjectModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus size={18} />
                 Crear Proyecto
-              </button>
+              </Button>
             )}
           </div>
         )}

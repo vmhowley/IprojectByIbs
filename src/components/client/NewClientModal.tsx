@@ -61,14 +61,14 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
         className="fixed inset-0 bg-black/50"
         onClick={() => !isSubmitting && onClose()}
       />
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md mx-4 border border-gray-200 dark:border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {initialData ? 'Editar Cliente' : 'Nuevo Cliente'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
             disabled={isSubmitting}
           >
             <X size={20} />
@@ -77,7 +77,7 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
 
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Nombre de la Empresa <span className="text-red-500">*</span>
             </label>
             <Input
@@ -92,7 +92,7 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Email
             </label>
             <Input
@@ -106,7 +106,7 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Teléfono
             </label>
             <Input
@@ -119,7 +119,7 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
           </div>
 
           <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Dirección
             </label>
             <Input
@@ -132,7 +132,7 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Notas
             </label>
             <Textarea
@@ -162,7 +162,7 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
             </Button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-500/20 transition-all"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Guardando...' : (initialData ? 'Guardar Cambios' : 'Crear Cliente')}

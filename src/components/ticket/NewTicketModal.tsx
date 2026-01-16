@@ -1,4 +1,4 @@
-import { FileIcon, Sparkles, Upload, X, XCircle } from 'lucide-react';
+import { FileIcon, Info, Sparkles, Upload, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
 import { Input } from '../ui/Input';
@@ -203,15 +203,15 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
         className="fixed inset-0 bg-black/50"
         onClick={() => !isSubmitting && onClose()}
       />
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-gray-900">Nueva Solicitud</h2>
+      <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nueva Solicitud</h2>
             <button
               type="button"
               onClick={handleMagicFill}
               disabled={isGenerating}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors border border-purple-200 dark:border-purple-800/50"
               title="Escribe una idea en la descripción y haz clic para autocompletar"
             >
               <Sparkles className="w-3 h-3" />
@@ -220,7 +220,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
             disabled={isSubmitting}
           >
             <X size={20} />
@@ -230,10 +230,10 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Proyecto
               </label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
+              <div className="px-3 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-800 rounded-md text-sm text-gray-600 dark:text-slate-400">
                 {projectName}
               </div>
             </div>
@@ -241,7 +241,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
             {/* Client and Contact are now inherited from Project */}
 
             <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Asunto <span className="text-red-500">*</span>
               </label>
               <Input
@@ -255,7 +255,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
             </div>
 
             <div>
-              <label htmlFor="request_type" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="request_type" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Tipo de Solicitud <span className="text-red-500">*</span>
               </label>
               <Select
@@ -280,13 +280,16 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                 )}
               </Select>
             </div>
-            <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Detalles del Ticket</h3>
+            <div className="border-t border-gray-200 dark:border-slate-800 pt-6 mt-6">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Info size={16} className="text-indigo-500" />
+                Detalles del Ticket
+              </h3>
 
               <div className="space-y-4">
                 {/* Subtasks Section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     Subtareas
                   </label>
                   <div className="flex gap-2 mb-2">
@@ -301,6 +304,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                       type="button"
                       onClick={handleAddSubtask}
                       disabled={isSubmitting || !newSubtask.trim()}
+                      className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors text-sm font-medium disabled:opacity-50"
                     >
                       Agregar
                     </button>
@@ -308,8 +312,8 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                   {formData.subtasks && formData.subtasks.length > 0 && (
                     <div className="space-y-2 mt-2">
                       {formData.subtasks.map((task, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 border border-gray-200 p-2 rounded-md text-sm">
-                          <span className="text-gray-700">{task}</span>
+                        <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-800 p-2.5 rounded-lg text-sm">
+                          <span className="text-gray-700 dark:text-slate-300">{task}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveSubtask(index)}
@@ -323,7 +327,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                   )}
                 </div>
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                     Descripción
                   </label>
                   <Textarea
@@ -338,7 +342,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Estado
                     </label>
                     <Select
@@ -356,7 +360,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                   </div>
 
                   <div>
-                    <label htmlFor="urgency" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="urgency" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Prioridad
                     </label>
                     <Select
@@ -373,7 +377,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                   </div>
 
                   <div>
-                    <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                       Asignado a
                     </label>
                     <UserPicker
@@ -388,26 +392,23 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   Archivos Adjuntos
                 </label>
 
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                <div className="border-2 border-dashed border-gray-300 dark:border-slate-800 rounded-lg p-6 text-center hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors bg-gray-50/50 dark:bg-slate-800/10 relative group">
                   <input
                     type="file"
                     id="file-upload"
                     multiple
                     onChange={handleFileChange}
                     disabled={isSubmitting}
-                    className="hidden"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <label
-                    htmlFor="file-upload"
-                    className="cursor-pointer flex flex-col items-center gap-2"
-                  >
-                    <Upload className="w-8 h-8 text-gray-400" />
-                    <div className="text-sm text-gray-600">
-                      <span className="text-blue-600 hover:text-blue-700 font-medium">
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload className="w-8 h-8 text-gray-400 group-hover:text-indigo-500 transition-colors" />
+                    <div className="text-sm text-gray-600 dark:text-slate-400">
+                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">
                         Haz clic para subir
                       </span>{' '}
                       o arrastra archivos aquí
@@ -415,7 +416,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                     <p className="text-xs text-gray-500">
                       Máximo 10MB por archivo
                     </p>
-                  </label>
+                  </div>
                 </div>
 
                 {formData.files && formData.files.length > 0 && (
@@ -423,12 +424,12 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
                     {formData.files.map((file, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-800"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <FileIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                          <FileIcon className="w-5 h-5 text-gray-400 shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                               {file.name}
                             </p>
                             <p className="text-xs text-gray-500">
@@ -459,11 +460,12 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
           </div>
         </form>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             Cancelar
           </button>
@@ -471,6 +473,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
             type="submit"
             onClick={handleSubmit}
             disabled={isSubmitting}
+            className="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50"
           >
             {isSubmitting ? 'Creando...' : 'Crear Solicitud'}
           </button>

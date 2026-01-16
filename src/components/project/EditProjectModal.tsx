@@ -1,12 +1,13 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { clientService } from '../../services/clientService';
 import { projectService } from '../../services/projectService';
 import { Client, Project } from '../../types';
 import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
 
 interface EditProjectModalProps {
     isOpen: boolean;
@@ -60,10 +61,10 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                 description,
                 status: status as 'active' | 'completed' | 'on_hold',
                 priority: priority as 'low' | 'medium' | 'high',
-                start_date: startDate || null,
-                end_date: endDate || null,
-                client_id: clientId || null, // Allow clearing client if needed, or enforce it
-                use_case_id: useCaseId || null
+                start_date: startDate || undefined,
+                end_date: endDate || undefined,
+                client_id: clientId || undefined,
+                use_case_id: useCaseId || undefined
             });
             onProjectUpdated(updated);
             onClose();
@@ -77,17 +78,19 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <Card className="w-full max-w-md relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+    return createPortal(
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md relative animate-in fade-in zoom-in-95 duration-200 border border-gray-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
                 <button
                     onClick={onClose}
-                    className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+                    className="absolute right-4 top-4 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Editar Proyecto</h2>
+                <div className="p-6 pb-0">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Editar Proyecto</h2>
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input
@@ -98,7 +101,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                             Número de Caso de Uso
                         </label>
                         <Input
@@ -109,13 +112,12 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                             Descripción
                         </label>
-                        <textarea
+                        <Textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             rows={3}
                         />
                     </div>
@@ -182,7 +184,8 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                         </Button>
                     </div>
                 </form>
-            </Card>
-        </div>
+            </div>
+        </div>,
+        document.body
     );
 }

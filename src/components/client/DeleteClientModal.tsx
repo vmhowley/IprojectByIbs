@@ -42,9 +42,9 @@ export function DeleteClientModal({ client, isOpen, onClose, onConfirm }: Delete
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={() => !isDeleting && onClose()}
             />
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-                <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-red-700">
+            <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-gray-200 dark:border-slate-800">
+                <div className="bg-red-50 dark:bg-red-900/10 px-6 py-4 border-b border-red-100 dark:border-red-900/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
                         <AlertTriangle size={20} />
                         <h2 className="text-lg font-bold">Eliminar Cliente</h2>
                     </div>
@@ -59,11 +59,11 @@ export function DeleteClientModal({ client, isOpen, onClose, onConfirm }: Delete
 
                 <div className="p-6">
                     <div className="mb-6">
-                        <p className="text-gray-700 mb-2">
+                        <p className="text-gray-700 dark:text-slate-300 mb-2">
                             Esta acción es <strong>irreversible</strong>. Se eliminará el cliente
-                            <span className="text-red-600 font-bold"> "{client.name}"</span> y todos sus datos asociados.
+                            <span className="text-red-600 dark:text-red-400 font-bold"> "{client.name}"</span> y todos sus datos asociados.
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-slate-400">
                             Para confirmar, escribe el nombre del cliente a continuación:
                         </p>
                     </div>
@@ -89,7 +89,7 @@ export function DeleteClientModal({ client, isOpen, onClose, onConfirm }: Delete
                                 type="button"
                                 onClick={onClose}
                                 disabled={isDeleting}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
                             >
                                 Cancelar
                             </button>

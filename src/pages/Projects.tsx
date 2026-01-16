@@ -1,12 +1,12 @@
 
-import { ChevronDown, ChevronRight, FolderKanban, Plus, Search, Users } from 'lucide-react'; // Added icons
+import { ChevronDown, ChevronRight, FolderKanban, Plus, Users } from 'lucide-react'; // Added icons
 import { useEffect, useState } from 'react'; // Added useMemo
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '../components/layout/PageHeader';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectBoardCard } from '../components/project/ProjectBoardCard';
 import { ProjectCard } from '../components/project/ProjectCard';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ViewSwitcher, ViewType } from '../components/ui/ViewSwitcher';
 import { BoardView } from '../components/views/BoardView';
@@ -140,18 +140,17 @@ export function Projects() {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <FolderKanban size={64} className="text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <FolderKanban size={64} className="text-gray-300 dark:text-slate-700 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               {searchQuery ? 'No se encontraron proyectos' : 'No hay proyectos'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-slate-400 mb-4">
               {searchQuery
                 ? 'Intenta con otro término de búsqueda'
                 : 'Comienza creando tu primer proyecto'}
             </p>
             {!searchQuery && user?.role !== 'guest' && (
-              <Button onClick={handleNewProjectClick}
-              >
+              <Button onClick={handleNewProjectClick}>
                 <Plus size={18} />
                 Crear Proyecto
               </Button>
@@ -253,25 +252,25 @@ export function Projects() {
           const isExpanded = expandedClients.has(clientId);
 
           return (
-            <div key={clientId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div key={clientId} className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
               {/* Client Header */}
               <div
-                className="flex items-center gap-2 px-4 py-3 bg-indigo-50/50 cursor-pointer hover:bg-indigo-50 transition-colors border-b border-gray-100"
+                className="flex items-center gap-2 px-4 py-3 bg-indigo-50/50 dark:bg-indigo-500/5 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors border-b border-gray-100 dark:border-slate-800"
                 onClick={() => toggleClient(clientId)}
               >
-                <button className="text-gray-400 hover:text-indigo-600">
+                <button className="text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400">
                   {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                 </button>
-                <Users className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-lg font-semibold text-gray-900">{group.name}</h2>
-                <span className="text-sm text-gray-500 ml-auto bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{group.name}</h2>
+                <span className="text-sm text-gray-500 dark:text-slate-400 ml-auto bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-700">
                   {group.projects.length} proyectos
                 </span>
               </div>
 
               {/* Projects Grid */}
               {isExpanded && (
-                <div className="p-6 bg-gray-50/30">
+                <div className="p-6 bg-gray-50/30 dark:bg-slate-950/20">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {group.projects.map((project) => (
                       <ProjectCard key={project.id} project={project} />
@@ -287,46 +286,30 @@ export function Projects() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white overflow-hidden">
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FolderKanban size={24} className="text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Proyectos</h1>
-              <p className="text-sm text-gray-600">
-                Gestiona todos tus proyectos en un solo lugar
-              </p>
-            </div>
-          </div>
-          {user?.role !== 'guest' && (
-            <button className="flex items-center gap-2 bg-blue-600 text-white p-2 rounded-lg" onClick={() => setShowNewProjectModal(true)}>
-              <Plus size={18} />
-              Nuevo Proyecto
-            </button>
-          )}
+    <div className="flex-1 flex flex-col bg-white dark:bg-slate-950 overflow-hidden">
+      <PageHeader
+        title="Proyectos"
+        subtitle="Gestiona todos tus proyectos en un solo lugar"
+        search={{
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: "Buscar proyectos..."
+        }}
+        actions={user?.role !== 'guest' ? [
+          {
+            label: 'Crear Proyecto',
+            icon: Plus,
+            onClick: handleNewProjectClick
+          }
+        ] : []}
+      >
+        <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
+      </PageHeader>
+
+      <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {renderContent()}
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar proyectos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-6 border-l border-r border-gray-100 bg-gray-50/30">
-        {renderContent()}
       </div>
 
       {showNewProjectModal && (

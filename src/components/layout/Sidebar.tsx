@@ -1,4 +1,5 @@
 import {
+  Book,
   Calendar,
   CheckSquare,
   ChevronDown,
@@ -26,6 +27,7 @@ import Logo from '../../public/Logoibpulse.webp';
 import { channelService } from '../../services/channelService';
 import { notificationService } from '../../services/notificationService';
 import { Channel as TeamChannel } from '../../types/Channel';
+import { ThemeToggle } from '../ui/ThemeToggle';
 interface SidebarProps {
   onNewProject?: () => void;
   isOpen?: boolean;
@@ -149,26 +151,29 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       <aside className={`
         fixed md:static inset-y-0 left-0 z-50
-        w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-full
+        w-64 bg-gray-50 dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col h-full
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+        <div className="p-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
           <div className="flex items-center gap-2">
-            <div className="flex flex-col  ">
-              <img className="object-cover w-50 h-12" src={Logo} alt="Logo" />
-              <p className="text-[10px] text-gray-500 flex items-center gap-1 justify-end">
+            <div className="flex flex-col">
+              <img className="object-cover w-50 h-12 dark:brightness-200" src={Logo} alt="Logo" />
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 justify-end">
                 By IBSYSTEMS.SRL
               </p>
             </div>
           </div>
-          {/* Close button for mobile */}
-          <button
-            onClick={onClose}
-            className="md:hidden p-1 text-gray-500 hover:bg-gray-200 rounded-md"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {/* Close button for mobile */}
+            <button
+              onClick={onClose}
+              className="md:hidden p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-md"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-3">
@@ -177,8 +182,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               to="/dashboard"
               onClick={onClose}
               className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/dashboard')
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gray-200 dark:bg-slate-800 text-gray-900 dark:text-white'
+                : 'text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
                 }`}
             >
               <Home size={18} />
@@ -188,8 +193,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               to="/inbox"
               onClick={onClose}
               className={`flex items-center justify-between px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/inbox')
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gray-200 dark:bg-slate-800 text-gray-900 dark:text-white'
+                : 'text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
                 }`}
             >
               <div className="flex items-center gap-2">
@@ -218,7 +223,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="px-2 mb-4">
             <button
               onClick={() => toggleSection('workspace')}
-              className="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
+              className="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold text-gray-600 dark:text-slate-500 hover:text-gray-900 dark:hover:text-slate-300"
             >
               <span>Área de trabajo</span>
               {expandedSections.workspace ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -228,7 +233,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 <Link
                   to="/tasks"
                   onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                 >
                   <CheckSquare size={18} />
                   <span>Tareas</span>
@@ -236,7 +241,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 <Link
                   to="/projects"
                   onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                 >
                   <FolderKanban size={18} />
                   <span>Proyectos</span>
@@ -244,7 +249,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 <Link
                   to="/calendar"
                   onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                 >
                   <Calendar size={18} />
                   <span>Calendario</span>
@@ -252,7 +257,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 <Link
                   to="/meetings"
                   onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                 >
                   <Mic size={18} />
                   <span>Reuniones</span>
@@ -261,7 +266,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   <Link
                     to="/roadmaps"
                     onClick={onClose}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                   >
                     <Map size={18} />
                     <span>Mapas</span>
@@ -270,12 +275,20 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   <Link
                     to="/clients"
                     onClick={onClose}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                   >
                     <Users size={18} />
                     <span>Clientes</span>
                   </Link>
                 )}
+                <Link
+                  to="/documentation"
+                  onClick={onClose}
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                >
+                  <Book size={18} />
+                  <span>Documentación</span>
+                </Link>
               </div>
             )}
           </div>
@@ -321,7 +334,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           )}
         </nav>
 
-        <div className="border-t border-gray-200">
+        <div className="border-t border-gray-200 dark:border-slate-800">
           {/* Upgrade Plan Widget */}
           {!isPro && user?.role !== 'guest' && (
             <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 mx-3 my-3 rounded-lg border border-indigo-100">
@@ -342,7 +355,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           )}
           <Link
             to="/help"
-            className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
           >
             <HelpCircle size={18} />
             <span>Ayuda & soporte</span>
@@ -397,17 +410,17 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
   };
 
   return (
-    <div className="border-t border-gray-200 p-3">
+    <div className="border-t border-gray-200 dark:border-slate-800 p-3">
       <div className="relative">
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className="w-full flex items-start gap-2 p-2 rounded-md hover:bg-gray-100 transition-colors"
+          className="w-full flex items-start gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
         >
           <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1  space-x-2 text-left">
-            <p className="text-sm font-medium text-gray-900 ">{user.name}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white ">{user.name}</p>
             {isPro && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-linear-to-r from-indigo-500 to-purple-500 text-white animate-pulse">
                 PRO
@@ -421,41 +434,26 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
         </button>
 
         {showMenu && (
-          <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-            <div className="p-3 border-b border-gray-200">
-              <p className="text-sm font-medium text-gray-900">{user.name}</p>
-              <p className="text-xs text-gray-500">{user.email}</p>
+          <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
+            <div className="p-3 border-b border-gray-200 dark:border-slate-700">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
             </div>
             <div className=" p-2  space-y-0.5">
-
             </div>
-            {/* <button
-              onClick={async () => {
-                if (!confirm('¿Quieres reclamar todos los proyectos antiguos como tuyos?')) return;
-                const { error } = await supabase.from('projects').update({ created_by: user.id }).is('created_by', null);
-                if (error) alert('Error: ' + error.message);
-                else {
-                  alert('Proyectos recuperados. Refrescando página...');
-                  window.location.reload();
-                }
-              }}
-              className="w-full px-3 py-2 text-left text-sm text-indigo-600 hover:bg-indigo-50 transition-colors border-b border-gray-100"
-            >
-              Recuperar proyectos antiguos
-            </button> */}
             <div className=" p-2  space-y-0.5">
               {user?.role === 'support_agent' && (
                 <>
                   <Link
                     to="/admin/support"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-green-700 bg-green-50 hover:bg-green-100 rounded-md transition-colors font-medium mb-1"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors font-medium mb-1"
                   >
                     <MessageCircle size={18} />
                     <span>Soporte (Agente)</span>
                   </Link>
                   <Link
                     to="/admin"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors font-medium"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-md transition-colors font-medium"
                   >
                     <Shield size={18} />
                     <span>Panel Global</span>
@@ -466,19 +464,18 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
                 <>
                   <Link
                     to="/settings"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                   >
                     <Settings size={18} />
                     <span>Configuraciones</span>
                   </Link>
-
                 </>
               )}
             </div>
 
             <button
               onClick={handleLogout}
-              className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all font-medium"
             >
               Cerrar sesión
             </button>

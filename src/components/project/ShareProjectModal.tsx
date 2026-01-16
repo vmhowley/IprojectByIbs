@@ -1,8 +1,11 @@
 import { Share2, Trash2, UserPlus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSubscription } from '../../hooks/useSubscription';
 import { ProjectMember, memberService } from '../../services/memberService';
+import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 
 interface ShareProjectModalProps {
     projectId: string;
@@ -65,15 +68,15 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
         }
     };
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <Share2 size={20} className="text-gray-500" />
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-slate-800">
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Share2 size={20} className="text-gray-500 dark:text-slate-400" />
                         Compartir "{projectName}"
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">
                         <X size={20} />
                     </button>
                 </div>
@@ -90,41 +93,42 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
                                     required
                                 />
                             </div>
-                            <select
+                            <Select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value as 'viewer' | 'editor')}
-                                className="rounded-md border border-gray-300 text-sm px-2 focus:ring-2 focus:ring-indigo-500"
-                            >
-                                <option value="viewer">Lector</option>
-                                <option value="editor">Editor</option>
-                            </select>
+                                className="w-32"
+                                options={[
+                                    { value: 'viewer', label: 'Lector' },
+                                    { value: 'editor', label: 'Editor' },
+                                ]}
+                            />
                         </div>
-                        {error && <p className="text-red-500 text-xs">{error}</p>}
+                        {error && <p className="text-red-500 dark:text-red-400 text-xs">{error}</p>}
 
-                        <button type="submit" isLoading={isLoading} className="w-full">
+                        <Button type="submit" isLoading={isLoading} className="w-full">
                             <UserPlus size={16} className="mr-2" />
                             Invitar
-                        </button>
+                        </Button>
                     </form>
 
                     <div className="space-y-4">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <h3 className="text-xs font-semibold text-gray-500 dark:text-slate-500 uppercase tracking-wider">
                             Miembros del proyecto
                         </h3>
 
-                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                             {members.length === 0 ? (
-                                <p className="text-sm text-gray-500 italic">No hay miembros compartidos.</p>
+                                <p className="text-sm text-gray-500 dark:text-slate-500 italic">No hay miembros compartidos.</p>
                             ) : (
                                 members.map((member) => (
                                     <div key={member.id} className="flex items-center justify-between group">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xs border border-indigo-200 dark:border-indigo-800/50">
                                                 {member.user?.name?.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{member.user?.name}</p>
-                                                <p className="text-xs text-gray-500">{member.role === 'editor' ? 'Puede editar' : 'Solo lectura'}</p>
+                                                <p className="text-sm font-medium text-gray-900 dark:text-white">{member.user?.name}</p>
+                                                <p className="text-xs text-gray-500 dark:text-slate-400">{member.role === 'editor' ? 'Puede editar' : 'Solo lectura'}</p>
                                             </div>
                                         </div>
                                         <button
@@ -140,6 +144,7 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

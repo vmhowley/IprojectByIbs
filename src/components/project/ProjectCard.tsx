@@ -26,20 +26,20 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'on_hold': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'archived': return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
+      case 'on_hold': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
+      case 'completed': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
+      case 'archived': return 'bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-400';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'low': return 'text-blue-600 bg-blue-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case 'high': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
+      case 'medium': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20';
+      case 'low': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20';
+      default: return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/20';
     }
   };
 
@@ -56,7 +56,7 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
   return (
     <Link
       to={`/project/${project.id}`}
-      className="group bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all relative overflow-hidden"
+      className="group bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg transition-all relative overflow-hidden"
     >
       {/* Visual Indicator for Linked Projects */}
       {isLinkedProject && (
@@ -68,9 +68,9 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
 
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1">
-          <div className={`w-3 h-3 rounded-sm flex-shrink-0 ${isLinkedProject ? 'bg-indigo-600' : 'bg-blue-600'}`}></div>
+          <div className={`w-3 h-3 rounded-sm shrink-0 ${isLinkedProject ? 'bg-indigo-600' : 'bg-blue-600'}`}></div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors pr-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors pr-6">
               {project.name}
             </h2>
             <div className="flex items-center gap-2 mt-1">
@@ -93,12 +93,12 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
       </div>
 
       {project.description && (
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
+        <p className="text-gray-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">{project.description}</p>
       )}
 
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-800">
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-500">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5" title="Fecha de inicio">
                 <Calendar size={14} />
@@ -129,7 +129,7 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
                   {/* If it is a Linked Project, we show a special text or the company name with 'Vinculado' context 
                        User asked: "Let them know it is a linked project, not their own one" 
                    */}
-                  <span className={`font-medium ${isLinkedProject ? 'text-blue-600' : 'text-gray-700'}`}>
+                  <span className={`font-medium ${isLinkedProject ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-300'}`}>
                     {isLinkedProject ? 'Proyecto de Empresa' : project.clients.name}
                   </span>
                 </div>

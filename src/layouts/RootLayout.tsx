@@ -62,7 +62,7 @@ export function RootLayout() {
     loadProjects();
   }, []);
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
+    <div className="h-screen bg-white dark:bg-slate-950 flex overflow-hidden">
       {isLoading ? (
         <SplashScreen />
       ) : (
@@ -75,14 +75,14 @@ export function RootLayout() {
 
           <div className="flex-1 flex flex-col min-w-0 h-full">
             {/* Mobile Header with Menu button */}
-            <div className="md:hidden border-b border-gray-200 p-4 flex items-center bg-white sticky top-0 z-30 flex-shrink-0">
+            <div className="md:hidden border-b border-gray-200 dark:border-slate-800 p-4 flex items-center bg-white dark:bg-slate-900 sticky top-0 z-30 shrink-0">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                className="p-2 -ml-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md"
               >
                 <Menu size={24} />
               </button>
-              <span className="ml-2 font-semibold text-gray-900"><img className='w-30 h-8 object-cover object-center' src={Logo} alt="" /></span>
+              <span className="ml-2 font-semibold text-gray-900 dark:text-white"><img className='w-30 h-8 object-cover object-center dark:brightness-200' src={Logo} alt="" /></span>
             </div>
 
             <main className="flex-1 overflow-y-auto">

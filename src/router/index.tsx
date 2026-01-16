@@ -123,7 +123,7 @@ export const router = createBrowserRouter([
         element: <HelpPage />,
       },
       {
-        path: 'docs',
+        path: 'documentation',
         element: <DocumentationPage />,
       },
       {
