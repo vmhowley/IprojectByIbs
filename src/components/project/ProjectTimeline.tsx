@@ -35,12 +35,40 @@ export function ProjectTimeline({ projectId }: ProjectTimelineProps) {
             case 'updated': return 'Proyecto actualizado';
             case 'member_added': return 'Miembro añadido';
             case 'member_removed': return 'Miembro eliminado';
+            case 'ticket_created': return 'Nueva tarea creada';
+            case 'ticket_updated': return 'Tarea actualizada';
+            case 'ticket_deleted': return 'Tarea eliminada';
+            case 'comment_added': return 'Nuevo comentario';
+            case 'viewed': return 'Visto por el cliente';
             default: return action;
         }
     };
 
     const renderDetails = (details: any) => {
         if (!details) return null;
+
+        // Custom rendering for common logs
+        if (details.ticket_number && details.subject) {
+            return (
+                <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                    <span className="font-semibold text-indigo-600">#{details.ticket_number}</span>: {details.subject}
+                    {details.status && (
+                        <div className="mt-1 text-xs">
+                            Estado: <span className="font-medium text-gray-800">{details.status}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        if (details.ticket_number && details.user_name && !details.subject) {
+            return (
+                <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                    En la tarea <span className="font-semibold text-indigo-600">#{details.ticket_number}</span>
+                </div>
+            );
+        }
+
         return (
             <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded">
                 {Object.entries(details).map(([key, value]) => (
@@ -75,7 +103,11 @@ export function ProjectTimeline({ projectId }: ProjectTimelineProps) {
                     )}
 
                     {/* Icon */}
-                    <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-white shadow-sm">
+                    <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 border-white shadow-sm
+                        ${log.action === 'viewed' ? 'bg-amber-100 text-amber-600' :
+                            log.action.startsWith('ticket') ? 'bg-indigo-100 text-indigo-600' :
+                                log.action === 'comment_added' ? 'bg-green-100 text-green-600' :
+                                    'bg-blue-100 text-blue-600'}`}>
                         {log.user?.avatar ? (
                             <img src={log.user.avatar} alt={log.user.name} className="w-full h-full rounded-full object-cover" />
                         ) : (

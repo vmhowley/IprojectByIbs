@@ -1,6 +1,6 @@
 import { Search, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { supabase } from '../../services/api';
+import { getUsers } from '../../services/usersService';
 import { UserProfile } from '../../types';
 
 interface UserPickerProps {
@@ -21,12 +21,7 @@ export function UserPicker({ value, onChange, placeholder = 'Seleccionar usuario
 
   async function loadUsers() {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
+      const data = await getUsers();
       setUsers(data || []);
     } catch (error) {
       console.error('Error loading users:', error);

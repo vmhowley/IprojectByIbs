@@ -28,6 +28,10 @@ export interface Project {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+  stats?: {
+    total_tasks: number;
+    completed_tasks: number;
+  };
 }
 
 export interface ProjectDocument {

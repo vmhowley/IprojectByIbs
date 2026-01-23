@@ -47,15 +47,24 @@ export async function getUsers() {
   // Step 3: ALSO get users with the same email domain (Company/Team view)
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   if (currentUser?.email) {
-      const emailDomain = currentUser.email.split('@')[1];
-      // Exclude public domains from this automatic grouping - REMOVED restriction to align with new DB policies
-       
-      const { data: domainUsers } = await supabase
-          .from('user_profiles')
-          .select('id')
-          .ilike('email', `%@${emailDomain}`);
-          
-      domainUsers?.forEach(u => userIds.add(u.id));
+      const emailDomain = currentUser.email.split('@')[1]?.toLowerCase();
+      
+      const publicDomains = [
+        'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 
+        'icloud.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'mail.com', 'gmx.com'
+      ];
+
+      const isPublic = publicDomains.includes(emailDomain || '');
+
+      // Only automatically group if NOT a public domain
+      if (!isPublic && emailDomain) {
+        const { data: domainUsers } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .ilike('email', `%@${emailDomain}`);
+            
+        domainUsers?.forEach(u => userIds.add(u.id));
+      }
   }
 
   // Remove myself - COMMENTED OUT to ensure we can resolve our own name in UI

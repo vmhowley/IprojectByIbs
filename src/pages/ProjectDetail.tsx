@@ -18,6 +18,7 @@ import { TableView } from '../components/views/TableView';
 import { useAuth } from '../hooks/useAuth';
 import NProgress from '../lib/nprogress';
 import { supabase } from '../lib/supabase';
+import { activityService } from '../services/activityService';
 import { documentationService } from '../services/documentationService';
 import { projectService } from '../services/projectService';
 import { storageService } from '../services/storageService';
@@ -90,6 +91,9 @@ export function ProjectDetail() {
       NProgress.start();
       const projectData = await projectService.getById(projectId!);
       setProject(projectData);
+
+      // Log view if user is a contact
+      activityService.logView(projectData.id).catch(console.error);
 
       const ticketsData = await ticketService.getByProject(projectData.id);
       setTickets(ticketsData);

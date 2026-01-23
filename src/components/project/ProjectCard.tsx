@@ -1,4 +1,4 @@
-import { AlertCircle, Building2, Calendar, CheckCircle2, Clock, User, Users } from 'lucide-react';
+import { Building2, Calendar, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Project } from '../../types';
@@ -15,31 +15,33 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
   // Check if this project belongs to the client the user is linked to
   const isLinkedProject = user?.client_id && project.client_id === user.client_id;
 
+  // Calculate progress percentage
+  const progressPercent = taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0;
+
   const formatDate = (date: string) => {
     if (!date) return '';
     return new Date(date).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
     });
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
-      case 'on_hold': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
-      case 'completed': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
-      case 'archived': return 'bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-400';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20';
+      case 'on_hold': return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100 dark:border-amber-500/20';
+      case 'completed': return 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/20';
+      case 'archived': return 'bg-slate-50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400 border-slate-100 dark:border-slate-700';
+      default: return 'bg-gray-50 text-gray-700 border-gray-100';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
-      case 'medium': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20';
-      case 'low': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20';
-      default: return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/20';
+      case 'high': return 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 ring-rose-500/20';
+      case 'medium': return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 ring-amber-500/20';
+      case 'low': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 ring-blue-500/20';
+      default: return 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/20 ring-slate-500/20';
     }
   };
 
@@ -53,107 +55,82 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
     }
   };
 
+
+
   return (
     <Link
       to={`/project/${project.id}`}
-      className="group bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg transition-all relative overflow-hidden"
+      className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 relative overflow-hidden h-full border border-gray-100 dark:border-slate-800"
     >
-      {/* Visual Indicator for Linked Projects */}
-      {isLinkedProject && (
-        <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-bl-lg z-10 flex items-center gap-1 shadow-sm">
-          <Building2 size={10} />
-          <span>Vinculado</span>
-        </div>
-      )}
+      {/* Decorative top gradient line */}
+      <div className={`absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div className={`w-3 h-3 rounded-sm shrink-0 ${isLinkedProject ? 'bg-indigo-600' : 'bg-blue-600'}`}></div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors pr-6">
-              {project.name}
-            </h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(project.status || 'active')}`}>
-                {getStatusLabel(project.status || 'active')}
+      <div className="p-5 flex-1 flex flex-col">
+
+        {/* Header Row: Status + Priority + Linked */}
+        <div className="flex items-start justify-between mb-3 gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(project.status || 'active')}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${project.status === 'active' ? 'bg-current' : 'bg-gray-400'}`} />
+              {getStatusLabel(project.status || 'active')}
+            </span>
+
+            {project.priority && (
+              <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ring-1 ring-inset ${getPriorityColor(project.priority)}`}>
+                {project.priority}
               </span>
-              {project.priority && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${getPriorityColor(project.priority)}`}>
-                  <AlertCircle size={10} />
-                  {project.priority.charAt(0).toUpperCase() + project.priority.slice(1)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        {/* Removed star/chevron to make space for badge if needed, or keeping them but ensuring title doesn't overlap */}
-        <div className="flex items-center gap-2 mt-1">
-          {/* Keep minimalist for now */}
-        </div>
-      </div>
-
-      {project.description && (
-        <p className="text-gray-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">{project.description}</p>
-      )}
-
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-800">
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-500">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5" title="Fecha de inicio">
-                <Calendar size={14} />
-                <span>{formatDate(project.start_date || project.created_at)}</span>
-              </div>
-              {project.end_date && (
-                <div className="flex items-center gap-1.5" title="Fecha de fin">
-                  <Clock size={14} />
-                  <span>{formatDate(project.end_date)}</span>
-                </div>
-              )}
-            </div>
-            {taskCount > 0 && (
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={14} />
-                <span>
-                  {completedTaskCount}/{taskCount}
-                </span>
-              </div>
             )}
           </div>
 
-          {(project.assignee || project.team || project.clients) && (
-            <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
-              {project.clients && (
-                <div className="flex items-center gap-1.5">
-                  <Users size={14} />
-                  {/* If it is a Linked Project, we show a special text or the company name with 'Vinculado' context 
-                       User asked: "Let them know it is a linked project, not their own one" 
-                   */}
-                  <span className={`font-medium ${isLinkedProject ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-300'}`}>
-                    {isLinkedProject ? 'Proyecto de Empresa' : project.clients.name}
-                  </span>
-                </div>
-              )}
-              {project.assignee_profile ? (
-                <div className="flex items-center gap-1.5">
-                  <User size={14} />
-                  <span>{project.assignee_profile.name}</span>
-                </div>
-              ) : project.assignee ? (
-                <div className="flex items-center gap-1.5">
-                  <User size={14} />
-                  <span>Asignado</span>
-                </div>
-              ) : null}
-              {project.team && (
-                <div className="flex items-center gap-1.5">
-                  <Users size={14} />
-                  <span>{project.team}</span>
-                </div>
-              )}
-            </div>
+          {isLinkedProject && (
+            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/20">
+              <Building2 size={10} />
+              VINCULADO
+            </span>
           )}
         </div>
+
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+          {project.name}
+        </h3>
+
+        {project.description ? (
+          <p className="text-gray-500 dark:text-slate-400 text-sm line-clamp-2 mb-5">
+            {project.description}
+          </p>
+        ) : (
+          <p className="text-gray-400 dark:text-slate-600 text-sm italic mb-5">Sin descripción...</p>
+        )}
+
+        {/* Stats Row */}
+        <div className="mt-auto grid grid-cols-2 gap-4 py-4 border-t border-gray-50 dark:border-slate-800">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-gray-400 uppercase font-semibold">Progreso</span>
+            <div className="flex items-end gap-1.5 mt-0.5">
+              <span className="text-lg font-bold text-gray-900 dark:text-white">{progressPercent}%</span>
+              <div className="mb-1.5 h-1.5 w-16 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${progressPercent}%` }}></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] text-gray-400 uppercase font-semibold">Inicio</span>
+            <div className="flex items-center gap-1.5 mt-1 text-sm font-medium text-gray-700 dark:text-slate-300">
+              <Calendar size={14} className="text-indigo-500" />
+              {formatDate(project.start_date || project.created_at)}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        {!isLinkedProject && project.clients && (
+          <div className="pt-3 flex items-center gap-2 text-xs text-gray-400 mt-1">
+            <Users size={12} />
+            <span className="truncate max-w-40">{project.clients.name}</span>
+          </div>
+        )}
+
       </div>
     </Link>
   );

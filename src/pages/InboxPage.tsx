@@ -87,7 +87,7 @@ export const InboxPage = () => {
     if (!user) return null;
 
     return (
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-950">
+        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-950 h-full">
             <PageHeader
                 title="Notificaciones"
                 subtitle="Mantente al día con lo que sucede en tus proyectos."

@@ -12,9 +12,10 @@ import { UserPicker } from '../ui/UserPicker';
 interface NewProjectModalProps {
   onClose: () => void;
   onSubmit: (project: Partial<Project>, files: File[]) => void;
+  defaultClientId?: string;
 }
 
-export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
+export function NewProjectModal({ onClose, onSubmit, defaultClientId }: NewProjectModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [assignee, setAssignee] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   const [endDate, setEndDate] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [team, setTeam] = useState('');
-  const [clientId, setClientId] = useState('');
+  const [clientId, setClientId] = useState(defaultClientId || '');
   const [useCaseId, setUseCaseId] = useState('');
   const [files, setFiles] = useState<File[]>([]);
 

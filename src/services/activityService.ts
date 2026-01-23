@@ -63,5 +63,34 @@ export const activityService = {
     }
 
     return logs as ActivityLog[];
+  },
+
+  async logView(projectId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Check if user is a contact (linked to a client)
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('client_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.client_id) return; // Only log views for contacts
+
+    // Check for a recent view log to avoid spamming the database
+    // Only log if last view was more than 1 hour ago
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { data: recentLogs } = await supabase
+      .from('project_activity_logs')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('user_id', user.id)
+      .eq('action', 'viewed')
+      .gt('created_at', oneHourAgo);
+
+    if (recentLogs && recentLogs.length > 0) return;
+
+    await this.logActivity(projectId, 'viewed');
   }
 };

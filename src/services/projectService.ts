@@ -42,7 +42,7 @@ export const projectService = {
     
     const getDomain = (email: string) => email?.split('@')[1]?.toLowerCase();
 
-    if (profile?.role !== 'admin' && user?.email) {
+    if (profile?.role !== 'support_agent' && user?.email) {
       const userDomain = getDomain(user.email);
       const isPublic = publicDomains.includes(userDomain || '');
 
@@ -61,7 +61,7 @@ export const projectService = {
       filteredProjects = filteredProjects.filter(p => {
         // 0. Client Access (Explicit Match)
         // If I am linked to a client, I should see that client's projects
-        if (profile.client_id && p.client_id === profile.client_id) return true;
+        if (profile?.client_id && p.client_id === profile.client_id) return true;
 
         // 1. Own project or Assigned or Member
         if (p.created_by === user.id || memberProjectIds.includes(p.id) || p.assignee === user.id) return true;
@@ -81,19 +81,48 @@ export const projectService = {
     // 5. Fetch assignee profiles manually to avoid join issues
     const assigneeIds = [...new Set(filteredProjects.map(p => p.assignee).filter(Boolean))] as string[];
     
+    // FETCH PROFILES
+    let profileMap = new Map();
     if (assigneeIds.length > 0) {
       const { data: profiles } = await supabase
         .from('user_profiles')
         .select('id, name')
         .in('id', assigneeIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-      filteredProjects = filteredProjects.map(p => ({
-        ...p,
-        assignee_profile: p.assignee ? profileMap.get(p.assignee) : null
-      }));
+      profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
     }
+
+    // 6. Fetch stats (Tickets count)
+    const projectIds = filteredProjects.map(p => p.id);
+    let statsMap = new Map<string, { total: number; completed: number }>();
+    
+    if (projectIds.length > 0) {
+        const { data: tickets } = await supabase
+            .from('tickets')
+            .select('project_id, status')
+            .in('project_id', projectIds);
+
+        tickets?.forEach(t => {
+            const current = statsMap.get(t.project_id) || { total: 0, completed: 0 };
+            current.total += 1;
+            if (t.status === 'completed' || t.status === 'done') {
+                current.completed += 1;
+            }
+            statsMap.set(t.project_id, current);
+        });
+    }
+
+    filteredProjects = filteredProjects.map(p => {
+        const stats = statsMap.get(p.id) || { total: 0, completed: 0 };
+        return {
+            ...p,
+            assignee_profile: p.assignee ? profileMap.get(p.assignee) : null,
+            stats: {
+                total_tasks: stats.total,
+                completed_tasks: stats.completed
+            }
+        };
+    });
 
     return filteredProjects;
   },

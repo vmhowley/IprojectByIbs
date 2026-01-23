@@ -1,4 +1,5 @@
 import { Ticket } from '../types';
+import { activityService } from './activityService';
 import { handleSupabaseResponse, supabase } from './api';
 import { notificationService } from './notificationService';
 
@@ -87,8 +88,15 @@ export const ticketService = {
         );
     }
 
+    if (newTicket.project_id) {
+        await activityService.logActivity(newTicket.project_id, 'ticket_created', { 
+            ticket_number: newTicket.ticket_number,
+            subject: newTicket.subject 
+        });
+    }
+
     return newTicket;
-  },
+},
 
 
   async update(id: string, updates: Partial<Ticket>): Promise<Ticket> {
@@ -115,8 +123,16 @@ export const ticketService = {
          }
     }
 
+    if (updatedTicket.project_id) {
+        await activityService.logActivity(updatedTicket.project_id, 'ticket_updated', {
+            ticket_number: updatedTicket.ticket_number,
+            subject: updatedTicket.subject,
+            status: updatedTicket.status
+        });
+    }
+
     return updatedTicket;
-  },
+},
 
   async updateStatus(id: string, status: Ticket['status']): Promise<Ticket> {
     return this.update(id, { status });

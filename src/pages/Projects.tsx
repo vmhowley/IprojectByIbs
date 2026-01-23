@@ -1,5 +1,5 @@
 
-import { ChevronDown, ChevronRight, FolderKanban, Plus, Users } from 'lucide-react'; // Added icons
+import { Activity, ChevronDown, ChevronUp, FolderKanban, Plus, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react'; // Added useMemo
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -26,8 +26,9 @@ export function Projects() {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewType>('list');
+  const [viewMode, setViewMode] = useState<ViewType>('grid');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [newProjectDefaultClient, setNewProjectDefaultClient] = useState<string | undefined>();
 
   // New state for collapsible sections
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
@@ -108,13 +109,14 @@ export function Projects() {
     }
   };
 
-  const handleNewProjectClick = () => {
+  const handleNewProjectClick = (clientId?: string) => {
     if (projects.length >= limits.maxProjects) {
       if (confirm(`Has alcanzado el límite de ${limits.maxProjects} proyectos de tu plan Gratis. \n\n¿Quieres actualizar a Pro para tener proyectos ilimitados?`)) {
         navigate('/pricing');
       }
       return;
     }
+    setNewProjectDefaultClient(clientId);
     setShowNewProjectModal(true);
   };
 
@@ -150,7 +152,7 @@ export function Projects() {
                 : 'Comienza creando tu primer proyecto'}
             </p>
             {!searchQuery && user?.role !== 'guest' && (
-              <Button onClick={handleNewProjectClick}>
+              <Button onClick={() => handleNewProjectClick()}>
                 <Plus size={18} />
                 Crear Proyecto
               </Button>
@@ -189,7 +191,7 @@ export function Projects() {
       );
     }
 
-    if (viewMode === 'table') {
+    if (viewMode === 'list') {
       return (
         <TableView
           data={filteredProjects}
@@ -203,6 +205,10 @@ export function Projects() {
             {
               header: 'Cliente',
               cell: (p) => p.clients?.name || '-'
+            },
+            {
+              header: 'Tareas',
+              cell: (p) => `${p.stats?.completed_tasks || 0}/${p.stats?.total_tasks || 0}`
             },
             {
               header: 'Fecha Creación',
@@ -245,42 +251,107 @@ export function Projects() {
       groupedProjects[a].name.localeCompare(groupedProjects[b].name)
     );
 
+    const totalProjects = filteredProjects.length;
+    const activeProjects = filteredProjects.filter(p => p.status === 'active').length;
+    const completedProjects = filteredProjects.filter(p => p.status === 'completed').length;
+
     return (
-      <div className="space-y-6">
-        {sortedClientIds.map(clientId => {
-          const group = groupedProjects[clientId];
-          const isExpanded = expandedClients.has(clientId);
+      <div className="space-y-10 animate-in fade-in duration-500">
 
-          return (
-            <div key={clientId} className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
-              {/* Client Header */}
-              <div
-                className="flex items-center gap-2 px-4 py-3 bg-indigo-50/50 dark:bg-indigo-500/5 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors border-b border-gray-100 dark:border-slate-800"
-                onClick={() => toggleClient(clientId)}
-              >
-                <button className="text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400">
-                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                </button>
-                <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{group.name}</h2>
-                <span className="text-sm text-gray-500 dark:text-slate-400 ml-auto bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-700">
-                  {group.projects.length} proyectos
-                </span>
-              </div>
-
-              {/* Projects Grid */}
-              {isExpanded && (
-                <div className="p-6 bg-gray-50/30 dark:bg-slate-950/20">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {group.projects.map((project) => (
-                      <ProjectCard key={project.id} project={project} />
-                    ))}
-                  </div>
-                </div>
-              )}
+        {/* New: Stats Dashboard Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <FolderKanban size={80} className="text-indigo-500" />
             </div>
-          );
-        })}
+            <h3 className="text-gray-500 dark:text-slate-400 text-sm font-medium mb-1">Total Proyectos</h3>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">{totalProjects}</p>
+            <div className="mt-4 flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-500/10 w-fit px-2 py-1 rounded-full">
+              <span>+2 esta semana</span>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Activity size={80} className="text-emerald-500" />
+            </div>
+            <h3 className="text-gray-500 dark:text-slate-400 text-sm font-medium mb-1">En Curso</h3>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">{activeProjects}</p>
+            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 w-fit px-2 py-1 rounded-full">
+              <span>Activos ahora</span>
+            </div>
+          </div>
+
+          <div className="bg-linear-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden group">
+            <div className="absolute -right-6 -bottom-6 opacity-20 transform rotate-12 group-hover:scale-110 transition-transform">
+              <Zap size={100} />
+            </div>
+            <h3 className="text-indigo-100 text-sm font-medium mb-1">Productividad</h3>
+            <div className="flex items-end gap-2">
+              <p className="text-4xl font-bold">{completedProjects}</p>
+              <span className="mb-1.5 text-indigo-200 text-sm">completados</span>
+            </div>
+            <p className="mt-4 text-xs text-indigo-100/80 leading-relaxed max-w-[80%]">
+              Mantén el ritmo! Has completado {completedProjects} proyectos este año.
+            </p>
+          </div>
+        </div>
+
+        {/* Categories / Clients Section */}
+        <div className="space-y-12">
+          {sortedClientIds.map(clientId => {
+            const group = groupedProjects[clientId];
+            const isExpanded = expandedClients.has(clientId);
+
+            return (
+              <div key={clientId} className="group/section">
+                {/* Modern Section Header */}
+                <div className="flex items-end justify-between mb-6 border-b border-gray-100 dark:border-slate-800 pb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                      {group.name}
+                    </h2>
+                    <span className="text-sm text-gray-400 font-medium self-center mt-1">({group.projects.length})</span>
+                  </div>
+
+                  <button
+                    onClick={() => toggleClient(clientId)}
+                    className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors flex items-center gap-1"
+                  >
+                    {isExpanded ? 'Ocultar' : 'Mostrar'}
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                </div>
+
+                {/* Projects Content */}
+                <div
+                  className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 transition-all duration-300 ease-in-out ${isExpanded ? 'opacity-100' : 'hidden opacity-0'}`}
+                >
+                  {group.projects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      taskCount={project.stats?.total_tasks || 0}
+                      completedTaskCount={project.stats?.completed_tasks || 0}
+                    />
+                  ))}
+
+                  {/* "Add New" Ghost Card */}
+                  <button
+                    onClick={() => handleNewProjectClick(clientId === 'unassigned' ? undefined : clientId)}
+                    className="flex flex-col items-center justify-center h-full min-h-70 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition-all group/add gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center group-hover/add:bg-indigo-100 dark:group-hover/add:bg-indigo-500/20 transition-colors">
+                      <Plus size={24} className="text-gray-400 group-hover/add:text-indigo-600 dark:group-hover/add:text-indigo-400" />
+                    </div>
+                    <span className="font-semibold text-gray-500 group-hover/add:text-indigo-600 dark:text-slate-400 dark:group-hover/add:text-indigo-400 transition-colors">Nuevo Proyecto</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -299,7 +370,7 @@ export function Projects() {
           {
             label: 'Crear Proyecto',
             icon: Plus,
-            onClick: handleNewProjectClick
+            onClick: () => handleNewProjectClick()
           }
         ] : []}
       >
@@ -316,6 +387,7 @@ export function Projects() {
         <NewProjectModal
           onClose={() => setShowNewProjectModal(false)}
           onSubmit={handleCreateProject}
+          defaultClientId={newProjectDefaultClient}
         />
       )}
     </div>
