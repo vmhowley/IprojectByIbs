@@ -18,7 +18,7 @@ export const ticketService = {
     return handleSupabaseResponse(
       supabase
         .from('tickets')
-        .select('*, projects(name), clients(name)')
+        .select('*, projects(name, assignee), clients(name)')
         .order('created_at', { ascending: false })
     );
   },

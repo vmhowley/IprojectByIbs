@@ -181,7 +181,8 @@ export function NewProjectModal({ onClose, onSubmit, defaultClientId }: NewProje
             </label>
             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-slate-800 border-dashed rounded-lg hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors cursor-pointer relative bg-gray-50/50 dark:bg-slate-800/20">
               <input
-                type="file"
+                type="file"Editar Proyecto
+
                 multiple
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 onChange={(e) => {

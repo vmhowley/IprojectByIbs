@@ -23,6 +23,7 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
     return new Date(date).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric',
+      timeZone: 'UTC'
     });
   };
 
@@ -124,12 +125,24 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
         </div>
 
         {/* Footer Actions */}
-        {!isLinkedProject && project.clients && (
-          <div className="pt-3 flex items-center gap-2 text-xs text-gray-400 mt-1">
-            <Users size={12} />
-            <span className="truncate max-w-40">{project.clients.name}</span>
-          </div>
-        )}
+        <div className="pt-3 flex items-center justify-between text-xs text-gray-400 mt-1">
+          {!isLinkedProject && project.clients && (
+            <div className="flex items-center gap-2">
+              <Users size={12} />
+              <span className="truncate max-w-40">{project.clients.name}</span>
+            </div>
+          )}
+          {!project.clients && <div></div>} {/* Spacer if no client */}
+
+          {project.assignee_profile && (
+            <div className="flex items-center gap-1.5 ml-auto" title={`Asignado a: ${project.assignee_profile.name}`}>
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold">
+                {project.assignee_profile.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="max-w-[100px] truncate">{project.assignee_profile.name}</span>
+            </div>
+          )}
+        </div>
 
       </div>
     </Link>

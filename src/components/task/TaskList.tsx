@@ -10,21 +10,20 @@ interface TaskListProps {
 export function TaskList({ tasks, selectedTaskId, onTaskSelect }: TaskListProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="grid grid-cols-[auto_1fr_120px_140px_140px_100px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="grid grid-cols-[1fr_100px] lg:grid-cols-[1fr_200px_140px_140px_200px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200">
         <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-          Característica
+          Tarea
         </div>
-        <div></div>
-        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:block">
           Tipo
         </div>
-        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-          Progreso
+        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider text-right lg:text-left">
+          Estado
         </div>
-        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:block">
           Urgencia
         </div>
-        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:block">
           Asignado a
         </div>
       </div>

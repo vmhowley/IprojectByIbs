@@ -7,7 +7,9 @@ import { Client, Project } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+
 import { Textarea } from '../ui/Textarea';
+import { UserPicker } from '../ui/UserPicker';
 
 interface EditProjectModalProps {
     isOpen: boolean;
@@ -24,6 +26,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
     const [startDate, setStartDate] = useState(project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '');
     const [endDate, setEndDate] = useState(project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '');
     const [clientId, setClientId] = useState(project.client_id || '');
+    const [assignee, setAssignee] = useState(project.assignee || '');
     const [useCaseId, setUseCaseId] = useState(project.use_case_id || '');
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
@@ -38,6 +41,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
             setStartDate(project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '');
             setEndDate(project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '');
             setClientId(project.client_id || '');
+            setAssignee(project.assignee || null);
             setUseCaseId(project.use_case_id || '');
             loadClients();
         }
@@ -64,6 +68,7 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                 start_date: startDate || undefined,
                 end_date: endDate || undefined,
                 client_id: clientId || undefined,
+                assignee: assignee || undefined,
                 use_case_id: useCaseId || undefined
             });
             onProjectUpdated(updated);
@@ -79,8 +84,8 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md relative animate-in fade-in zoom-in-95 duration-200 border border-gray-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0  z-60 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-2xl w-full max-w-lg relative animate-in fade-in zoom-in-95 duration-200 border border-gray-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
                 <button
                     onClick={onClose}
                     className="absolute right-4 top-4 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
@@ -169,6 +174,17 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                             ...clients.map(c => ({ value: c.id, label: c.name }))
                         ]}
                     />
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                            Responsable del Proyecto
+                        </label>
+                        <UserPicker
+                            value={assignee}
+                            onChange={(id) => setAssignee(id || '')}
+                            placeholder="Seleccionar responsable..."
+                        />
+                    </div>
 
                     <div className="flex justify-end gap-3 pt-4">
                         <Button

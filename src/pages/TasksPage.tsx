@@ -4,16 +4,20 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskList } from '../components/task/TaskList';
 import { Task } from '../lib/supabase';
+import { supabase } from '../services/api';
 import { ticketService } from '../services/ticketService';
 
 // Extended Task type to include grouping info
 interface ExtendedTask extends Task {
     clientName: string;
     projectName: string;
+    assignedToName?: string;
 }
 
 interface GroupedByProject {
     projectName: string;
+    projectAssigneeId?: string;
+    projectAssigneeName?: string;
     tasks: ExtendedTask[];
 }
 
@@ -40,12 +44,18 @@ export function TasksPage() {
             const groups: { [clientId: string]: GroupedByClient } = {};
             const allClientIds = new Set<string>();
             const allProjectIds = new Set<string>();
+            const userIdsToFetch = new Set<string>();
 
+            // First pass: Build structure and collect User IDs
             tickets.forEach(t => {
                 const clientName = t.clients?.name || 'Cliente Sin Asignar';
                 const clientId = t.client_id || 'unknown_client';
                 const projectName = t.projects?.name || 'Proyecto Sin Asignar';
                 const projectId = t.project_id || 'unknown_project';
+
+                // Collect IDs
+                if (t.assigned_to) userIdsToFetch.add(t.assigned_to);
+                if (t.projects?.assignee) userIdsToFetch.add(t.projects.assignee);
 
                 // Map Ticket to Task
                 const task: ExtendedTask = {
@@ -81,12 +91,39 @@ export function TasksPage() {
                 if (!groups[clientId].projects[projectId]) {
                     groups[clientId].projects[projectId] = {
                         projectName,
+                        projectAssigneeId: t.projects?.assignee,
                         tasks: []
                     };
                     allProjectIds.add(projectId);
                 }
 
                 groups[clientId].projects[projectId].tasks.push(task);
+            });
+
+            // Fetch profiles
+            const { data: profiles } = await supabase
+                .from('user_profiles')
+                .select('id, name')
+                .in('id', Array.from(userIdsToFetch));
+
+            const profileMap = (profiles || []).reduce((acc, p) => ({
+                ...acc,
+                [p.id]: p.name
+            }), {} as Record<string, string>);
+
+            // Second pass: Enrich with names
+            Object.values(groups).forEach(clientGroup => {
+                Object.values(clientGroup.projects).forEach(projectGroup => {
+                    if (projectGroup.projectAssigneeId && profileMap[projectGroup.projectAssigneeId]) {
+                        projectGroup.projectAssigneeName = profileMap[projectGroup.projectAssigneeId];
+                    }
+
+                    projectGroup.tasks.forEach(task => {
+                        if (task.assigned_to && profileMap[task.assigned_to]) {
+                            task.assignedToName = profileMap[task.assigned_to];
+                        }
+                    });
+                });
             });
 
             setGroupedTasks(groups);
@@ -160,6 +197,7 @@ export function TasksPage() {
                 ) : (
                     sortedClientIds.map(clientId => {
                         const clientGroup = groupedTasks[clientId];
+                        console.log(clientGroup);
                         const isClientExpanded = expandedClients.has(clientId);
                         const sortedProjectIds = Object.keys(clientGroup.projects).sort((a, b) =>
                             clientGroup.projects[a].projectName.localeCompare(clientGroup.projects[b].projectName)
@@ -178,7 +216,7 @@ export function TasksPage() {
                                     <Users className="w-5 h-5 text-indigo-600" />
                                     <h2 className="text-lg font-semibold text-gray-900">{clientGroup.clientName}</h2>
                                     <span className="text-sm text-gray-500 ml-auto bg-white px-2 py-0.5 rounded-full border border-gray-200">
-                                        {Object.values(clientGroup.projects).reduce((acc, p) => acc + p.tasks.length, 0)} tareas
+                                        {Object.values(clientGroup.projects).reduce((acc, p) => acc + p.tasks.length, 0)} {Object.values(clientGroup.projects).reduce((acc, p) => acc + p.tasks.length, 0) === 1 ? 'tarea' : 'tareas'}
                                     </span>
                                 </div>
 
@@ -201,7 +239,14 @@ export function TasksPage() {
                                                         <Folder className="w-4 h-4 text-gray-500" />
                                                         <h3 className="text-md font-medium text-gray-800">{projectGroup.projectName}</h3>
                                                         <span className="text-xs text-gray-400 ml-auto">
-                                                            {projectGroup.tasks.length} tareas
+                                                            {projectGroup.projectAssigneeName ? (
+                                                                <span className="flex items-center gap-1">
+                                                                    <span className="text-gray-500">Asignado a:</span>
+                                                                    <span className="font-medium text-gray-700">{projectGroup.projectAssigneeName}</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span>{projectGroup.tasks.length} {projectGroup.tasks.length === 1 ? 'tarea' : 'tareas'}</span>
+                                                            )}
                                                         </span>
                                                     </div>
 

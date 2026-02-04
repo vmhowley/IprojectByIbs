@@ -29,6 +29,7 @@ export interface Ticket {
   } | null;
   projects?: {
     name: string;
+    assignee?: string;
   } | null;
   clients?: {
     name: string;
