@@ -442,7 +442,7 @@ function UserProfile({ isPro }: { isPro?: boolean }) {
             <div className=" p-2  space-y-0.5">
             </div>
             <div className=" p-2  space-y-0.5">
-              {user?.role === 'support_agent' && (
+              {user?.role === 'support_agent' || user?.role === 'admin' && (
                 <>
                   <Link
                     to="/admin/support"
