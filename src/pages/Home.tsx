@@ -1,4 +1,4 @@
-import { CheckCircle, FolderKanban, FolderPlus, Lock, Plus, Ticket as TicketIcon, Users } from 'lucide-react';
+import { CheckCircle, FolderKanban, FolderPlus, Lock, Plus, Ticket as TicketIcon, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/dashboard/StatCard';
@@ -9,15 +9,20 @@ import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectCard } from '../components/project/ProjectCard';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { useSubscription } from '../hooks/useSubscription';
 import NProgress from '../lib/nprogress';
 import { projectService } from '../services/projectService';
 import { ticketService } from '../services/ticketService';
 import { Project, Ticket } from '../types';
+import { exportDashboardToPDF } from '../utils/DashboardExport';
+import toast from 'react-hot-toast';
+import { FileText } from 'lucide-react';
 
 
 export function Home() {
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const { limits } = useSubscription();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -142,6 +147,32 @@ export function Home() {
   const uniqueClients = new Set(projects.map(t => t.client_id).filter(Boolean)).size;
   const completedCount = statusStats.done + statusStats.completed;
 
+  // Earnings calculations
+  const earningsByCurrency = projects.reduce((acc, project) => {
+    if (project.cost) {
+      const currency = project.currency || 'DOP';
+      acc[currency] = (acc[currency] || 0) + project.cost;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const earningsByClientMap = projects.reduce((acc, project) => {
+    if (project.cost && project.clients?.name) {
+      const clientName = project.clients.name;
+      const currency = project.currency || 'DOP';
+      if (!acc[clientName]) acc[clientName] = {};
+      acc[clientName][currency] = (acc[clientName][currency] || 0) + project.cost;
+    }
+    return acc;
+  }, {} as Record<string, Record<string, number>>);
+
+  const earningsByClient = Object.entries(earningsByClientMap).map(([name, totals]) => ({
+    name,
+    display: Object.entries(totals).map(([curr, amount]) => 
+      new Intl.NumberFormat('es-DO', { style: 'currency', currency: curr }).format(amount)
+    ).join(' / ')
+  }));
+
   if (loading) {
     return null;
   }
@@ -152,16 +183,45 @@ export function Home() {
       <PageHeader
         title="Dashboard"
         subtitle="Resumen general de proyectos y solicitudes"
-        actions={user?.role !== 'guest' ? [
-          {
-            label: 'Nuevo Proyecto',
-            icon: Plus,
-            onClick: () => setIsNewProjectModalOpen(true)
-          }
-        ] : []}
+        actions={[
+          ...(isAdmin() || user?.role === 'support_agent' ? [
+            {
+              label: 'Exportar PDF',
+              icon: FileText,
+              onClick: async () => {
+                try {
+                  const loadingToast = toast.loading('Generando PDF...');
+                  await exportDashboardToPDF({
+                    projectsCount: projects.length,
+                    activeProjectsCount: projects.filter(p => p.status === 'active').length,
+                    ticketsCount: allTickets.length,
+                    completedTicketsCount: completedCount,
+                    statusStats: statusStats,
+                    clientStats: clientStats,
+                    earningsByCurrency: earningsByCurrency,
+                    earningsByClient: earningsByClient,
+                    clientNames: {} // Optional if already resolved in strings
+                  }, `reporte-dashboard-${new Date().toISOString().split('T')[0]}.pdf`);
+                  toast.success('PDF generado con éxito', { id: loadingToast });
+                } catch (err) {
+                  console.error(err);
+                  toast.error('Error al generar el PDF');
+                }
+              },
+              variant: 'outline' as const
+            }
+          ] : []),
+          ...(user?.role !== 'guest' ? [
+            {
+              label: 'Nuevo Proyecto',
+              icon: Plus,
+              onClick: () => setIsNewProjectModalOpen(true)
+            }
+          ] : [])
+        ]}
       />
 
-      <div className="max-w-7xl mx-auto p-6 lg:p-8">
+      <div id="dashboard-content" className="max-w-7xl mx-auto p-6 lg:p-8 bg-white dark:bg-slate-950">
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
@@ -192,7 +252,40 @@ export function Home() {
             color="yellow"
             subtitle="Solicitudes activas"
           />
+          {isAdmin() && Object.keys(earningsByCurrency).length > 0 && (
+            <StatCard
+              title="Ganancias Totales"
+              value={new Intl.NumberFormat('es-DO', { 
+                style: 'currency', 
+                currency: Object.keys(earningsByCurrency)[0]
+              }).format(Object.values(earningsByCurrency)[0])}
+              icon={TrendingUp}
+              color="green"
+              subtitle={Object.keys(earningsByCurrency).length > 1 
+                ? `+ ${Object.keys(earningsByCurrency).length - 1} otras monedas` 
+                : "Basado en costo de proyectos"}
+            />
+          )}
         </div>
+
+        {isAdmin() && earningsByClient.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-500" />
+                Ganancias por Cliente
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {earningsByClient.map((stat, i) => (
+                  <div key={i} className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800">
+                    <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-1 truncate">{stat.name}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white font-mono break-all">{stat.display}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 relative">
           {!limits.hasAdvancedAnalytics && (
