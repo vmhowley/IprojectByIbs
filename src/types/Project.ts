@@ -12,6 +12,8 @@ export interface Project {
   created_by?: string | null;
   client_id?: string | null;
   contact_id?: string | null;
+  cost?: number | null;
+  currency?: string | null;
   clients?: {
     name: string;
   } | null;

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { clientService } from '../../services/clientService';
 import { projectService } from '../../services/projectService';
 import { Client, Project } from '../../types';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -28,6 +29,8 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
     const [clientId, setClientId] = useState(project.client_id || '');
     const [assignee, setAssignee] = useState(project.assignee || '');
     const [useCaseId, setUseCaseId] = useState(project.use_case_id || '');
+    const [cost, setCost] = useState(project.cost || '');
+    const [currency, setCurrency] = useState(project.currency || 'DOP');
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
 
@@ -43,6 +46,8 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
             setClientId(project.client_id || '');
             setAssignee(project.assignee || null);
             setUseCaseId(project.use_case_id || '');
+            setCost(project.cost || '');
+            setCurrency(project.currency || 'DOP');
             loadClients();
         }
     }, [isOpen, project]);
@@ -69,7 +74,9 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                 end_date: endDate || undefined,
                 client_id: clientId || undefined,
                 assignee: assignee || undefined,
-                use_case_id: useCaseId || undefined
+                use_case_id: useCaseId || undefined,
+                cost: cost ? Number(cost) : null,
+                currency: currency || 'DOP'
             });
             onProjectUpdated(updated);
             onClose();
@@ -185,6 +192,33 @@ export function EditProjectModal({ isOpen, onClose, project, onProjectUpdated }:
                             placeholder="Seleccionar responsable..."
                         />
                     </div>
+                    
+                    {usePermissions().isAdmin() && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    Costo del Proyecto (Cotización)
+                                </label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={cost}
+                                    onChange={(e) => setCost(e.target.value)}
+                                />
+                            </div>
+                            <Select
+                                label="Moneda"
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                                options={[
+                                    { value: 'DOP', label: 'DOP - Peso Dominicano' },
+                                    { value: 'USD', label: 'USD - Dólar' },
+                                    { value: 'EUR', label: 'EUR - Euro' },
+                                ]}
+                            />
+                        </div>
+                    )}
 
                     <div className="flex justify-end gap-3 pt-4">
                         <Button

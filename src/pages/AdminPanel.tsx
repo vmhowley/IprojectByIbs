@@ -19,13 +19,13 @@ export function AdminPanel() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loadingAuth && user && user.role === 'support_agent') {
+    if (!loadingAuth && user && user.role === 'admin') {
       loadUsers();
     }
   }, [loadingAuth, user]);
 
   // Redirect if not support_agent
-  if (!loadingAuth && (!user || user.role !== 'support_agent')) {
+  if (!loadingAuth && (!user || user.role !== 'admin')) {
     return <Navigate to="/" replace />;
   }
 

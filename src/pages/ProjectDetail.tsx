@@ -16,6 +16,7 @@ import { ViewSwitcher, ViewType } from '../components/ui/ViewSwitcher';
 import { BoardView } from '../components/views/BoardView';
 import { TableView } from '../components/views/TableView';
 import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import NProgress from '../lib/nprogress';
 import { supabase } from '../lib/supabase';
 import { activityService } from '../services/activityService';
@@ -33,6 +34,7 @@ import { confirmAction } from '../utils/confirmationToast';
 export function ProjectDetail() {
 
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -406,6 +408,17 @@ export function ProjectDetail() {
                     </span>
                   )}
                   <StatusBadge status={project?.status || 'active'} />
+                  {isAdmin() && project?.cost !== undefined && project?.cost !== null && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                      <span className="text-[10px] uppercase font-bold opacity-70">Costo:</span>
+                      <span className="text-sm font-bold font-mono">
+                        {new Intl.NumberFormat('es-DO', { 
+                          style: 'currency', 
+                          currency: project.currency || 'DOP' 
+                        }).format(project.cost)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {project?.description && (
                   <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{project.description}</p>
