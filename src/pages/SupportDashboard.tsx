@@ -21,7 +21,7 @@ export default function SupportDashboard() {
 
     // Load chats on mount
     useEffect(() => {
-        if (!user || user.role !== 'support_agent') {
+        if (user.role !== 'admin' && user.role !== 'support_agent') {
             navigate('/'); // Redirect non-support_agents
             return;
         }
