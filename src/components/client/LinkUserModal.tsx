@@ -47,7 +47,7 @@ export function LinkUserModal({ isOpen, onClose, onSubmit }: LinkUserModalProps)
             dismissible={!isSubmitting}
             size="sm"
             title="Dar acceso al portal"
-            description="Podrá ver los proyectos y tickets de este cliente y aprobar entregas."
+            description="Verá los proyectos de este cliente, comentará y aprobará entregas, sin poder editarlos. Su cuenta y su propio equipo siguen igual."
             footer={
                 <>
                     <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>

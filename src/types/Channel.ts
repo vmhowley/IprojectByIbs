@@ -1,7 +1,9 @@
 export interface Channel {
   id: string;
   name: string;
-  domain: string;
+  /** Older channels only: the team is organization_id now. */
+  domain?: string | null;
+  organization_id?: string | null;
   created_by: string;
   created_at: string;
 }

@@ -7,6 +7,7 @@ import { TicketsByClientChart } from '../components/dashboard/TicketsByClientCha
 import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
 import { PageHeader } from '../components/layout/PageHeader';
 import { NewProjectModal } from '../components/project/NewProjectModal';
+import { InvitationBanner } from '../components/team/InvitationBanner';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -26,6 +27,7 @@ import { getUsers } from '../services/usersService';
 import { Project, Ticket } from '../types';
 import { ProjectQuote } from '../types/Project';
 import { exportDashboardToPDF } from '../utils/DashboardExport';
+import { isClientSide } from '../utils/access';
 import {
   daysFromToday,
   formatDate,
@@ -132,10 +134,28 @@ export function Home() {
 
   const sequence = useMemo(() => ticketSequence(tickets), [tickets]);
   const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
-  const open = useMemo(() => tickets.filter((t) => !isFinished(t.status)), [tickets]);
+  // An account linked to a client of another company also sees that company's work
+  // for the client. Those deliveries wait for this account's approval; the rest of
+  // the page is about its own team's work. A guest's page is all client work.
+  const ownTickets = useMemo(
+    () => (isGuest ? tickets : tickets.filter((t) => !isClientSide(user, t.client_id))),
+    [tickets, isGuest, user]
+  );
+  const ownProjects = useMemo(
+    () => (isGuest ? projects : projects.filter((p) => !isClientSide(user, p.client_id))),
+    [projects, isGuest, user]
+  );
+  const open = useMemo(() => ownTickets.filter((t) => !isFinished(t.status)), [ownTickets]);
   const mine = useMemo(() => open.filter((t) => t.assigned_to === user?.id), [open, user?.id]);
   const overdue = useMemo(() => open.filter((t) => isOverdue(t.deadline, t.status)), [open]);
-  const awaitingApproval = useMemo(() => tickets.filter((t) => t.status === 'pending_approval'), [tickets]);
+  const waitingForMe = useMemo(
+    () => tickets.filter((t) => t.status === 'pending_approval' && (isGuest || isClientSide(user, t.client_id))),
+    [tickets, isGuest, user]
+  );
+  const waitingForClient = useMemo(
+    () => (isGuest ? [] : ownTickets.filter((t) => t.status === 'pending_approval')),
+    [ownTickets, isGuest]
+  );
   const dueThisWeek = open.filter((t) => {
     const d = daysFromToday(t.deadline);
     return d !== null && d >= 0 && d <= 7;
@@ -146,12 +166,12 @@ export function Home() {
   const tray = (scope === 'mine' ? mine : open).slice().sort(compareWork);
 
   // Status and client counts for the charts and the PDF.
-  const statusStats = tickets.reduce<Record<string, number>>((acc, t) => {
+  const statusStats = ownTickets.reduce<Record<string, number>>((acc, t) => {
     acc[t.status] = (acc[t.status] || 0) + 1;
     return acc;
   }, {});
   const ticketsByClient = Object.values(
-    tickets.reduce<Record<string, { name: string; count: number; to?: string }>>((acc, t) => {
+    ownTickets.reduce<Record<string, { name: string; count: number; to?: string }>>((acc, t) => {
       const clientId = t.client_id || projectById.get(t.project_id)?.client_id;
       if (!clientId) return acc;
       const name = t.clients?.name || projectById.get(t.project_id)?.clients?.name || 'Cliente';
@@ -163,7 +183,7 @@ export function Home() {
 
   // The quotation book: what each client represents, one column per currency.
   const ledger = useMemo(() => {
-    const inScope = projects.filter((p) =>
+    const inScope = ownProjects.filter((p) =>
       ledgerScope === 'open' ? p.status === 'active' || p.status === 'on_hold'
         : ledgerScope === 'completed' ? p.status === 'completed'
           : p.status !== 'archived'
@@ -190,10 +210,10 @@ export function Home() {
     });
     const grand = sumByCurrency(inScope, (p) => ({ amount: p.cost, currency: p.currency }));
     return { rows: sorted, currencies, grand, count: inScope.length, unpriced: inScope.filter((p) => p.cost == null).length };
-  }, [projects, ledgerScope, ledgerSort]);
+  }, [ownProjects, ledgerScope, ledgerSort]);
 
   const approvalsByClient = Object.values(
-    awaitingApproval.reduce<Record<string, { id: string | null; name: string; count: number; oldest: string }>>((acc, t) => {
+    waitingForClient.reduce<Record<string, { id: string | null; name: string; count: number; oldest: string }>>((acc, t) => {
       const clientId = t.client_id || projectById.get(t.project_id)?.client_id || 'none';
       const name = t.clients?.name || projectById.get(t.project_id)?.clients?.name || 'Sin cliente';
       const entry = acc[clientId] || { id: clientId === 'none' ? null : clientId, name, count: 0, oldest: t.updated_at };
@@ -207,7 +227,7 @@ export function Home() {
   const handleExport = async () => {
     const loadingToast = toast.loading('Generando PDF…');
     try {
-      const earningsByCurrency = sumByCurrency(projects, (p) => ({ amount: p.cost, currency: p.currency }));
+      const earningsByCurrency = sumByCurrency(ownProjects, (p) => ({ amount: p.cost, currency: p.currency }));
       const earningsByClient = ledger.rows
         .filter((r) => Object.keys(r.totals).length > 0)
         .map((r) => ({
@@ -215,9 +235,9 @@ export function Home() {
           display: sortCurrencies(Object.keys(r.totals)).map((c) => formatMoney(r.totals[c], c)).join(' / '),
         }));
       await exportDashboardToPDF({
-        projectsCount: projects.length,
-        activeProjectsCount: activeProjects.length,
-        ticketsCount: tickets.length,
+        projectsCount: ownProjects.length,
+        activeProjectsCount: ownProjects.filter((p) => p.status === 'active').length,
+        ticketsCount: ownTickets.length,
         completedTicketsCount: (statusStats.completed || 0) + (statusStats.done || 0),
         statusStats,
         clientStats: ticketsByClient.map((c) => ({ name: c.name, count: c.count })),
@@ -245,8 +265,24 @@ export function Home() {
       <span className={overdue.length > 0 ? 'font-semibold text-st-red' : undefined}>
         {overdue.length} {overdue.length === 1 ? 'vencido' : 'vencidos'}
       </span>
-      , {dueThisWeek.length} {dueThisWeek.length === 1 ? 'vence' : 'vencen'} esta semana y {awaitingApproval.length}{' '}
-      {awaitingApproval.length === 1 ? 'espera' : 'esperan'} {isGuest ? 'tu aprobación' : 'al cliente'}.
+      , {dueThisWeek.length} {dueThisWeek.length === 1 ? 'vence' : 'vencen'} esta semana y{' '}
+      {isGuest ? (
+        <>
+          {waitingForMe.length} {waitingForMe.length === 1 ? 'espera' : 'esperan'} tu aprobación.
+        </>
+      ) : (
+        <>
+          {waitingForClient.length} {waitingForClient.length === 1 ? 'espera' : 'esperan'} al cliente.
+          {waitingForMe.length > 0 && (
+            <>
+              {' '}
+              <span className="font-semibold text-st-ochre">
+                {waitingForMe.length} {waitingForMe.length === 1 ? 'entrega espera' : 'entregas esperan'} tu aprobación.
+              </span>
+            </>
+          )}
+        </>
+      )}
     </>
   );
 
@@ -314,6 +350,7 @@ export function Home() {
       />
 
       <div className="space-y-5 px-4 py-5 sm:px-6">
+        <InvitationBanner />
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-5">
             {/* Quotation book */}
@@ -553,65 +590,82 @@ export function Home() {
           </div>
 
           {/* Side column. A client comes here to approve, so on phones it goes first for them. */}
-          <div className={cn('min-w-0 space-y-5', isGuest && 'max-xl:order-first')}>
-            <section className="sheet" aria-labelledby="approvals-title">
-              <h2 id="approvals-title" className="flex items-baseline justify-between gap-3 border-b border-rule px-4 py-2.5 text-sm font-semibold text-ink">
-                {isGuest ? 'Esperan tu aprobación' : 'Esperando aprobación del cliente'}
-                {!loading && <span className="font-normal tabular-nums text-ink-3">{awaitingApproval.length}</span>}
-              </h2>
-              {loading ? (
-                <div className="space-y-3 p-4">
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ) : awaitingApproval.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-ink-3">
-                  {isGuest ? 'Nada espera tu aprobación.' : 'Ningún ticket espera aprobación.'}
-                </p>
-              ) : isGuest ? (
-                // The client sees their own deliveries, oldest first: each one opens on the Aprobar button.
-                <ul className="divide-y divide-rule">
-                  {awaitingApproval
-                    .slice()
-                    .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
-                    .slice(0, 8)
-                    .map((ticket) => (
-                      <li key={ticket.id}>
-                        <Link to={`/ticket/${ticket.id}`} className="block px-4 py-2 hover:bg-ink/[0.03]">
-                          <span className="block truncate text-sm font-medium text-ink">{ticket.subject || 'Ticket sin asunto'}</span>
-                          <span className="block truncate text-xs text-ink-3">
-                            {projectById.get(ticket.project_id)?.name || 'Sin proyecto'} · {timeAgo(ticket.updated_at)}
+          <div className={cn('min-w-0 space-y-5', (isGuest || waitingForMe.length > 0) && 'max-xl:order-first')}>
+            {(isGuest || waitingForMe.length > 0) && (
+              <section className="sheet" aria-labelledby="my-approvals-title">
+                <h2 id="my-approvals-title" className="flex items-baseline justify-between gap-3 border-b border-rule px-4 py-2.5 text-sm font-semibold text-ink">
+                  Esperan tu aprobación
+                  {!loading && <span className="font-normal tabular-nums text-ink-3">{waitingForMe.length}</span>}
+                </h2>
+                {loading ? (
+                  <div className="space-y-3 p-4">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ) : waitingForMe.length === 0 ? (
+                  <p className="px-4 py-4 text-sm text-ink-3">Nada espera tu aprobación.</p>
+                ) : (
+                  // The client sees their own deliveries, oldest first: each one opens on the Aprobar button.
+                  <ul className="divide-y divide-rule">
+                    {waitingForMe
+                      .slice()
+                      .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
+                      .slice(0, 8)
+                      .map((ticket) => (
+                        <li key={ticket.id}>
+                          <Link to={`/ticket/${ticket.id}`} className="block px-4 py-2 hover:bg-ink/[0.03]">
+                            <span className="block truncate text-sm font-medium text-ink">{ticket.subject || 'Ticket sin asunto'}</span>
+                            <span className="block truncate text-xs text-ink-3">
+                              {projectById.get(ticket.project_id)?.name || 'Sin proyecto'} · {timeAgo(ticket.updated_at)}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    {waitingForMe.length > 8 && (
+                      <li>
+                        <Link to="/tasks?view=approval" className="block px-4 py-2 text-sm font-medium text-brand-strong hover:bg-ink/[0.03]">
+                          Ver las {waitingForMe.length}
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {!isGuest && (
+              <section className="sheet" aria-labelledby="approvals-title">
+                <h2 id="approvals-title" className="flex items-baseline justify-between gap-3 border-b border-rule px-4 py-2.5 text-sm font-semibold text-ink">
+                  Esperando aprobación del cliente
+                  {!loading && <span className="font-normal tabular-nums text-ink-3">{waitingForClient.length}</span>}
+                </h2>
+                {loading ? (
+                  <div className="space-y-3 p-4">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ) : waitingForClient.length === 0 ? (
+                  <p className="px-4 py-4 text-sm text-ink-3">Ningún ticket espera aprobación.</p>
+                ) : (
+                  <ul className="divide-y divide-rule">
+                    {approvalsByClient.slice(0, 8).map((entry) => (
+                      <li key={entry.id || 'none'}>
+                        <Link
+                          to={`/tasks?view=approval${entry.id ? `&client=${entry.id}` : ''}`}
+                          className="flex items-center gap-3 px-4 py-2 hover:bg-ink/[0.03]"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-ink">{entry.name}</span>
+                            <span className="block text-xs text-ink-3">la más antigua, {timeAgo(entry.oldest)}</span>
                           </span>
+                          <span className="text-sm font-semibold tabular-nums text-st-ochre">{entry.count}</span>
                         </Link>
                       </li>
                     ))}
-                  {awaitingApproval.length > 8 && (
-                    <li>
-                      <Link to="/tasks?view=approval" className="block px-4 py-2 text-sm font-medium text-brand-strong hover:bg-ink/[0.03]">
-                        Ver las {awaitingApproval.length}
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-              ) : (
-                <ul className="divide-y divide-rule">
-                  {approvalsByClient.slice(0, 8).map((entry) => (
-                    <li key={entry.id || 'none'}>
-                      <Link
-                        to={`/tasks?view=approval${entry.id ? `&client=${entry.id}` : ''}`}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-ink/[0.03]"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-ink">{entry.name}</span>
-                          <span className="block text-xs text-ink-3">la más antigua, {timeAgo(entry.oldest)}</span>
-                        </span>
-                        <span className="text-sm font-semibold tabular-nums text-st-ochre">{entry.count}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+                  </ul>
+                )}
+              </section>
+            )}
 
             <section className="sheet" aria-labelledby="active-title">
               <h2 id="active-title" className="flex items-baseline justify-between gap-3 border-b border-rule px-4 py-2.5 text-sm font-semibold text-ink">

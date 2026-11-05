@@ -1,25 +1,27 @@
 -- ==============================================================================
--- CLIENT PORTAL USERS ARE CLIENTS
--- Clientes > Acceso al portal links an existing account to a client. Staff
--- cannot change the role of users outside their domain, so the linked account
--- keeps the role 'user', and is_staff() counted it as staff: it saw every
--- ticket of its client's projects, internal ones included, and could create
--- projects, tickets and clients. A 'user' linked to a client or a contact is a
--- guest now: it sees its client's projects and tickets, comments, and answers
--- approvals. Admins keep their role, so the admin of a company that uses ibPulse
--- for its own team stays staff there even when another company links them.
--- Requires 20261103120000_security_hotfix.sql. Rollback:
+-- CLIENT PORTAL ACCESS IS PER CLIENT, NOT PER ACCOUNT
+-- Clientes > Acceso al portal links an existing account to a client. That
+-- account keeps its role and its own work: it is a guest only on the projects
+-- of the client it is linked to. ticket_row_visible let staff see every ticket
+-- of any project they could see, so a linked account with the role 'user' saw
+-- the internal tickets of its client's projects too. Staff now see every ticket
+-- only of the projects they can edit; a project seen through a client link
+-- shows the tickets tagged with that client, as it does for guests.
+-- An earlier draft of this file made every linked 'user' a guest everywhere.
+-- is_staff() is defined again as the hotfix had it, in case that draft ran.
+-- Requires 20261103122000_tenant_isolation.sql. Rollback:
 -- supabase/rollback/20261105122000_client_portal_users_rollback.sql
 -- ==============================================================================
 
 DO $$
 BEGIN
-  IF to_regprocedure('public.is_staff()') IS NULL THEN
-    RAISE EXCEPTION 'Apply 20261103120000_security_hotfix.sql first';
+  IF to_regprocedure('public.ticket_row_visible(uuid, text, uuid, uuid)') IS NULL
+     OR to_regprocedure('public.can_edit_project(uuid)') IS NULL THEN
+    RAISE EXCEPTION 'Apply 20261103122000_tenant_isolation.sql first';
   END IF;
 END $$;
 
--- Vendor-side roles. Guests are client contacts, and so is a 'user' linked to a client.
+-- Vendor-side roles. Guests are client contacts.
 CREATE OR REPLACE FUNCTION public.is_staff()
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
@@ -27,10 +29,26 @@ SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.user_profiles
-    WHERE id = auth.uid()
-      AND (
-        role = 'admin'
-        OR (role = 'user' AND client_id IS NULL AND contact_id IS NULL)
-      )
+    WHERE id = auth.uid() AND role IN ('admin', 'user')
   );
+$$;
+
+-- Staff see every ticket of a project they can edit. Guests, and anyone who
+-- sees a project only through a client link, see the tickets tagged with
+-- their client, so internal tickets stay internal. A colleague's ticket inside
+-- another company's project belongs to that project.
+CREATE OR REPLACE FUNCTION public.ticket_row_visible(
+  p_created_by uuid, p_assigned_to text, p_client_id uuid, p_project_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT public.is_support_staff()
+    OR coalesce(p_created_by = auth.uid(), false)
+    OR coalesce(p_assigned_to = auth.uid()::text, false)
+    OR coalesce(p_client_id = public.get_auth_user_client_id(), false)
+    OR public.client_domain_has_access(p_client_id)
+    OR public.is_project_member(p_project_id)
+    OR (p_project_id IS NULL AND public.is_colleague(p_created_by))
+    OR (public.is_staff() AND public.can_edit_project(p_project_id));
 $$;

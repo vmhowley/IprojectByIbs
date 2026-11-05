@@ -23,6 +23,7 @@ import NProgress from '../lib/nprogress';
 import { createProjectWithFiles } from '../services/projectCreation';
 import { projectService } from '../services/projectService';
 import { Project } from '../types';
+import { isClientSide } from '../utils/access';
 import { formatDate, formatMoney, isOverdue, sortCurrencies, sumByCurrency } from '../utils/format';
 import { normalizeText } from '../utils/tickets';
 
@@ -124,7 +125,9 @@ export function Projects() {
     });
   }, [projects, searchQuery, statusFilter, clientFilter]);
 
-  const totals = sumByCurrency(filteredProjects, (p) => ({ amount: p.cost, currency: p.currency }));
+  // A project seen through a client's portal carries the vendor's price, not this team's.
+  const ownPrice = (p: Project) => (isClientSide(user, p.client_id) ? null : p.cost);
+  const totals = sumByCurrency(filteredProjects, (p) => ({ amount: ownPrice(p), currency: p.currency }));
   const clientCount = new Set(filteredProjects.map((p) => p.client_id).filter(Boolean)).size;
 
   const toggleClient = (clientId: string) => {
@@ -187,7 +190,7 @@ export function Projects() {
         <BoardView
           columns={columns}
           emptyMessage="Sin proyectos"
-          renderItem={(project) => <ProjectBoardCard project={project} showPrice={canSeeMoney} />}
+          renderItem={(project) => <ProjectBoardCard project={project} showPrice={canSeeMoney && !isClientSide(user, project.client_id)} />}
         />
       );
     }
@@ -216,7 +219,7 @@ export function Projects() {
           {sortedClientIds.map(clientId => {
             const group = groupedProjects[clientId];
             const isExpanded = !collapsedClients.has(clientId);
-            const groupTotals = sumByCurrency(group.projects, (p) => ({ amount: p.cost, currency: p.currency }));
+            const groupTotals = sumByCurrency(group.projects, (p) => ({ amount: ownPrice(p), currency: p.currency }));
             return (
               <section key={clientId} aria-label={group.name}>
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-rule pb-2">
@@ -257,7 +260,7 @@ export function Projects() {
                         project={project}
                         taskCount={project.stats?.total_tasks || 0}
                         completedTaskCount={project.stats?.completed_tasks || 0}
-                        showPrice={canSeeMoney}
+                        showPrice={canSeeMoney && !isClientSide(user, project.client_id)}
                       />
                     ))}
                   </div>
@@ -356,8 +359,8 @@ export function Projects() {
             ? [{
               header: 'Precio',
               align: 'right' as const,
-              sortValue: (p: Project) => p.cost ?? null,
-              cell: (p: Project) => <Money amount={p.cost} currency={p.currency} className="text-[13px]" empty="—" />,
+              sortValue: (p: Project) => ownPrice(p) ?? null,
+              cell: (p: Project) => <Money amount={ownPrice(p)} currency={p.currency} className="text-[13px]" empty="—" />,
             }]
             : []),
         ]}

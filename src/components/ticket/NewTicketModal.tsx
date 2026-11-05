@@ -1,7 +1,8 @@
 import { KeyRound, Paperclip, Plus, Sparkles, Upload, X } from 'lucide-react';
 import { DragEvent, FormEvent, KeyboardEvent, useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
-import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
+import { pickableTypes, requestTypeService, TicketRequestType } from '../../services/requestTypeService';
 import { Button } from '../ui/Button';
 import { FormField } from '../ui/FormField';
 import { Input } from '../ui/Input';
@@ -34,6 +35,7 @@ export interface TicketFormData {
 
 /** Request form: what the client asks for, how urgent, and who takes it. */
 export function NewTicketModal({ projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<TicketFormData>({
     client_id: clientId || '',
     contact_id: contactId || '',
@@ -58,7 +60,8 @@ export function NewTicketModal({ projectName, clientId, contactId, onClose, onSu
   useEffect(() => {
     const loadRequestTypes = async () => {
       try {
-        const types = await requestTypeService.getAll();
+        // The defaults and this team's own types.
+        const types = pickableTypes(await requestTypeService.getAll(), user?.organization_id);
         setRequestTypes(types);
         if (types.length > 0 && !formData.request_type) {
           setFormData(prev => ({ ...prev, request_type: types[0].value }));

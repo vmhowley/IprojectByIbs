@@ -9,7 +9,7 @@ import { commentService } from '../../services/commentService';
 import { documentService } from '../../services/documentService';
 import { programService } from '../../services/programService';
 import { projectService } from '../../services/projectService';
-import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
+import { pickableTypes, requestTypeService, TicketRequestType } from '../../services/requestTypeService';
 import { storageService } from '../../services/storageService';
 import { subtaskService } from '../../services/subtaskService';
 import { ticketService } from '../../services/ticketService';
@@ -113,8 +113,26 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate, varian
   const [newSubtask, setNewSubtask] = useState('');
   const [addingSubtask, setAddingSubtask] = useState(false);
 
-  // People linked to a client read the order; only the team edits it.
-  const readOnly = user?.role === 'guest' || !!user?.client_id;
+  // People linked to a client read the order; only the team edits it. The link
+  // makes an account a guest on that client's work only: its own team's tickets
+  // stay editable. The database knows which side this person is on.
+  const [canEdit, setCanEdit] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    setCanEdit(null);
+    supabase.rpc('can_edit_ticket', { p_ticket_id: ticketId }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) console.error('Error checking ticket access:', error);
+      setCanEdit(error ? null : data === true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [ticketId]);
+  // A delivery for the client whose portal this account uses.
+  const isClientTicket = !!user?.client_id && ticket?.client_id === user.client_id;
+  // Until the database answers, the client's deliveries open read-only.
+  const readOnly = user?.role === 'guest' || (canEdit === null ? isClientTicket : !canEdit);
 
   // The subject wraps instead of hiding its end: the box grows with the text and with the panel width.
   useLayoutEffect(() => fitToContent(subjectRef.current), [ticket?.subject]);
@@ -128,7 +146,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate, varian
 
   useEffect(() => {
     loadUsers();
-    requestTypeService.getAll().then(setRequestTypes).catch((err) => console.error('Error loading request types', err));
+    requestTypeService.getLabels().then(setRequestTypes).catch((err) => console.error('Error loading request types', err));
   }, []);
 
   const loadUsers = async () => {
@@ -528,9 +546,16 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate, varian
   const urgencyOptions = LEGACY_URGENCY[ticket.urgency]
     ? [...URGENCY_OPTIONS, { value: ticket.urgency, label: LEGACY_URGENCY[ticket.urgency] }]
     : URGENCY_OPTIONS;
-  const typeOptions = requestTypes.some((t) => t.value === ticket.request_type) || !ticket.request_type
-    ? requestTypes
-    : [...requestTypes, { id: 'current', value: ticket.request_type, label: ticket.request_type, is_active: true }];
+  // The team picks among the defaults and its own active types. The ticket's type
+  // stays listed with its label even when it is retired or belongs to the vendor.
+  const pickable = pickableTypes(requestTypes, user?.organization_id).filter((t) => t.is_active);
+  const typeOptions = pickable.some((t) => t.value === ticket.request_type) || !ticket.request_type
+    ? pickable
+    : [
+        ...pickable,
+        requestTypes.find((t) => t.value === ticket.request_type)
+          || { id: 'current', value: ticket.request_type, label: ticket.request_type, is_active: true },
+      ];
 
   return (
     <div className="@container relative flex h-full flex-col bg-paper">
@@ -672,7 +697,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate, varian
 
       <div className="flex-1 overflow-y-auto">
         {/* Client Approval Workflow */}
-        {user?.role === 'guest' && ticket.status === 'pending_approval' && (
+        {(user?.role === 'guest' || isClientTicket) && readOnly && ticket.status === 'pending_approval' && (
           <div className="m-5 mb-0 rounded-control border border-st-ochre/50 bg-st-ochre/[0.07] p-4">
             <div className="flex items-start gap-3">
               <CheckSquare size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-st-ochre" />

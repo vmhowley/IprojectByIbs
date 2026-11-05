@@ -7,6 +7,8 @@ export interface SignUpData {
   email: string;
   password: string;
   name: string;
+  /** Name of the new organization when nobody invited this email. */
+  company?: string;
 }
 
 export interface UserProfile {
@@ -16,7 +18,10 @@ export interface UserProfile {
   role: 'admin' | 'user' | 'guest' | 'support_agent';
   avatar?: string;
   contact_id?: string | null;
+  /** Client whose portal this account uses. It is a guest only on that client's projects. */
   client_id?: string | null;
+  /** The team this account works in. Colleagues share it. */
+  organization_id?: string | null;
   subscription_tier?: 'free' | 'pro';
   subscription?: any | null;
   created_at: string;

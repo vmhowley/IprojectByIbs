@@ -1,4 +1,5 @@
 import { Client } from '../types/Client';
+import { dbErrorMessage } from '../utils/errors';
 import { handleSupabaseResponse, supabase } from './api';
 
 export const clientService = {
@@ -78,29 +79,18 @@ export const clientService = {
   },
 
   async linkUser(email: string, clientId: string): Promise<void> {
-    // 1. Find user by email
-    const { data: users, error: searchError } = await supabase
-      .from('user_profiles')
-      .select('id, role')
-      .eq('email', email)
-      .limit(1);
+    // Profiles are private, so the database finds the account by its email and
+    // links it. The account keeps its role and its own team: it is a guest only
+    // on this client's projects.
+    const { data: userId, error } = await supabase.rpc('link_client_user', {
+      p_email: email,
+      p_client_id: clientId,
+    });
 
-    if (searchError) throw searchError;
-    if (!users || users.length === 0) {
+    if (error) throw new Error(dbErrorMessage(error, 'No se pudo dar acceso.'));
+    if (!userId) {
       throw new Error('No se encontró ningún usuario registrado con este correo.');
     }
-
-    const user = users[0];
-
-    // 2. Update user profile to link to client and set role to guest
-    const { error: updateError } = await supabase
-      .from('user_profiles')
-      .update({
-        client_id: clientId
-      })
-      .eq('id', user.id);
-
-    if (updateError) throw new Error(updateError.message);
   },
 
   async unlinkUser(userId: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { supabase } from './api';
+import { organizationService } from './organizationService';
 
 export interface ProjectMember {
   id: string; // member record id
@@ -38,14 +39,10 @@ export const memberService = {
   },
 
   async addMember(projectId: string, email: string, role: 'viewer' | 'editor' | 'admin' = 'viewer'): Promise<void> {
-    // 1. Find user by email
-    const { data: user, error: userError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('email', email)
-      .single();
+    // 1. Find user by email. Profiles are private: the database looks up the full email.
+    const user = await organizationService.findUserByEmail(email).catch(() => null);
 
-    if (userError || !user) {
+    if (!user) {
       throw new Error('User not found');
     }
 

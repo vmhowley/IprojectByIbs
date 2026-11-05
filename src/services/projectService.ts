@@ -6,7 +6,7 @@ export const projectService = {
   async getAll(): Promise<Project[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    // 1. Get all projects (assuming RLS is open/broken)
+    // 1. Get all projects I can see
     const { data: projectsData, error } = await supabase
         .from('projects')
         .select('*, clients(name)')
@@ -16,69 +16,13 @@ export const projectService = {
     if (error) throw error;
     if (!user) return []; // Should not happen if protected route
 
-    // 2. Get my memberships
-    const { data: memberships } = await supabase
-        .from('project_members')
-        .select('project_id')
-        .eq('user_id', user.id);
-
-    const memberProjectIds = memberships?.map(m => m.project_id) || [];
-
-    // 3. Get my profile for role check
-    const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role, client_id')
-        .eq('id', user.id)
-        .single();
-
-    // 4. Client-side filtering as failsafe (in case RLS is permissive)
+    // 2. Row-level security decides what each person sees: their organization's
+    // projects, the ones shared with them and those of the client whose portal
+    // they use. Filtering again here by email domain hid projects of teams on
+    // public domains, so the list is what the database returns.
     let filteredProjects = (projectsData || []) as Project[];
-    
-    // Public domains blacklist
-    const publicDomains = [
-      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 
-      'icloud.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'mail.com', 'gmx.com'
-    ];
-    
-    const getDomain = (email: string) => email?.split('@')[1]?.toLowerCase();
 
-    if (profile?.role !== 'support_agent' && user?.email) {
-      const userDomain = getDomain(user.email);
-      const isPublic = publicDomains.includes(userDomain || '');
-
-      // Fetch creators to check their domains
-      const creatorIds = [...new Set(filteredProjects.map(p => p.created_by).filter(Boolean))] as string[];
-      let creatorMap = new Map<string, { email: string }>();
-      
-      if (creatorIds.length > 0) {
-        const { data: creators } = await supabase
-          .from('user_profiles')
-          .select('id, email')
-          .in('id', creatorIds);
-        creatorMap = new Map(creators?.map(c => [c.id, c]) || []);
-      }
-
-      filteredProjects = filteredProjects.filter(p => {
-        // 0. Client Access (Explicit Match)
-        // If I am linked to a client, I should see that client's projects
-        if (profile?.client_id && p.client_id === profile.client_id) return true;
-
-        // 1. Own project or Assigned or Member
-        if (p.created_by === user.id || memberProjectIds.includes(p.id) || p.assignee === user.id) return true;
-
-        // 2. Domain Logic (Only for non-public domains)
-        if (!isPublic && userDomain) {
-           const creator = creatorMap.get(p.created_by || '');
-           if (creator && getDomain(creator.email) === userDomain) {
-             return true;
-           }
-        }
-        
-        return false;
-      });
-    }
-
-    // 5. Fetch assignee profiles manually to avoid join issues
+    // 3. Fetch assignee profiles manually to avoid join issues
     const assigneeIds = [...new Set(filteredProjects.map(p => p.assignee).filter(Boolean))] as string[];
     
     // FETCH PROFILES
@@ -92,7 +36,7 @@ export const projectService = {
       profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
     }
 
-    // 6. Fetch stats (Tickets count)
+    // 4. Fetch stats (Tickets count)
     const projectIds = filteredProjects.map(p => p.id);
     let statsMap = new Map<string, { total: number; completed: number }>();
     

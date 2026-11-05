@@ -10,6 +10,7 @@ import { authErrorMessage } from '../utils/errors';
 export function Register() {
   const { signUp } = useAuth();
   const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,7 +35,7 @@ export function Register() {
     setLoading(true);
 
     try {
-      await signUp({ name, email, password });
+      await signUp({ name, email, password, company });
       setNeedsConfirmation(true);
     } catch (err) {
       setError(authErrorMessage(err, 'No se pudo crear la cuenta.'));
@@ -85,13 +86,23 @@ export function Register() {
           disabled={loading}
         />
         <Input
+          label="Empresa"
+          value={company}
+          onChange={(e) => setCompany(e.target.value)}
+          placeholder="Rodríguez & Asociados"
+          autoComplete="organization"
+          hint="El nombre de tu equipo en ibPulse. Opcional; si te invitaron, entrarás al equipo que te invitó."
+          maxLength={120}
+          disabled={loading}
+        />
+        <Input
           label="Correo de trabajo"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="nombre@empresa.com"
           autoComplete="email"
-          hint="Quien tenga el mismo dominio de empresa verá tus proyectos."
+          hint="Si tu empresa ya usa ibPulse con este dominio, entrarás a su equipo."
           required
           disabled={loading}
         />

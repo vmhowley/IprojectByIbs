@@ -157,7 +157,7 @@ function UserMenu() {
               </Link>
               <Link role="menuitem" to="/admin" className={itemClass}>
                 <Shield size={16} aria-hidden="true" className="text-ink-3" />
-                Usuarios y permisos
+                Equipo y permisos
               </Link>
             </>
           )}

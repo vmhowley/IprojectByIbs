@@ -44,27 +44,19 @@ export async function getUsers() {
   
   // ... (Project based logic stays)
   
-  // Step 3: ALSO get users with the same email domain (Company/Team view)
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
-  if (currentUser?.email) {
-      const emailDomain = currentUser.email.split('@')[1]?.toLowerCase();
-      
-      const publicDomains = [
-        'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 
-        'icloud.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'mail.com', 'gmx.com'
-      ];
+  // Step 3: ALSO get the people of my organization (Company/Team view)
+  const { data: me } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (me?.organization_id) {
+    const { data: teamUsers } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('organization_id', me.organization_id);
 
-      const isPublic = publicDomains.includes(emailDomain || '');
-
-      // Only automatically group if NOT a public domain
-      if (!isPublic && emailDomain) {
-        const { data: domainUsers } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .ilike('email', `%@${emailDomain}`);
-            
-        domainUsers?.forEach(u => userIds.add(u.id));
-      }
+    teamUsers?.forEach(u => userIds.add(u.id));
   }
 
   // Remove myself - COMMENTED OUT to ensure we can resolve our own name in UI

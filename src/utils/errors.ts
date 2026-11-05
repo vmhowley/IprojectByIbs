@@ -26,6 +26,26 @@ export function authErrorMessage(error: unknown, fallback: string): string {
   return known ? known[1] : message || fallback;
 }
 
+// The database guards answer in English too; these are the ones a person can run into.
+const DB_MESSAGES: [RegExp, string][] = [
+  [/your organization has other members/i, 'Tu equipo actual tiene más personas. Solo puedes cambiarte de equipo si trabajas solo.'],
+  [/invitation not found/i, 'La invitación ya no existe. Pide que te inviten de nuevo.'],
+  [/already uses the portal of another company/i, 'Esa cuenta ya tiene acceso al portal de otra empresa.'],
+  [/you cannot change your own role or client link/i, 'No puedes darte acceso a ti mismo ni cambiar tu propio rol.'],
+  [/you can only link users to clients you manage/i, 'Solo puedes dar acceso a clientes que administras.'],
+  [/you can only claim the domain of your own email/i, 'Solo puedes usar el dominio de tu propio correo.'],
+  [/organization_invitations_organization_id_email_key/i, 'Ya invitaste a ese correo.'],
+  [/organizations_email_domain_key/i, 'Otro equipo ya usa ese dominio.'],
+  [/organization_invitations_email_check/i, 'Ese correo no es válido.'],
+];
+
+/** errorMessage for the database, with the guards' English answers in Spanish. */
+export function dbErrorMessage(error: unknown, fallback: string): string {
+  const message = errorMessage(error, '');
+  const known = DB_MESSAGES.find(([pattern]) => pattern.test(message));
+  return known ? known[1] : message || fallback;
+}
+
 /** The database error code of anything thrown, e.g. "23503" for a row still in use. */
 export function errorCode(error: unknown): string | undefined {
   if (typeof error === 'object' && error !== null && 'code' in error) {

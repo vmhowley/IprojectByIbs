@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
+import { useAuth } from '../../hooks/useAuth';
+import { pickableTypes, requestTypeService, TicketRequestType } from '../../services/requestTypeService';
 import { Project } from '../../types';
 import { Button } from '../ui/Button';
 import { FormField } from '../ui/FormField';
@@ -28,6 +29,7 @@ interface NewTaskModalProps {
 
 /** Quick ticket from the task list: pick the project and write the essentials. */
 export function NewTaskModal({ projects, defaultProjectId, onClose, onSubmit }: NewTaskModalProps) {
+  const { user } = useAuth();
   const [data, setData] = useState<QuickTaskData>({
     project_id: defaultProjectId || '',
     subject: '',
@@ -42,7 +44,11 @@ export function NewTaskModal({ projects, defaultProjectId, onClose, onSubmit }: 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    requestTypeService.getAll().then(setRequestTypes).catch((err) => console.error('Error loading request types', err));
+    // The defaults and this team's own types.
+    requestTypeService
+      .getAll()
+      .then((types) => setRequestTypes(pickableTypes(types, user?.organization_id)))
+      .catch((err) => console.error('Error loading request types', err));
   }, []);
 
   const set = <K extends keyof QuickTaskData>(key: K, value: QuickTaskData[K]) => {

@@ -16,6 +16,7 @@ import { getUsers } from '../services/usersService';
 import { Project, Ticket } from '../types';
 import { dateInputToDeadline, daysFromToday, isFinished, isOverdue } from '../utils/format';
 import { formatSequence, normalizeText, ticketSequence, ticketTitle } from '../utils/tickets';
+import { isClientSide } from '../utils/access';
 
 type View = 'open' | 'mine' | 'approval' | 'overdue' | 'all';
 
@@ -360,7 +361,7 @@ export function TasksPage() {
 
             {showNewTask && (
                 <NewTaskModal
-                    projects={projects}
+                    projects={projects.filter((p) => !isClientSide(user, p.client_id))}
                     onClose={() => setShowNewTask(false)}
                     onSubmit={handleCreate}
                 />

@@ -56,6 +56,7 @@ export const authService = {
       options: {
         data: {
           name: data.name,
+          ...(data.company?.trim() ? { company: data.company.trim() } : {}),
         },
       },
     });
@@ -89,13 +90,6 @@ export const authService = {
           return null;
         }
         throw new Error(error.message);
-      }
-
-      // Someone given access in Clientes › Acceso al portal works as the client in the app.
-      // The link is all that changes: the database never lets staff change the role of a
-      // user outside their domain, so the stored role stays 'user'.
-      if (profile.role === 'user' && (profile.client_id || profile.contact_id)) {
-        return { ...profile, role: 'guest' };
       }
 
       return profile;

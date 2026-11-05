@@ -1,7 +1,8 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
+import { useAuth } from '../../hooks/useAuth';
+import { pickableTypes, requestTypeService, TicketRequestType } from '../../services/requestTypeService';
 import { Button } from '../ui/Button';
 import { confirmDialog } from '../ui/ConfirmDialog';
 import { SkeletonRows } from '../ui/Skeleton';
@@ -9,6 +10,9 @@ import { errorCode, errorMessage } from '../../utils/errors';
 
 /** The lists the rest of the app picks from. Today: the request types of a ticket. */
 export function SystemSettings() {
+    const { user } = useAuth();
+    // The defaults are shared by every team: only support staff change them.
+    const isSupport = user?.role === 'support_agent';
     const [types, setTypes] = useState<TicketRequestType[]>([]);
     const [newTypeLabel, setNewTypeLabel] = useState('');
     const [loading, setLoading] = useState(false);
@@ -23,7 +27,7 @@ export function SystemSettings() {
         try {
             setLoading(true);
             const data = await requestTypeService.getAll();
-            setTypes(data);
+            setTypes(isSupport ? data : pickableTypes(data, user?.organization_id));
         } catch (err) {
             console.error('Error loading request types:', err);
             if (errorCode(err) === '42P01' || errorMessage(err, '').includes('does not exist')) {
@@ -80,7 +84,10 @@ export function SystemSettings() {
                 <h3 id="request-types-title" className="text-[15px] font-semibold text-ink">
                     Tipos de solicitud <span className="font-normal tabular-nums text-ink-3">{types.length}</span>
                 </h3>
-                <p className="mt-0.5 text-[13px] text-ink-2">La lista que aparece en «Tipo de solicitud» al crear o editar un ticket.</p>
+                <p className="mt-0.5 text-[13px] text-ink-2">
+                    La lista que aparece en «Tipo de solicitud» al crear o editar un ticket. Los predeterminados son comunes a todos los
+                    equipos; los demás son solo de tu equipo.
+                </p>
             </div>
 
             {error && (
@@ -119,16 +126,20 @@ export function SystemSettings() {
                                     <p className="truncate text-sm text-ink">{type.label}</p>
                                     <p className="truncate font-mono text-[11px] text-ink-3">{type.value}</p>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 hover:bg-st-red/10 hover:text-st-red"
-                                    onClick={() => handleDeleteType(type)}
-                                    aria-label={`Eliminar ${type.label}`}
-                                    title="Eliminar"
-                                >
-                                    <Trash2 size={15} />
-                                </Button>
+                                {!type.organization_id && !isSupport ? (
+                                    <span className="shrink-0 text-[11px] font-medium text-ink-3">Predeterminado</span>
+                                ) : (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 hover:bg-st-red/10 hover:text-st-red"
+                                        onClick={() => handleDeleteType(type)}
+                                        aria-label={`Eliminar ${type.label}`}
+                                        title="Eliminar"
+                                    >
+                                        <Trash2 size={15} />
+                                    </Button>
+                                )}
                             </li>
                         ))}
                     </ul>

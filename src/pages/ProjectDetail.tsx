@@ -44,6 +44,7 @@ import { Contact } from '../types/Client';
 import { ProjectDocument, ProjectQuote } from '../types/Project';
 import { fileKind, formatDate, formatFileSize, isFinished, isOverdue, relativeDay } from '../utils/format';
 import { formatSequence, normalizeText, ticketSequence, ticketTitle } from '../utils/tickets';
+import { isClientSide } from '../utils/access';
 import { errorMessage } from '../utils/errors';
 
 type TabId = 'tickets' | 'timeline' | 'quote' | 'files' | 'docs';
@@ -100,8 +101,27 @@ export function ProjectDetail() {
   const activeTab = (searchParams.get('tab') as TabId) || 'tickets';
   const viewMode = (searchParams.get('view') as ViewType) || 'list';
   const selectedTicketId = searchParams.get('ticket');
-  const readOnly = user?.role === 'guest' || !!user?.client_id;
-  const canSeeMoney = isAdmin();
+  // An account linked to this project's client reads it and answers approvals;
+  // the vendor's team edits it. The link changes nothing on the account's own
+  // team's projects. The database knows which side this person is on.
+  const [canEdit, setCanEdit] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!projectId) return;
+    let active = true;
+    setCanEdit(null);
+    supabase.rpc('can_edit_project', { p_project_id: projectId }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) console.error('Error checking project access:', error);
+      setCanEdit(error ? null : data === true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [projectId]);
+  // Until the database answers, the client's projects open read-only.
+  const readOnly = user?.role === 'guest' || (canEdit === null ? isClientSide(user, project?.client_id) : !canEdit);
+  // The price is the vendor's business: its admins see it, its client does not.
+  const canSeeMoney = isAdmin() && !readOnly;
 
   const setParams = (changes: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
