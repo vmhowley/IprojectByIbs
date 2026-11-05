@@ -1,7 +1,7 @@
 # Graph Report - IBS_PROJECT-TRACKER  (2026-11-05)
 
 ## Corpus Check
-- 245 files · ~102,426 words
+- 245 files · ~102,479 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 2, .toml 2, .webmanifest 1)
 
@@ -9,6 +9,11 @@
 - 916 nodes · 3130 edges · 40 communities (37 shown, 3 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `ec86b1f2`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - react

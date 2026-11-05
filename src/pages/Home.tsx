@@ -1,7 +1,8 @@
 import { ArrowDown, ArrowUp, ChevronRight, FileText, FolderPlus, Inbox, Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import { LedgerProjectRows } from '../components/dashboard/LedgerProjectRows';
 import { TicketsByClientChart } from '../components/dashboard/TicketsByClientChart';
 import { TicketsByStatusChart } from '../components/dashboard/TicketsByStatusChart';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -19,9 +20,11 @@ import { cn } from '../lib/utils';
 import NProgress from '../lib/nprogress';
 import { createProjectWithFiles } from '../services/projectCreation';
 import { projectService } from '../services/projectService';
+import { quoteService } from '../services/quoteService';
 import { ticketService } from '../services/ticketService';
 import { getUsers } from '../services/usersService';
 import { Project, Ticket } from '../types';
+import { ProjectQuote } from '../types/Project';
 import { exportDashboardToPDF } from '../utils/DashboardExport';
 import {
   daysFromToday,
@@ -34,6 +37,7 @@ import {
   sumByCurrency,
   timeAgo,
 } from '../utils/format';
+import { errorMessage } from '../utils/errors';
 import { formatSequence, ticketSequence, ticketTitle } from '../utils/tickets';
 
 const URGENCY_RANK: Record<string, number> = { critical: 0, high: 0, moderate: 1, medium: 1, minor: 2, low: 2 };
@@ -73,6 +77,12 @@ export function Home() {
   const [trayScope, setTrayScope] = useState<'mine' | 'team' | null>(null);
   const [ledgerScope, setLedgerScope] = useState<LedgerScope>('open');
   const [ledgerSort, setLedgerSort] = useState<LedgerSort>({ key: 'USD', dir: 'desc' });
+  // The quotes behind the prices, and which clients of the ledger are open.
+  const [quotes, setQuotes] = useState<ProjectQuote[]>([]);
+  const [openClients, setOpenClients] = useState<Set<string>>(() => new Set());
+  const [uploadingQuoteFor, setUploadingQuoteFor] = useState<string | null>(null);
+  const quoteInputRef = useRef<HTMLInputElement>(null);
+  const quoteTargetRef = useRef<string | null>(null);
 
   const canSeeMoney = isAdmin();
   const isGuest = user?.role === 'guest';
@@ -80,6 +90,14 @@ export function Home() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  // Quotes are money: only those who see the ledger load them.
+  useEffect(() => {
+    if (!canSeeMoney) return;
+    quoteService.getAll().then(setQuotes).catch((error) => {
+      console.error('Error loading quotes:', error);
+    });
+  }, [canSeeMoney]);
 
   const loadDashboard = async () => {
     try {
@@ -228,9 +246,56 @@ export function Home() {
         {overdue.length} {overdue.length === 1 ? 'vencido' : 'vencidos'}
       </span>
       , {dueThisWeek.length} {dueThisWeek.length === 1 ? 'vence' : 'vencen'} esta semana y {awaitingApproval.length}{' '}
-      {awaitingApproval.length === 1 ? 'espera' : 'esperan'} al cliente.
+      {awaitingApproval.length === 1 ? 'espera' : 'esperan'} {isGuest ? 'tu aprobación' : 'al cliente'}.
     </>
   );
+
+  const quotesByProject = useMemo(() => {
+    const byProject = new Map<string, ProjectQuote[]>();
+    for (const quote of quotes) byProject.set(quote.project_id, [...(byProject.get(quote.project_id) || []), quote]);
+    return byProject;
+  }, [quotes]);
+
+  const toggleClient = (key: string) =>
+    setOpenClients((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const pickQuoteFor = (projectId: string) => {
+    quoteTargetRef.current = projectId;
+    quoteInputRef.current?.click();
+  };
+
+  const handleQuoteFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so the same file can be picked again.
+    e.target.value = '';
+    const projectId = quoteTargetRef.current;
+    if (!file || !projectId) return;
+
+    setUploadingQuoteFor(projectId);
+    const toastId = toast.loading('Subiendo cotización…');
+    try {
+      const quote = await quoteService.upload(projectId, file, file.name, file.type);
+      setQuotes((current) => [quote, ...current]);
+      toast.success('Cotización guardada', { id: toastId });
+    } catch (error) {
+      console.error('Error uploading quote:', error);
+      toast.error('No se pudo subir la cotización: ' + errorMessage(error, 'error desconocido'), { id: toastId });
+    } finally {
+      setUploadingQuoteFor(null);
+    }
+  };
+
+  const downloadQuote = (quote: ProjectQuote) => {
+    quoteService.download(quote).catch((error) => {
+      console.error('Error opening quote:', error);
+      toast.error('No se pudo abrir la cotización.');
+    });
+  };
 
   const toggleSort = (key: string) =>
     setLedgerSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'client' ? 'asc' : 'desc' }));
@@ -254,12 +319,16 @@ export function Home() {
             {/* Quotation book */}
             {canSeeMoney && (
               <section className="sheet" aria-labelledby="ledger-title">
+                <input ref={quoteInputRef} type="file" className="hidden" onChange={handleQuoteFile} />
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-4 py-2.5">
                   <div>
                     <h2 id="ledger-title" className="text-sm font-semibold text-ink">
                       Libro de cotizaciones
                     </h2>
-                    <p className="text-xs text-ink-3">Precio de los proyectos por cliente. Cada moneda se suma por separado.</p>
+                    <p className="text-xs text-ink-3">
+                      Precio de los proyectos por cliente. Cada moneda se suma por separado. Abre un cliente para ver cada proyecto con su
+                      cotización.
+                    </p>
                   </div>
                   <div role="group" aria-label="Proyectos" className="segmented">
                     {([
@@ -298,33 +367,62 @@ export function Home() {
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-rule">
-                        {ledger.rows.map((row) => (
-                          <tr key={row.id || 'none'} className="hover:bg-ink/[0.02]">
-                            <th scope="row" className="px-4 py-2 text-left font-medium text-ink">
-                              {row.id ? (
-                                <Link to={`/clients?client=${row.id}`} className="hover:underline">
-                                  {row.name}
-                                </Link>
-                              ) : (
-                                <span className="text-ink-2">{row.name}</span>
-                              )}
-                              <span className="block text-[11px] font-normal text-ink-3 sm:hidden">{projectCount(row.projects.length, row.unpriced)}</span>
-                            </th>
-                            <td className="hidden px-4 py-2 text-right tabular-nums text-ink-2 sm:table-cell">
-                              {row.projects.length}
-                              {row.unpriced > 0 && (
-                                <span className="block text-[11px] text-ink-3">{row.unpriced} sin precio</span>
-                              )}
-                            </td>
-                            {ledger.currencies.map((code) => (
-                              <td key={code} className="whitespace-nowrap px-4 py-2 text-right font-mono tabular-nums text-ink">
-                                {row.totals[code] !== undefined ? formatMoney(row.totals[code], code) : <span className="text-ink-3">—</span>}
+                      {/* One body per client, so an open client carries its projects with it. */}
+                      {ledger.rows.map((row) => {
+                        const key = row.id || 'none';
+                        const open = openClients.has(key);
+                        return (
+                          <tbody key={key} id={`ledger-${key}`} className="divide-y divide-rule border-t border-rule first-of-type:border-t-0">
+                            <tr className="hover:bg-ink/[0.02]">
+                              <th scope="row" className="px-4 py-2 text-left font-medium text-ink">
+                                <span className="flex items-start gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleClient(key)}
+                                    aria-expanded={open}
+                                    aria-controls={`ledger-${key}`}
+                                    aria-label={`${open ? 'Ocultar' : 'Ver'} los proyectos de ${row.name}`}
+                                    className="-ml-1.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-inner text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
+                                  >
+                                    <ChevronRight size={14} aria-hidden="true" className={cn('transition-transform', open && 'rotate-90')} />
+                                  </button>
+                                  <span className="min-w-0">
+                                    {row.id ? (
+                                      <Link to={`/clients?client=${row.id}`} className="hover:underline">
+                                        {row.name}
+                                      </Link>
+                                    ) : (
+                                      <span className="text-ink-2">{row.name}</span>
+                                    )}
+                                    <span className="block text-[11px] font-normal text-ink-3 sm:hidden">{projectCount(row.projects.length, row.unpriced)}</span>
+                                  </span>
+                                </span>
+                              </th>
+                              <td className="hidden px-4 py-2 text-right tabular-nums text-ink-2 sm:table-cell">
+                                {row.projects.length}
+                                {row.unpriced > 0 && (
+                                  <span className="block text-[11px] text-ink-3">{row.unpriced} sin precio</span>
+                                )}
                               </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
+                              {ledger.currencies.map((code) => (
+                                <td key={code} className="whitespace-nowrap px-4 py-2 text-right font-mono tabular-nums text-ink">
+                                  {row.totals[code] !== undefined ? formatMoney(row.totals[code], code) : <span className="text-ink-3">—</span>}
+                                </td>
+                              ))}
+                            </tr>
+                            {open && (
+                              <LedgerProjectRows
+                                projects={row.projects}
+                                currencies={ledger.currencies}
+                                quotesByProject={quotesByProject}
+                                uploadingId={uploadingQuoteFor}
+                                onDownload={downloadQuote}
+                                onUpload={pickQuoteFor}
+                              />
+                            )}
+                          </tbody>
+                        );
+                      })}
                       <tfoot>
                         <tr className="rule-total">
                           <th scope="row" className="px-4 py-2.5 text-left font-semibold text-ink">
@@ -454,11 +552,11 @@ export function Home() {
             )}
           </div>
 
-          {/* Side column */}
-          <div className="min-w-0 space-y-5">
+          {/* Side column. A client comes here to approve, so on phones it goes first for them. */}
+          <div className={cn('min-w-0 space-y-5', isGuest && 'max-xl:order-first')}>
             <section className="sheet" aria-labelledby="approvals-title">
               <h2 id="approvals-title" className="flex items-baseline justify-between gap-3 border-b border-rule px-4 py-2.5 text-sm font-semibold text-ink">
-                Esperando aprobación del cliente
+                {isGuest ? 'Esperan tu aprobación' : 'Esperando aprobación del cliente'}
                 {!loading && <span className="font-normal tabular-nums text-ink-3">{awaitingApproval.length}</span>}
               </h2>
               {loading ? (
@@ -466,8 +564,35 @@ export function Home() {
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="h-4 w-1/2" />
                 </div>
-              ) : approvalsByClient.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-ink-3">Ningún ticket espera aprobación.</p>
+              ) : awaitingApproval.length === 0 ? (
+                <p className="px-4 py-4 text-sm text-ink-3">
+                  {isGuest ? 'Nada espera tu aprobación.' : 'Ningún ticket espera aprobación.'}
+                </p>
+              ) : isGuest ? (
+                // The client sees their own deliveries, oldest first: each one opens on the Aprobar button.
+                <ul className="divide-y divide-rule">
+                  {awaitingApproval
+                    .slice()
+                    .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
+                    .slice(0, 8)
+                    .map((ticket) => (
+                      <li key={ticket.id}>
+                        <Link to={`/ticket/${ticket.id}`} className="block px-4 py-2 hover:bg-ink/[0.03]">
+                          <span className="block truncate text-sm font-medium text-ink">{ticket.subject || 'Ticket sin asunto'}</span>
+                          <span className="block truncate text-xs text-ink-3">
+                            {projectById.get(ticket.project_id)?.name || 'Sin proyecto'} · {timeAgo(ticket.updated_at)}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  {awaitingApproval.length > 8 && (
+                    <li>
+                      <Link to="/tasks?view=approval" className="block px-4 py-2 text-sm font-medium text-brand-strong hover:bg-ink/[0.03]">
+                        Ver las {awaitingApproval.length}
+                      </Link>
+                    </li>
+                  )}
+                </ul>
               ) : (
                 <ul className="divide-y divide-rule">
                   {approvalsByClient.slice(0, 8).map((entry) => (

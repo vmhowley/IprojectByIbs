@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, ExternalLink, FileIcon, FileText, History, Paperclip, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, ExternalLink, FileIcon, FileText, FolderLock, History, Paperclip, Pencil, Plus, Receipt, Search, Trash2, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { UploadDocModal } from '../components/documentation/UploadDocModal';
 import { KanbanBoard } from '../components/kanban/KanbanBoard';
 import { DocNumber } from '../components/layout/PageHeader';
 import { EditProjectModal } from '../components/project/EditProjectModal';
+import { moveToQuote } from '../components/project/moveToQuote';
+import { ProjectQuotes } from '../components/project/ProjectQuotes';
 import { ProjectTimeline } from '../components/project/ProjectTimeline';
 import { ShareProjectModal } from '../components/project/ShareProjectModal';
 import { NewTicketModal } from '../components/ticket/NewTicketModal';
@@ -33,17 +35,18 @@ import { activityService } from '../services/activityService';
 import { contactService } from '../services/contactService';
 import { documentationService } from '../services/documentationService';
 import { projectService } from '../services/projectService';
+import { quoteService } from '../services/quoteService';
 import { storageService } from '../services/storageService';
 import { ticketService } from '../services/ticketService';
 import { getUsers } from '../services/usersService';
 import { Attachment, Project, Ticket, UserProfile } from '../types';
 import { Contact } from '../types/Client';
-import { ProjectDocument } from '../types/Project';
+import { ProjectDocument, ProjectQuote } from '../types/Project';
 import { fileKind, formatDate, formatFileSize, isFinished, isOverdue, relativeDay } from '../utils/format';
 import { formatSequence, normalizeText, ticketSequence, ticketTitle } from '../utils/tickets';
 import { errorMessage } from '../utils/errors';
 
-type TabId = 'tickets' | 'timeline' | 'files' | 'docs';
+type TabId = 'tickets' | 'timeline' | 'quote' | 'files' | 'docs';
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'open', label: 'Abiertos' },
@@ -75,6 +78,7 @@ export function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
+  const [quotes, setQuotes] = useState<ProjectQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -96,7 +100,7 @@ export function ProjectDetail() {
   const activeTab = (searchParams.get('tab') as TabId) || 'tickets';
   const viewMode = (searchParams.get('view') as ViewType) || 'list';
   const selectedTicketId = searchParams.get('ticket');
-  const readOnly = !!user?.client_id;
+  const readOnly = user?.role === 'guest' || !!user?.client_id;
   const canSeeMoney = isAdmin();
 
   const setParams = (changes: Record<string, string | null>) => {
@@ -104,6 +108,14 @@ export function ProjectDetail() {
     Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
     setSearchParams(next, { replace: true });
   };
+
+  // The quote is money: only those who see the price load it.
+  useEffect(() => {
+    if (!canSeeMoney || !projectId) return;
+    quoteService.getByProject(projectId).then(setQuotes).catch((error) => {
+      console.error('Error loading quotes:', error);
+    });
+  }, [canSeeMoney, projectId]);
 
   const numbers = useMemo(() => {
     const seq = ticketSequence(tickets);
@@ -369,6 +381,27 @@ export function ProjectDetail() {
     }
   };
 
+  // A quote filed with the project's files or documentation moves to Cotización.
+  const moveFileToQuote = async (file: Attachment) => {
+    if (!project) return;
+    const quote = await moveToQuote(project.id, file, async () => {
+      const updatedProject = await projectService.update(project.id, {
+        attachments: (project.attachments || []).filter((a) => a.url !== file.url),
+      });
+      setProject(updatedProject);
+    });
+    if (quote) setQuotes((current) => [quote, ...current]);
+  };
+
+  const moveDocToQuote = async (doc: ProjectDocument) => {
+    if (!project) return;
+    const quote = await moveToQuote(project.id, { name: doc.name, url: doc.url, type: doc.file_type }, async () => {
+      await documentationService.delete(doc.id);
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+    });
+    if (quote) setQuotes((current) => [quote, ...current]);
+  };
+
   const renderTickets = () => {
     if (filteredTickets.length === 0) {
       return (
@@ -527,6 +560,8 @@ export function ProjectDetail() {
   const tabs = [
     { id: 'tickets' as const, label: 'Tickets', icon: FileText, count: total },
     { id: 'timeline' as const, label: 'Bitácora', icon: History },
+    // Next to the files, but only for those who see the price.
+    ...(canSeeMoney ? [{ id: 'quote' as const, label: 'Cotización', icon: Receipt, count: quotes.length }] : []),
     { id: 'files' as const, label: 'Archivos', icon: Paperclip, count: project.attachments?.length || 0 },
     { id: 'docs' as const, label: 'Documentación', icon: BookOpen, count: documents.length },
   ];
@@ -594,11 +629,18 @@ export function ProjectDetail() {
               </>
             )}
             {canSeeMoney && (
-              <DocNumber
-                label="Precio"
-                value={<Money amount={project.cost} currency={project.currency} empty="Sin precio" />}
-                className="ml-1"
-              />
+              // The price opens the quote behind it.
+              <button
+                type="button"
+                onClick={() => setParams({ tab: 'quote' })}
+                title={quotes.length > 0 ? 'Ver la cotización' : 'Subir la cotización'}
+                className="ml-1 rounded-control text-left transition-shadow hover:shadow-control"
+              >
+                <DocNumber
+                  label="Precio"
+                  value={<Money amount={project.cost} currency={project.currency} empty="Sin precio" />}
+                />
+              </button>
             )}
           </div>
         </div>
@@ -703,6 +745,8 @@ export function ProjectDetail() {
           <div className="sheet max-w-3xl p-5">
             <ProjectTimeline projectId={project.id} />
           </div>
+        ) : activeTab === 'quote' && canSeeMoney ? (
+          <ProjectQuotes projectId={project.id} quotes={quotes} onChange={setQuotes} />
         ) : activeTab === 'docs' ? (
           <div className="max-w-4xl space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -742,6 +786,17 @@ export function ProjectDetail() {
                     >
                       <ExternalLink size={15} />
                     </a>
+                    {canSeeMoney && (
+                      <button
+                        type="button"
+                        onClick={() => moveDocToQuote(doc)}
+                        aria-label={`Mover ${doc.name} a la cotización`}
+                        title="Mover a la cotización"
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
+                      >
+                        <FolderLock size={15} />
+                      </button>
+                    )}
                     {!readOnly && (
                       <button
                         type="button"
@@ -761,7 +816,10 @@ export function ProjectDetail() {
           /* Files View */
           <div className="max-w-4xl space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-ink-2">Cotizaciones, requerimientos y otros archivos del proyecto.</p>
+              <p className="text-sm text-ink-2">
+                Requerimientos, levantamientos y otros archivos del proyecto.
+                {canSeeMoney && ' Las cotizaciones van en Cotización, donde solo las ven los administradores.'}
+              </p>
               {!readOnly && (
                 <>
                   <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
@@ -775,7 +833,7 @@ export function ProjectDetail() {
 
             {!project.attachments || project.attachments.length === 0 ? (
               <EmptyState icon={FileIcon} title="Sin archivos">
-                Adjunta aquí la cotización firmada, el levantamiento o cualquier archivo que el equipo necesite.
+                Adjunta aquí el levantamiento, los requerimientos o cualquier archivo que el equipo necesite.
               </EmptyState>
             ) : (
               <ul className="sheet divide-y divide-rule">
@@ -790,6 +848,17 @@ export function ProjectDetail() {
                         {formatFileSize(file.size)} · <span className="font-mono">{fileKind(file.name, file.type)}</span>
                       </p>
                     </div>
+                    {canSeeMoney && (
+                      <button
+                        type="button"
+                        onClick={() => moveFileToQuote(file)}
+                        aria-label={`Mover ${file.name} a la cotización`}
+                        title="Mover a la cotización"
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
+                      >
+                        <FolderLock size={15} />
+                      </button>
+                    )}
                     {!readOnly && (
                       <button
                         type="button"

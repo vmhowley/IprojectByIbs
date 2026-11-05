@@ -47,3 +47,16 @@ export interface ProjectDocument {
   created_by: string;
   created_at: string;
 }
+
+/** The document behind a project's price. Only admins who work on the project reach it. */
+export interface ProjectQuote {
+  id: string;
+  project_id: string;
+  name: string;
+  /** Path in the private "quotes" bucket, always under the project's folder. */
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  created_by: string;
+  created_at: string;
+}

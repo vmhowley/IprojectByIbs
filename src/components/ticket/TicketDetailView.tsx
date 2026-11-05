@@ -114,7 +114,7 @@ export function TicketDetailView({ ticketId, onClose, onDelete, onUpdate, varian
   const [addingSubtask, setAddingSubtask] = useState(false);
 
   // People linked to a client read the order; only the team edits it.
-  const readOnly = !!user?.client_id;
+  const readOnly = user?.role === 'guest' || !!user?.client_id;
 
   // The subject wraps instead of hiding its end: the box grows with the text and with the panel width.
   useLayoutEffect(() => fitToContent(subjectRef.current), [ticket?.subject]);

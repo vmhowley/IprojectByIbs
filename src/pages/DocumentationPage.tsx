@@ -1,13 +1,15 @@
-import { BookOpen, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, ExternalLink, FolderLock, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useSearchParams } from 'react-router-dom';
 import { UploadDocModal } from '../components/documentation/UploadDocModal';
 import { PageHeader } from '../components/layout/PageHeader';
+import { moveToQuote } from '../components/project/moveToQuote';
 import { Button } from '../components/ui/Button';
 import { confirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { TableView } from '../components/views/TableView';
+import { usePermissions } from '../hooks/usePermissions';
 import NProgress from '../lib/nprogress';
 import { cn } from '../lib/utils';
 import { documentationService } from '../services/documentationService';
@@ -26,6 +28,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 /** The archive: manuals, specs and deliverables, general or tied to a project. */
 export function DocumentationPage() {
+    const { isAdmin } = usePermissions();
     const [documents, setDocuments] = useState<DocWithProject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +71,16 @@ export function DocumentationPage() {
             console.error('Error deleting doc:', error);
             toast.error('No se pudo eliminar el documento.');
         }
+    };
+
+    // A quote filed here as a document of its project moves to the project's Cotización.
+    const handleMoveToQuote = async (doc: DocWithProject) => {
+        if (!doc.project_id) return;
+        const quote = await moveToQuote(doc.project_id, { name: doc.name, url: doc.url, type: doc.file_type }, async () => {
+            await documentationService.delete(doc.id);
+            setDocuments((current) => current.filter((d) => d.id !== doc.id));
+        });
+        if (quote) loadDocuments();
     };
 
     const searched = useMemo(() => {
@@ -192,6 +205,18 @@ export function DocumentationPage() {
                                         >
                                             <ExternalLink size={15} />
                                         </a>
+                                        {isAdmin() && doc.project_id && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => handleMoveToQuote(doc)}
+                                                aria-label={`Mover ${doc.name} a la cotización del proyecto`}
+                                                title="Mover a la cotización del proyecto"
+                                            >
+                                                <FolderLock size={15} />
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="icon"

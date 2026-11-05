@@ -1,6 +1,7 @@
-import { FileText, Upload } from "lucide-react";
+import { FileText, Lock, Upload } from "lucide-react";
 import { DragEvent, FormEvent, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { usePermissions } from "../../hooks/usePermissions";
 import { cn } from "../../lib/utils";
 import { documentationService } from "../../services/documentationService";
 import { projectService } from "../../services/projectService";
@@ -21,6 +22,7 @@ interface UploadDocModalProps {
 
 /** File a manual, specification or guide in the archive, alone or with a project. */
 export function UploadDocModal({ isOpen, onClose, onSuccess, initialProjectId }: UploadDocModalProps) {
+    const { isAdmin } = usePermissions();
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || '');
     const [name, setName] = useState('');
@@ -168,6 +170,14 @@ export function UploadDocModal({ isOpen, onClose, onSuccess, initialProjectId }:
                         <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                 </Select>
+
+                {/* Documents are open to the whole team; prices are not. */}
+                {isAdmin() && (
+                    <p className="flex items-start gap-1.5 text-xs text-ink-3">
+                        <Lock size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
+                        ¿Es una cotización? Súbela en el proyecto, en Cotización: allí solo la ven los administradores.
+                    </p>
+                )}
             </form>
         </Modal>
     );
