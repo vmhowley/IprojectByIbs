@@ -113,31 +113,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            setState(prev => ({
-              ...prev,
-              user: prev.user || { // Keep existing or create new
-                id: session.user.id,
-                email: session.user.email!,
-                name: session.user.user_metadata.name || session.user.email!.split('@')[0],
-                role: 'user',
-                created_at: session.user.created_at,
-                updated_at: session.user.updated_at || new Date().toISOString(),
-              },
-              session,
-              loading: false,
-              initialized: true,
-            }));
+            const placeholder: UserProfile = {
+              id: session.user.id,
+              email: session.user.email!,
+              name: session.user.user_metadata.name || session.user.email!.split('@')[0],
+              role: 'user',
+              created_at: session.user.created_at,
+              updated_at: session.user.updated_at || new Date().toISOString(),
+            };
 
             // Refresh profile on sign in
             if (event === 'SIGNED_IN') {
-              authService.getCurrentUser().then(profile => {
-                if (mounted && profile) {
-                  setState(prev => ({
-                    ...prev,
-                    user: { ...profile, subscription: prev.user?.subscription }
-                  }));
-                }
+              // Supabase also fires SIGNED_IN when a page reloads. Loading ends only once the profile
+              // is here: a placeholder with role 'user' sent admins away from the admin pages.
+              authService.getCurrentUser().catch(() => null).then(profile => {
+                if (!mounted) return;
+                setState(prev => ({
+                  ...prev,
+                  user: profile ? { ...profile, subscription: prev.user?.subscription } : prev.user || placeholder,
+                  session,
+                  loading: false,
+                  initialized: true,
+                }));
               });
+            } else {
+              setState(prev => ({
+                ...prev,
+                user: prev.user || placeholder, // Keep existing or create new
+                session,
+                loading: false,
+                initialized: true,
+              }));
             }
           }
         } else if (event === 'SIGNED_OUT') {
@@ -206,18 +212,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error('No user logged in');
     }
 
-    setState(prev => ({ ...prev, loading: true }));
-    try {
-      const updatedProfile = await authService.updateUserProfile(state.user.id, updates);
-      setState(prev => ({
-        ...prev,
-        user: updatedProfile,
-        loading: false,
-      }));
-    } catch (error) {
-      setState(prev => ({ ...prev, loading: false }));
-      throw error;
-    }
+    // No global loading here: that flag is for resolving the session, and turning it
+    // on swaps the whole app for the splash screen just to save a name.
+    const updatedProfile = await authService.updateUserProfile(state.user.id, updates);
+    setState(prev => ({
+      ...prev,
+      user: updatedProfile,
+    }));
   }
 
   const value: AuthContextType = {

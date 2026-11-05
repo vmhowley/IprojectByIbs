@@ -1,12 +1,12 @@
-
-import { MessageCircle, Send, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Send, X } from 'lucide-react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useChatScroll } from '../../hooks/use-chat-scroll';
 import { useSupportChat } from '../../hooks/use-support-chat';
-import { cn } from '../../lib/utils';
+import { ChatMessageItem } from '../chat/chat-message';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 
+/** Live support: a slip in the corner with the conversation with the team. The side menu and Ayuda open it. */
 export function SupportChatWidget() {
     const { user } = useAuthContext();
     const {
@@ -19,8 +19,10 @@ export function SupportChatWidget() {
     } = useSupportChat({ userId: user?.id });
 
     const [newMessage, setNewMessage] = useState('');
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const [sending, setSending] = useState(false);
+    const { containerRef, scrollToBottom } = useChatScroll();
     const hasInitialized = useRef(false);
+    const composerRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         if (isOpen && user && !hasInitialized.current) {
@@ -30,118 +32,124 @@ export function SupportChatWidget() {
     }, [isOpen, user, initChat]);
 
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages, isOpen]);
+        if (isOpen) scrollToBottom();
+    }, [messages, isOpen, scrollToBottom]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMessage.trim()) return;
+    // The side menu and Ayuda open the chat with a window event.
+    useEffect(() => {
+        const open = () => setIsOpen(true);
+        window.addEventListener('open-support-chat', open);
+        return () => window.removeEventListener('open-support-chat', open);
+    }, [setIsOpen]);
 
+    // Opening puts the cursor in the composer; Escape closes and gives focus back to the opener.
+    useEffect(() => {
+        if (!isOpen) return;
+        const opener = document.activeElement as HTMLElement | null;
+        requestAnimationFrame(() => composerRef.current?.focus());
+        const onKeyDown = (event: globalThis.KeyboardEvent) => {
+            if (event.key === 'Escape' && !document.querySelector('[role="dialog"][aria-modal="true"]')) setIsOpen(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            if (opener?.isConnected) opener.focus();
+        };
+    }, [isOpen, setIsOpen]);
+
+    const handleSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        const text = newMessage.trim();
+        if (!text || sending) return;
+
+        setSending(true);
+        setNewMessage('');
         try {
-            await sendMessage(newMessage);
-            setNewMessage('');
-        } catch (error) {
+            await sendMessage(text);
+        } catch {
             // Already handled in hook
+            setNewMessage(text);
+        } finally {
+            setSending(false);
         }
     };
 
-    if (!user) return null;
+    // Enter sends, Shift+Enter adds a line.
+    const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    };
+
+    if (!user || !isOpen) return null;
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
-            {isOpen && (
-                <div className="w-[350px] max-w-[calc(100vw-3rem)] h-[450px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-auto">
-                    {/* Header */}
-                    <div className="bg-slate-900 p-4 flex justify-between items-center text-white">
-                        <div>
-                            <h3 className="font-semibold">Soporte en vivo</h3>
-                            <p className="text-xs text-slate-400">Solemos responder en minutos</p>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 text-white hover:bg-slate-800 p-0 rounded-full"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    {/* Messages Body */}
-                    <div className="flex-1 overflow-y-auto p-4 bg-slate-50 relative" ref={scrollRef}>
-                        {isLoading ? (
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">
-                                <div className="animate-pulse">Cargando...</div>
-                            </div>
-                        ) : messages.length === 0 ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-sm p-6 text-center">
-                                <MessageCircle className="h-12 w-12 opacity-10 mb-2" />
-                                <p className="font-medium">¿En qué podemos ayudarte?</p>
-                                <p className="text-xs opacity-60">Escribe tu mensaje abajo</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {messages.map((msg) => {
-                                    const isMe = msg.sender_id === user.id;
-                                    return (
-                                        <div
-                                            key={msg.id}
-                                            className={cn(
-                                                "flex w-full",
-                                                isMe ? "justify-end" : "justify-start"
-                                            )}
-                                        >
-                                            <div
-                                                className={cn(
-                                                    "max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm",
-                                                    isMe
-                                                        ? "bg-slate-900 text-white rounded-br-none"
-                                                        : "bg-white border border-gray-100 text-slate-900 rounded-bl-none"
-                                                )}
-                                            >
-                                                {msg.content}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Input Area */}
-                    <div className="p-4 border-t bg-white">
-                        <form onSubmit={handleSubmit} className="flex gap-2">
-                            <Input
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Escribe un mensaje..."
-                                className="flex-1 bg-slate-50 border-gray-100 focus:bg-white transition-all rounded-xl"
-                            />
-                            <Button
-                                type="submit"
-                                size="sm"
-                                disabled={!newMessage.trim()}
-                                className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4"
-                            >
-                                <Send className="h-4 w-4" />
-                            </Button>
-                        </form>
-                    </div>
+        <section
+            id="support-chat"
+            aria-label="Soporte en vivo"
+            className="fixed bottom-4 right-4 z-40 flex h-[30rem] max-h-[calc(100dvh-6rem)] w-[22rem] max-w-[calc(100vw-2rem)] animate-sheet-in flex-col overflow-hidden rounded-sheet border border-rule bg-paper shadow-lift"
+        >
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 border-b border-rule px-4 py-3">
+                <div>
+                    <h2 className="text-[15px] font-semibold text-ink">Soporte en vivo</h2>
+                    <p className="text-xs text-ink-3">Escribe tu duda; te responde el equipo de soporte.</p>
                 </div>
-            )}
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    aria-label="Cerrar soporte"
+                    className="-mr-1 inline-flex h-8 w-8 items-center justify-center rounded-control text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
+                >
+                    <X size={16} />
+                </button>
+            </div>
 
-            <Button
-                size="lg"
-                className={cn(
-                    "rounded-full h-14 w-14 shadow-xl bg-slate-900 hover:bg-slate-800 text-white transition-all transform hover:scale-110 active:scale-95 pointer-events-auto",
-                    !isOpen && "opacity-80 hover:opacity-100"
+            {/* Messages Body */}
+            <div className="min-h-0 flex-1 overflow-y-auto bg-desk px-3 py-2" ref={containerRef} aria-live="polite">
+                {isLoading ? (
+                    <p className="py-10 text-center text-sm text-ink-3">Cargando…</p>
+                ) : messages.length === 0 ? (
+                    <div className="px-4 py-10 text-center">
+                        <p className="text-sm font-medium text-ink">¿En qué te ayudamos?</p>
+                        <p className="mt-1 text-xs text-ink-3">Escribe tu mensaje abajo.</p>
+                    </div>
+                ) : (
+                    messages.map((msg, index) => (
+                        <ChatMessageItem
+                            key={msg.id}
+                            message={{
+                                id: msg.id,
+                                content: msg.content,
+                                user: { name: 'Soporte' },
+                                createdAt: msg.created_at,
+                                userId: msg.sender_id,
+                            }}
+                            isOwnMessage={msg.sender_id === user.id}
+                            showHeader={index === 0 || messages[index - 1].sender_id !== msg.sender_id}
+                        />
+                    ))
                 )}
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-            </Button>
-        </div>
+            </div>
+
+            {/* Input Area */}
+            <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-rule bg-well p-3">
+                <label htmlFor="support-composer" className="sr-only">Mensaje para soporte</label>
+                <textarea
+                    id="support-composer"
+                    ref={composerRef}
+                    rows={1}
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder="Escribe un mensaje…"
+                    className="field max-h-32 min-h-9 resize-none py-2"
+                />
+                <Button type="submit" size="icon" aria-label="Enviar mensaje" disabled={!newMessage.trim()} isLoading={sending}>
+                    {!sending && <Send size={16} />}
+                </Button>
+            </form>
+        </section>
     );
 }

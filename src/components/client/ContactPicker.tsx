@@ -1,5 +1,6 @@
 import { ChevronDown, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { contactService } from '../../services/contactService';
 import { Contact } from '../../types/Client';
 import { NewContactModal } from './NewContactModal';
@@ -7,11 +8,13 @@ import { NewContactModal } from './NewContactModal';
 interface ContactPickerProps {
   clientId?: string;
   value?: string;
-  onChange: (contactId: string, contact: Contact) => void;
+  onChange: (contactId: string, contact: Contact | null) => void;
   disabled?: boolean;
+  id?: string;
 }
 
-export function ContactPicker({ clientId, value, onChange, disabled }: ContactPickerProps) {
+/** The client's person for this work, with a shortcut to register a new one. */
+export function ContactPicker({ clientId, value, onChange, disabled, id }: ContactPickerProps) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
@@ -41,56 +44,54 @@ export function ContactPicker({ clientId, value, onChange, disabled }: ContactPi
     setContacts(prev => [newContact, ...prev]);
     onChange(newContact.id, newContact);
     setShowNewContactModal(false);
+    toast.success(`Contacto ${newContact.name} registrado`);
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const contactId = e.target.value;
-    const contact = contacts.find(c => c.id === contactId);
-    if (contact) {
-      onChange(contactId, contact);
-    }
+    onChange(contactId, contacts.find(c => c.id === contactId) || null);
   };
 
   const isDisabled = disabled || !clientId;
 
   return (
     <>
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 relative">
-            <select
-              value={value || ''}
-              onChange={handleSelectChange}
-              disabled={isDisabled || isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none pr-10 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">
-                {!clientId ? 'Primero selecciona un cliente...' : 'Seleccionar contacto...'}
-              </option>
-              {contacts.map(contact => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.name} {contact.position ? `- ${contact.position}` : ''}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowNewContactModal(true)}
-            disabled={isDisabled}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1 whitespace-nowrap disabled:bg-gray-300 disabled:cursor-not-allowed"
+      <div className="flex items-center gap-1.5">
+        <div className="relative min-w-0 flex-1">
+          <select
+            id={id}
+            value={value || ''}
+            onChange={handleSelectChange}
+            disabled={isDisabled || isLoading}
+            className="field appearance-none pr-8"
           >
-            <Plus size={16} />
-            Nuevo
-          </button>
+            <option value="">
+              {!clientId ? 'Elige primero el cliente' : isLoading ? 'Cargando contactos…' : contacts.length === 0 ? 'Sin contactos registrados' : 'Sin contacto'}
+            </option>
+            {contacts.map(contact => (
+              <option key={contact.id} value={contact.id}>
+                {contact.name}{contact.position ? ` · ${contact.position}` : ''}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3" size={15} aria-hidden="true" />
         </div>
+        <button
+          type="button"
+          onClick={() => setShowNewContactModal(true)}
+          disabled={isDisabled}
+          title="Registrar contacto nuevo"
+          aria-label="Registrar contacto nuevo"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-rule-strong/60 bg-paper text-ink-2 hover:border-ink hover:text-ink disabled:opacity-50"
+        >
+          <Plus size={16} />
+        </button>
       </div>
 
-      {clientId && (
+      {clientId && showNewContactModal && (
         <NewContactModal
           clientId={clientId}
-          isOpen={showNewContactModal}
+          isOpen
           onClose={() => setShowNewContactModal(false)}
           onSubmit={handleCreateContact}
         />

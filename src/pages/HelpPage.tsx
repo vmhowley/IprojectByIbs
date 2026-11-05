@@ -1,5 +1,9 @@
-import { ChevronDown, ChevronUp, FileText, Mail, MessageCircle, Search } from 'lucide-react';
+import { BookOpen, ChevronDown, LifeBuoy, Mail } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { PageHeader } from '../components/layout/PageHeader';
+import { cn } from '../lib/utils';
+import { normalizeText } from '../utils/tickets';
 
 interface FAQItem {
     question: string;
@@ -9,19 +13,27 @@ interface FAQItem {
 const faqs: FAQItem[] = [
     {
         question: "¿Cómo creo un nuevo proyecto?",
-        answer: "Ve a la sección 'Proyectos' en el menú lateral o desde el inicio, y haz clic en el botón 'Nuevo Proyecto'. Completa los detalles como nombre, cliente y fechas."
+        answer: "En Proyectos pulsa «Nuevo proyecto», o usa el botón del mismo nombre al pie del menú lateral. Completa el nombre, el cliente y las fechas; el precio lo ponen los administradores."
+    },
+    {
+        question: "¿Quién ve los precios?",
+        answer: "Solo los administradores. El precio se pone en cada proyecto, con su moneda, y se suma por cliente en Clientes y en el libro de cotizaciones de Inicio. Nunca se suman monedas distintas."
+    },
+    {
+        question: "¿Cómo aprueba un cliente una entrega?",
+        answer: "Dale acceso en Clientes › Acceso al portal con el correo de su cuenta. Cuando un ticket está en «Aprobación del cliente», esa persona ve los botones Aprobar y Solicitar cambios."
     },
     {
         question: "¿Cómo puedo restablecer mi contraseña?",
-        answer: "Si olvidaste tu contraseña, cierra sesión y haz clic en '¿Olvidaste tu contraseña?' en la pantalla de inicio de sesión. Recibirás un correo con las instrucciones."
+        answer: "Si olvidaste tu contraseña, cierra sesión y haz clic en «¿Olvidaste tu contraseña?» en la pantalla de inicio de sesión. Recibirás un correo con las instrucciones."
     },
     {
         question: "¿Cómo agrego miembros a mi equipo?",
-        answer: "Actualmente, la gestión de usuarios la realiza el administrador del sistema. Contacta a soporte para agregar nuevos usuarios a tu organización."
+        answer: "Dentro de cada proyecto, «Miembros» invita por correo a quien ya tiene cuenta. Los roles los cambia un administrador en Usuarios y permisos, desde el menú de tu cuenta."
     },
     {
         question: "¿Puedo exportar mis reportes?",
-        answer: "Estamos trabajando en la función de exportación. Por ahora, puedes visualizar los reportes directamente en el panel de control."
+        answer: "Sí. En Inicio, «Exportar PDF» descarga el resumen del tablero. Está disponible para administradores y agentes de soporte."
     },
     {
         question: "¿Qué es el ID de Caso de Uso?",
@@ -33,110 +45,95 @@ export function HelpPage() {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredFaqs = faqs.filter(faq =>
-        faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const term = normalizeText(searchQuery.trim());
+    const filteredFaqs = faqs.filter(faq => !term || normalizeText(`${faq.question} ${faq.answer}`).includes(term));
 
     return (
-        <div className="flex-1 bg-gray-50 min-h-screen p-8 overflow-y-auto">
-            <div className="max-w-4xl mx-auto space-y-8">
+        <div className="flex min-h-full flex-col">
+            {/* Header Section */}
+            <PageHeader
+                title="Ayuda"
+                subtitle="Respuestas rápidas sobre ibPulse y las formas de hablar con nuestro equipo."
+                search={{ value: searchQuery, onChange: setSearchQuery, placeholder: 'Buscar en las preguntas' }}
+            />
 
-                {/* Header Section */}
-                <div className="text-center space-y-4">
-                    <h1 className="text-3xl font-bold text-gray-900">Centro de Ayuda</h1>
-                    <p className="text-gray-600 max-w-2xl mx-auto">
-                        ¿Tienes preguntas? Estamos aquí para ayudarte. Busca en nuestras preguntas frecuentes o contacta directamente a nuestro equipo.
-                    </p>
-
-                    <div className="relative max-w-xl mx-auto mt-6">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                            type="text"
-                            className="block w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all"
-                            placeholder="Buscar '¿cómo crear tareas?'..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 max-w-5xl items-start gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                {/* FAQ Section */}
+                <section className="sheet overflow-hidden" aria-labelledby="faq-title">
+                    <h2 id="faq-title" className="border-b border-rule px-5 py-3 text-[15px] font-semibold text-ink">
+                        Preguntas frecuentes
+                    </h2>
+                    {filteredFaqs.length > 0 ? (
+                        <ul className="divide-y divide-rule">
+                            {filteredFaqs.map((faq, index) => {
+                                const open = openIndex === index || !!term;
+                                return (
+                                    <li key={faq.question}>
+                                        <h3>
+                                            <button
+                                                type="button"
+                                                aria-expanded={open}
+                                                aria-controls={`faq-${index}`}
+                                                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                                                className="flex w-full items-start justify-between gap-4 px-5 py-3.5 text-left text-sm font-medium text-ink outline-none hover:bg-ink/[0.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+                                            >
+                                                {faq.question}
+                                                <ChevronDown size={16} aria-hidden="true" className={cn('mt-0.5 shrink-0 text-ink-3 transition-transform', open && 'rotate-180')} />
+                                            </button>
+                                        </h3>
+                                        {open && (
+                                            <p id={`faq-${index}`} className="max-w-[68ch] px-5 pb-4 text-sm leading-relaxed text-ink-2">
+                                                {faq.answer}
+                                            </p>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    ) : (
+                        <p className="px-5 py-10 text-center text-sm text-ink-3">
+                            Ninguna pregunta habla de «{searchQuery}». Escríbenos y te ayudamos.
+                        </p>
+                    )}
+                </section>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
-                            <Mail className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Soporte por Email</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Escríbenos y te responderemos en menos de 24 horas.
+                <aside className="sheet divide-y divide-rule" aria-label="Contacto">
+                    <div className="px-5 py-4">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                            <LifeBuoy size={15} aria-hidden="true" className="text-ink-3" />
+                            Chat en vivo
                         </p>
-                        <a href="mailto:support@ibsystems.srl" className="text-blue-600 font-medium text-sm hover:underline">
-                            support@ibsystems.srl
-                        </a>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-4">
-                            <FileText className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Documentación</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Guías detalladas sobre cómo utilizar todas las funciones.
-                        </p>
-                        <a href="/docs" className="text-purple-600 font-medium text-sm hover:underline">
-                            Ver guías →
-                        </a>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-4">
-                            <MessageCircle className="w-6 h-6 text-green-600" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Chat en Vivo</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Disponible de Lunes a Viernes, 9:00 AM - 6:00 PM.
-                        </p>
-                        <button className="text-green-600 font-medium text-sm hover:underline">
+                        <p className="mt-1 text-[13px] text-ink-2">Disponible de lunes a viernes, de 9:00 a. m. a 6:00 p. m.</p>
+                        <button
+                            type="button"
+                            onClick={() => window.dispatchEvent(new Event('open-support-chat'))}
+                            className="mt-2 text-[13px] font-semibold text-ink underline-offset-2 hover:underline"
+                        >
                             Iniciar chat
                         </button>
                     </div>
-                </div>
-
-                {/* FAQ Section */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100">
-                        <h2 className="text-xl font-bold text-gray-900">Preguntas Frecuentes</h2>
+                    <div className="px-5 py-4">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                            <Mail size={15} aria-hidden="true" className="text-ink-3" />
+                            Soporte por correo
+                        </p>
+                        <p className="mt-1 text-[13px] text-ink-2">Escríbenos y te responderemos en menos de 24 horas.</p>
+                        <a href="mailto:support@ibsystems.srl" className="mt-2 inline-block text-[13px] font-semibold text-ink underline-offset-2 hover:underline">
+                            support@ibsystems.srl
+                        </a>
                     </div>
-                    <div className="divide-y divide-gray-100">
-                        {filteredFaqs.length > 0 ? (
-                            filteredFaqs.map((faq, index) => (
-                                <div key={index} className="p-6 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setOpenIndex(openIndex === index ? null : index)}>
-                                    <div className="flex items-start justify-between">
-                                        <h3 className="text-base font-medium text-gray-900 pr-8">{faq.question}</h3>
-                                        {openIndex === index ? (
-                                            <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                                        ) : (
-                                            <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                                        )}
-                                    </div>
-                                    {openIndex === index && (
-                                        <p className="mt-3 text-sm text-gray-600 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
-                                            {faq.answer}
-                                        </p>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <div className="p-12 text-center text-gray-500">
-                                No se encontraron resultados para "{searchQuery}"
-                            </div>
-                        )}
+                    <div className="px-5 py-4">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                            <BookOpen size={15} aria-hidden="true" className="text-ink-3" />
+                            Documentación
+                        </p>
+                        <p className="mt-1 text-[13px] text-ink-2">Manuales y guías del equipo, generales o de cada proyecto.</p>
+                        <Link to="/documentation" className="mt-2 inline-block text-[13px] font-semibold text-ink underline-offset-2 hover:underline">
+                            Ver documentación
+                        </Link>
                     </div>
-                </div>
-
+                </aside>
             </div>
         </div>
     );

@@ -1,110 +1,91 @@
 import {
-  Book,
-  Calendar,
-  CheckSquare,
-  ChevronDown,
-  ChevronRight,
-  Crown,
+  BookOpen,
+  Building2,
+  CalendarDays,
   FolderKanban,
+  GanttChart,
   Hash,
   HelpCircle,
   Home,
-  Inbox,
-  Map,
-  MessageCircle,
+  LifeBuoy,
+  ListChecks,
+  LucideIcon,
+  MessagesSquare,
   Mic,
   Plus,
-  Settings,
-  Shield,
-  Users,
   X
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useSubscription } from '../../hooks/useSubscription';
-import Logo from '../../public/Logoibpulse.webp';
+import { cn } from '../../lib/utils';
 import { channelService } from '../../services/channelService';
-import { notificationService } from '../../services/notificationService';
 import { Channel as TeamChannel } from '../../types/Channel';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Logo } from '../ui/Logo';
+import { Modal } from '../ui/Modal';
+
 interface SidebarProps {
   onNewProject?: () => void;
   isOpen?: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
+interface NavEntry {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  /** Other paths that belong to this entry, e.g. a project's own page. */
+  match?: string[];
+  hideForGuest?: boolean;
+}
+
+const MAIN: NavEntry[] = [
+  { to: '/dashboard', label: 'Inicio', icon: Home },
+  { to: '/messages', label: 'Mensajes', icon: MessagesSquare, hideForGuest: true },
+];
+
+const WORK: NavEntry[] = [
+  { to: '/projects', label: 'Proyectos', icon: FolderKanban, match: ['/project/', '/ticket/'] },
+  { to: '/tasks', label: 'Tareas', icon: ListChecks },
+  { to: '/calendar', label: 'Agenda', icon: CalendarDays },
+  { to: '/meetings', label: 'Reuniones', icon: Mic, match: ['/meetings/'] },
+  { to: '/roadmaps', label: 'Cronograma', icon: GanttChart, hideForGuest: true },
+  { to: '/clients', label: 'Clientes', icon: Building2, hideForGuest: true },
+  { to: '/documentation', label: 'Documentación', icon: BookOpen },
+];
+
+/** The binder's index: every section of the work, one line each. */
+export function Sidebar({ onNewProject, isOpen = false, onClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isPro } = useSubscription();
+  const { isPro, limits } = useSubscription();
+  const { canCreate } = usePermissions();
+  const isGuest = user?.role === 'guest';
 
   const [channels, setChannels] = useState<TeamChannel[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [expandedSections, setExpandedSections] = useState({
-    workspace: true,
-    channels: true,
-    engineering: false // Deprecated, keeping false
-  });
-
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
 
   useEffect(() => {
     if (user && user.role !== 'guest') {
       loadChannels();
-      loadUnreadCount();
-
-      // Listen for project deletions to refresh
-      const handleProjectDeleted = () => {
-        // Reloading the page is the safest way to ensure sidebar consistency if we can't force a re-fetch of projects easily 
-        // But let's try to just re-fetch if we had a project list in sidebar.
-        // Actually Sidebar only has links. If the user was on the deleted project page, they are redirected.
-        // But the Sidebar might have cached data if it had a projects list.
-        // Current Sidebar doesn't list projects directly, it links to /projects.
-        // However, if we added a "Recent Projects" section later, this would be useful.
-        // For now, let's just log it or if we had a project list here, reload it.
-        // Wait, the user complaint is "console error... cannot read what was deleted".
-        // This implies the UI is trying to render the deleted item.
-        // By dispatching this event, we can maybe trigger a reload of data if Sidebar was holding it.
-        // Since Sidebar doesn't seem to hold project list state (only channels), this might be future proofing,
-        // or maybe I missed where projects are listed.
-        // Ah, Sidebar has "workspace -> projects" link. 
-        // If `ProjectList` page is active, it will re-fetch on mount.
-        // If the user meant the Sidebar *Channels* or *Recent*, we need to be careful.
-        // Let's just keep the listener structure.
-        console.log('Project deleted event received');
-      };
-
-      window.addEventListener('project-deleted', handleProjectDeleted);
-
-      const handleNotificationUpdate = () => {
-        loadUnreadCount();
-      };
-
-      window.addEventListener('notification-updated', handleNotificationUpdate);
-
-      // Subscribe to notifications
-      const sub = notificationService.subscribe(user.id, (_notification) => {
-        // Simple increment on new notification
-        // Note: Ideally we should check if the new notification is unread (which it usually is)
-        loadUnreadCount(); // Safer to just reload count for consistency
-      });
-
-      return () => {
-        sub.unsubscribe();
-        window.removeEventListener('notification-updated', handleNotificationUpdate);
-      }
     }
   }, [user?.id, user?.role]);
 
-  const loadUnreadCount = async () => {
-    try {
-      const count = await notificationService.getUnreadCount();
-      setUnreadCount(count || 0);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  // Close the drawer with Escape on small screens.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
 
   const loadChannels = async () => {
     try {
@@ -115,373 +96,241 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     }
   };
 
-  const handleCreateChannel = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const name = prompt('Nombre del nuevo canal (ej. General):');
-    if (!name) return;
+  const isActive = (entry: NavEntry) =>
+    location.pathname === entry.to ||
+    (entry.match || []).some((prefix) => location.pathname.startsWith(prefix));
 
-    try {
-      // Normalize: remove # if present
-      const cleanName = name.replace(/^#/, '');
-      await channelService.create(cleanName);
-      loadChannels(); // Refresh
-    } catch (error) {
-      alert('Error creando canal');
-      console.error(error);
-    }
-  };
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const renderEntry = (entry: NavEntry) => {
+    if (entry.hideForGuest && isGuest) return null;
+    const active = isActive(entry);
+    const Icon = entry.icon;
+    return (
+      <Link
+        key={entry.to}
+        to={entry.to}
+        onClick={onClose}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'flex h-8 items-center gap-2.5 rounded-control border px-2 text-sm transition-colors',
+          active
+            ? 'border-transparent bg-brand/10 font-semibold text-brand-strong'
+            : 'border-transparent text-ink-2 hover:bg-ink/[0.05] hover:text-ink'
+        )}
+      >
+        <Icon size={16} aria-hidden="true" className={active ? 'text-brand' : 'text-ink-3'} />
+        <span className="truncate">{entry.label}</span>
+      </Link>
+    );
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 z-40 bg-[oklch(0.18_0.02_260/0.45)] animate-fade md:hidden"
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
-      <aside className={`
-        fixed md:static inset-y-0 left-0 z-50
-        w-64 bg-gray-50 dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col h-full
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="p-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col">
-              <img className="object-cover w-50 h-12 dark:brightness-200" src={Logo} alt="Logo" />
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 justify-end">
-                By IBSYSTEMS.SRL
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {/* Close button for mobile */}
-            <button
-              onClick={onClose}
-              className="md:hidden p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-md"
-            >
-              <X size={20} />
-            </button>
-          </div>
+      <aside
+        aria-label="Navegación principal"
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex h-full w-64 shrink-0 flex-col border-r border-rule bg-paper md:static md:w-60',
+          'transition-[transform,visibility] duration-200 ease-out',
+          isOpen ? 'translate-x-0' : 'max-md:invisible max-md:-translate-x-full'
+        )}
+      >
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-rule px-4">
+          <Link to="/dashboard" onClick={onClose} className="flex min-w-0 flex-col items-start gap-0.5 py-1">
+            <Logo className="h-[22px]" />
+            <span className="caption leading-none [word-spacing:0.2em]">BY IBSYSTEMS.SRL</span>
+          </Link>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar menú"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-control text-ink-2 hover:bg-ink/[0.06] md:hidden"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-3">
-          <div className="px-2 space-y-0.5 mb-4">
-            <Link
-              to="/dashboard"
-              onClick={onClose}
-              className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/dashboard')
-                ? 'bg-gray-200 dark:bg-slate-800 text-gray-900 dark:text-white'
-                : 'text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
-                }`}
-            >
-              <Home size={18} />
-              <span>Inicio</span>
-            </Link>
-            <Link
-              to="/inbox"
-              onClick={onClose}
-              className={`flex items-center justify-between px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/inbox')
-                ? 'bg-gray-200 dark:bg-slate-800 text-gray-900 dark:text-white'
-                : 'text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Inbox size={18} />
-                <span>Notificaciones</span>
-              </div>
-              {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
-            {/* <Link
-              to="/saved"
-              onClick={onClose}
-              className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive('/saved')
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
-            >
-              <Bookmark size={18} />
-              <span>Items guardados</span>
-            </Link> */}
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+          <div className="space-y-0.5">{MAIN.map(renderEntry)}</div>
+
+          <div>
+            <p className="caption px-2 pb-1.5">Trabajo</p>
+            <div className="space-y-0.5">{WORK.map(renderEntry)}</div>
           </div>
 
-          <div className="px-2 mb-4">
-            <button
-              onClick={() => toggleSection('workspace')}
-              className="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold text-gray-600 dark:text-slate-500 hover:text-gray-900 dark:hover:text-slate-300"
-            >
-              <span>Área de trabajo</span>
-              {expandedSections.workspace ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </button>
-            {expandedSections.workspace && (
-              <div className="mt-1 space-y-0.5">
-                <Link
-                  to="/tasks"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                >
-                  <CheckSquare size={18} />
-                  <span>Tareas</span>
-                </Link>
-                <Link
-                  to="/projects"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                >
-                  <FolderKanban size={18} />
-                  <span>Proyectos</span>
-                </Link>
-                <Link
-                  to="/calendar"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                >
-                  <Calendar size={18} />
-                  <span>Calendario</span>
-                </Link>
-                <Link
-                  to="/meetings"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                >
-                  <Mic size={18} />
-                  <span>Reuniones</span>
-                </Link>
-                {user?.role !== 'guest' && (
-                  <Link
-                    to="/roadmaps"
-                    onClick={onClose}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                  >
-                    <Map size={18} />
-                    <span>Mapas</span>
-                  </Link>)}
-                {user?.role !== 'guest' && (
-                  <Link
-                    to="/clients"
-                    onClick={onClose}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                  >
-                    <Users size={18} />
-                    <span>Clientes</span>
-                  </Link>
-                )}
-                <Link
-                  to="/documentation"
-                  onClick={onClose}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                >
-                  <Book size={18} />
-                  <span>Documentación</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {user?.role !== 'guest' && (
-            <div className="px-2 mb-4">
-              <div className="flex items-center justify-between px-2 py-1 group">
+          {!isGuest && (
+            <div>
+              <div className="flex items-center justify-between pb-1 pl-2">
+                <p className="caption">Canales</p>
                 <button
-                  onClick={() => toggleSection('channels')}
-                  className="flex-1 flex items-center justify-between text-xs font-semibold text-gray-600 hover:text-gray-900"
-                >
-                  <span>CANALES DE EQUIPO</span>
-                  {expandedSections.channels ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </button>
-                <button
-                  onClick={handleCreateChannel}
+                  type="button"
+                  onClick={() => setIsChannelModalOpen(true)}
+                  aria-label="Crear canal"
                   title="Crear canal"
-                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded text-gray-500 transition-opacity"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-control text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
                 >
                   <Plus size={14} />
                 </button>
               </div>
-
-              {expandedSections.channels && (
-                <div className="mt-1 space-y-0.5">
-                  {channels.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-gray-400 italic">No hay canales.</p>
-                  )}
-                  {channels.map(channel => (
+              <div className="space-y-0.5">
+                {channels.length === 0 && (
+                  <p className="px-2 py-1 text-xs leading-relaxed text-ink-3">
+                    Los canales reúnen las conversaciones del equipo por tema.
+                  </p>
+                )}
+                {channels.map((channel) => {
+                  const path = `/channels/${channel.id}`;
+                  const active = location.pathname === path;
+                  return (
                     <Link
                       key={channel.id}
-                      to={`/channels/${channel.id}`}
+                      to={path}
                       onClick={onClose}
-                      className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${isActive(`/channels/${channel.id}`) ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex h-8 items-center gap-2 rounded-control border px-2 text-sm transition-colors',
+                        active
+                          ? 'border-transparent bg-brand/10 font-semibold text-brand-strong'
+                          : 'border-transparent text-ink-2 hover:bg-ink/[0.05] hover:text-ink'
+                      )}
                     >
-                      <Hash size={16} className={isActive(`/channels/${channel.id}`) ? "text-indigo-500" : "text-gray-400"} />
-                      <span>{channel.name}</span>
+                      <Hash size={14} aria-hidden="true" className={active ? 'text-brand' : 'text-ink-3'} />
+                      <span className="truncate">{channel.name}</span>
                     </Link>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
           )}
         </nav>
 
-        <div className="border-t border-gray-200 dark:border-slate-800">
-          {/* Upgrade Plan Widget */}
-          {!isPro && user?.role !== 'guest' && (
-            <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 mx-3 my-3 rounded-lg border border-indigo-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Crown size={16} className="text-indigo-600" />
-                <p className="text-xs font-semibold text-indigo-900">Plan Gratis</p>
-              </div>
-              <p className="text-xs text-indigo-700 mb-3 leading-relaxed">
-                Desbloquea proyectos ilimitados y funciones premium.
-              </p>
-              <button
-                onClick={() => navigate('/pricing')}
-                className="w-full px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition-colors shadow-sm"
-              >
-                Actualizar a Pro
-              </button>
-            </div>
+        <div className="shrink-0 space-y-3 border-t border-rule px-3 py-3">
+          {onNewProject && canCreate() && (
+            <Button variant="secondary" size="sm" className="w-full" onClick={() => { onClose(); onNewProject(); }}>
+              <Plus size={15} aria-hidden="true" />
+              Nuevo proyecto
+            </Button>
           )}
-          <Link
-            to="/help"
-            className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-          >
-            <HelpCircle size={18} />
-            <span>Ayuda & soporte</span>
-          </Link>
-          <UserProfile isPro={isPro} />
 
+          {!isPro && !isGuest && (
+            <p className="px-1 text-xs leading-relaxed text-ink-2">
+              Plan Gratis: hasta {limits.maxProjects} proyectos y {limits.maxClients} clientes.{' '}
+              <Link to="/pricing" className="font-semibold text-ink underline decoration-rule-strong hover:decoration-ink">
+                Ver planes
+              </Link>
+            </p>
+          )}
 
+          <div className="space-y-0.5">
+            <Link
+              to="/help"
+              onClick={onClose}
+              aria-current={location.pathname === '/help' ? 'page' : undefined}
+              className="flex h-8 items-center gap-2.5 rounded-control px-2 text-sm text-ink-2 transition-colors hover:bg-ink/[0.05] hover:text-ink"
+            >
+              <HelpCircle size={16} aria-hidden="true" className="text-ink-3" />
+              Ayuda y soporte
+            </Link>
+            {/* Opens the live support slip (SupportChatWidget listens for this event). */}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new Event('open-support-chat'));
+              }}
+              className="flex h-8 w-full items-center gap-2.5 rounded-control px-2 text-left text-sm text-ink-2 transition-colors hover:bg-ink/[0.05] hover:text-ink"
+            >
+              <LifeBuoy size={16} aria-hidden="true" className="text-ink-3" />
+              Chat en vivo
+            </button>
+          </div>
         </div>
       </aside>
+
+      <NewChannelModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        onCreated={(channel) => {
+          setIsChannelModalOpen(false);
+          loadChannels();
+          onClose();
+          navigate(`/channels/${channel.id}`);
+        }}
+      />
     </>
   );
 }
 
-function UserProfile({ isPro }: { isPro?: boolean }) {
-  const { user, logout } = useAuth();
-  const [showMenu, setShowMenu] = useState(false);
+function NewChannelModal({
+  isOpen,
+  onClose,
+  onCreated,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated: (channel: TeamChannel) => void;
+}) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (isOpen) setName('');
+  }, [isOpen]);
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-700';
-      case 'user':
-        return 'bg-blue-100 text-blue-700';
-      case 'guest':
-        return 'bg-gray-100 text-gray-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Admin';
-      case 'user':
-        return 'Usuario';
-      case 'guest':
-        return 'Invitado';
-      default:
-        return role;
-    }
-  };
-
-  const handleLogout = async () => {
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    // Normalize: remove # if present
+    const cleanName = name.trim().replace(/^#/, '');
+    if (!cleanName) return;
+    setSaving(true);
     try {
-      await logout();
+      const channel = await channelService.create(cleanName);
+      toast.success(`Canal #${channel.name} creado`);
+      onCreated(channel);
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error(error);
+      toast.error('No se pudo crear el canal. Inténtalo de nuevo.');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-slate-800 p-3">
-      <div className="relative">
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="w-full flex items-start gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1  space-x-2 text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white ">{user.name}</p>
-            {isPro && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-linear-to-r from-indigo-500 to-purple-500 text-white animate-pulse">
-                PRO
-              </span>
-            )}
-
-            <span className={`inline-block px-1.5 py-0.5 text-xs font-medium rounded ${getRoleBadgeColor(user.role)}`}>
-              {getRoleLabel(user.role)}
-            </span>
-          </div>
-        </button>
-
-        {showMenu && (
-          <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
-            <div className="p-3 border-b border-gray-200 dark:border-slate-700">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
-              <p className="text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
-            </div>
-            <div className=" p-2  space-y-0.5">
-            </div>
-            <div className=" p-2  space-y-0.5">
-              {user?.role === 'support_agent' || user?.role === 'admin' && (
-                <>
-                  <Link
-                    to="/admin/support"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors font-medium mb-1"
-                  >
-                    <MessageCircle size={18} />
-                    <span>Soporte (Agente)</span>
-                  </Link>
-                  <Link
-                    to="/admin"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-md transition-colors font-medium"
-                  >
-                    <Shield size={18} />
-                    <span>Panel Global</span>
-                  </Link>
-                </>
-              )}
-              {user?.role !== 'guest' && (
-                <>
-                  <Link
-                    to="/settings"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                  >
-                    <Settings size={18} />
-                    <span>Configuraciones</span>
-                  </Link>
-                </>
-              )}
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all font-medium"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      dismissible={!saving}
+      title="Nuevo canal"
+      description="Todo el equipo de tu dominio podrá leerlo y escribir en él."
+      size="sm"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="new-channel-form" isLoading={saving} disabled={!name.trim()}>
+            Crear canal
+          </Button>
+        </>
+      }
+    >
+      <form id="new-channel-form" onSubmit={handleSubmit}>
+        <Input
+          label="Nombre"
+          placeholder="general, soporte-apap, pases…"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+          required
+        />
+      </form>
+    </Modal>
   );
 }

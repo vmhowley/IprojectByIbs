@@ -1,6 +1,19 @@
 import { supabase } from '../lib/supabase';
 import { CreateMeetingDTO, Meeting } from '../types/meeting';
 
+// meetings.user_id points at auth.users, not user_profiles, so PostgREST cannot
+// embed the profile. The recorder's name is looked up in a second query.
+async function withRecorderNames(meetings: Meeting[]): Promise<Meeting[]> {
+  const ids = [...new Set(meetings.map((m) => m.user_id).filter(Boolean))];
+  if (ids.length === 0) return meetings;
+  const { data } = await supabase.from('user_profiles').select('id, name').in('id', ids);
+  const names = new Map((data || []).map((p) => [p.id as string, p.name as string | null]));
+  return meetings.map((m) => {
+    const name = names.get(m.user_id);
+    return name ? { ...m, user_profiles: { name } } : m;
+  });
+}
+
 export const meetingService = {
   async getAll() {
     const { data, error } = await supabase
@@ -9,7 +22,7 @@ export const meetingService = {
       .order('date', { ascending: false });
 
     if (error) throw error;
-    return data as Meeting[];
+    return withRecorderNames(data as Meeting[]);
   },
 
   async getById(id: string) {
@@ -20,7 +33,8 @@ export const meetingService = {
       .single();
 
     if (error) throw error;
-    return data as Meeting;
+    const [meeting] = await withRecorderNames([data as Meeting]);
+    return meeting;
   },
 
   async create(meeting: CreateMeetingDTO) {
@@ -71,10 +85,8 @@ export const meetingService = {
 
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('meeting-recordings')
-      .getPublicUrl(fileName); // Note: bucket is private, so we might need signed URL or change bucket to public. 
-      // The migration said public=false. So we actually need createSignedUrl.
+    // Note: bucket is private, so we might need signed URL or change bucket to public.
+    // The migration said public=false. So we actually need createSignedUrl.
     
     // For playback in the app for the owner, signed URL is better.
     // But to save "audio_url" in DB, usually we save the path or a long-expiry signed URL.

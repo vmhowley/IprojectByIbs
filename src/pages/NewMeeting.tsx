@@ -1,26 +1,17 @@
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '../components/layout/PageHeader';
 import { MeetingRecorder } from '../components/meetings/MeetingRecorder';
 
 export function NewMeeting() {
-    const navigate = useNavigate();
-
     return (
-        <div className="w-full p-6  mx-auto space-y-6">
-            <button
-                onClick={() => navigate('/meetings')}
-                className="flex md:hidden items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
-            >
-                <ArrowLeft className="w-4 h-4" />
-                Volver a Reuniones
-            </button>
-
-            <div>
-                <h1 className="text-2xl font-bold text-black">Nueva Reunión</h1>
-                <p className="text-slate-400">Graba o sube una reunión para que la IA genere un resumen</p>
+        <div className="flex min-h-full flex-col">
+            <PageHeader
+                back={{ to: '/meetings', label: 'Reuniones' }}
+                title="Nueva reunión"
+                subtitle="Graba la reunión o sube su audio. La IA escribe el resumen, los pendientes y la transcripción."
+            />
+            <div className="px-4 py-5 sm:px-6">
+                <MeetingRecorder />
             </div>
-
-            <MeetingRecorder />
         </div>
     );
 }

@@ -63,6 +63,25 @@ export const directMessageService = {
     if (error) throw error;
   },
 
+  // Unread messages addressed to me, counted per sender
+  async getUnreadBySender(): Promise<Record<string, number>> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return {};
+
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .select('sender_id')
+      .eq('receiver_id', user.id)
+      .eq('is_read', false);
+
+    if (error) throw error;
+    const counts: Record<string, number> = {};
+    for (const row of data || []) {
+      counts[row.sender_id] = (counts[row.sender_id] || 0) + 1;
+    }
+    return counts;
+  },
+
   // Subscribe to new messages
   subscribe(otherUserId: string, callback: (msg: DirectMessage) => void) {
     return supabase
@@ -73,7 +92,9 @@ export const directMessageService = {
           event: 'INSERT',
           schema: 'public',
           table: 'direct_messages',
-          filter: `or(and(sender_id.eq.${otherUserId},receiver_id.eq.auth.uid()),and(sender_id.eq.auth.uid(),receiver_id.eq.${otherUserId}))` 
+          // Realtime filters accept one column only, so listen to what this
+          // person sends; RLS only delivers rows addressed to the reader.
+          filter: `sender_id=eq.${otherUserId}`
           // Note: RLS might filter 'filter' clauses, simple table filter is safer combined with client-side check if needed, 
           // but Supabase Realtime fits row by RLS usually. 
           // Let's simplify filter to just table and check IDs in callback or use custom logic.

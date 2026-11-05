@@ -1,11 +1,13 @@
-import { ChevronDown } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
+import { KeyboardEvent, ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { cn } from '../../lib/utils';
+import { Popover } from './Popover';
 
 interface Option {
     value: string;
     label: string;
     color?: string;
-    icon?: React.ReactNode;
+    icon?: ReactNode;
 }
 
 interface ModernSelectProps {
@@ -15,91 +17,150 @@ interface ModernSelectProps {
     label?: string;
     placeholder?: string;
     className?: string;
-    renderValue?: (value: string, option?: Option) => React.ReactNode;
+    renderValue?: (value: string, option?: Option) => ReactNode;
     disabled?: boolean;
 }
 
+/** A select whose options can carry a stamp or an icon. Keyboard: arrows, Home, End, Enter, Escape. */
 export function ModernSelect({
     value,
     options,
     onChange,
     label,
-    placeholder = 'Select...',
+    placeholder = 'Seleccionar…',
     className = '',
     renderValue,
     disabled = false
 }: ModernSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [activeIndex, setActiveIndex] = useState(-1);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
+    const listId = useId();
+    const labelId = useId();
 
-    const selectedOption = options.find(opt => opt.value === value);
+    const selectedIndex = options.findIndex(opt => opt.value === value);
+    const selectedOption = options[selectedIndex];
+
+    const close = useCallback(() => setIsOpen(false), []);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
+        if (isOpen) {
+            setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+            requestAnimationFrame(() => listRef.current?.focus());
+        }
+    }, [isOpen, selectedIndex]);
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    useEffect(() => {
+        if (!isOpen || activeIndex < 0) return;
+        listRef.current?.querySelector(`[data-index="${activeIndex}"]`)?.scrollIntoView({ block: 'nearest' });
+    }, [isOpen, activeIndex]);
 
     const handleSelect = (optionValue: string) => {
         onChange(optionValue);
         setIsOpen(false);
+        buttonRef.current?.focus();
+    };
+
+    const onListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setActiveIndex(i => Math.min(options.length - 1, i + 1));
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActiveIndex(i => Math.max(0, i - 1));
+        } else if (event.key === 'Home') {
+            event.preventDefault();
+            setActiveIndex(0);
+        } else if (event.key === 'End') {
+            event.preventDefault();
+            setActiveIndex(options.length - 1);
+        } else if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            if (options[activeIndex]) handleSelect(options[activeIndex].value);
+        } else if (event.key === 'Tab') {
+            setIsOpen(false);
+        }
+    };
+
+    const onButtonKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setIsOpen(true);
+        }
     };
 
     return (
-        <div className={`relative ${className}`} ref={containerRef}>
+        <div className={cn('relative', className)}>
             {label && (
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+                <span id={labelId} className="caption mb-1.5 block">
                     {label}
-                </label>
+                </span>
             )}
 
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+                onClick={() => !disabled && setIsOpen(open => !open)}
+                onKeyDown={onButtonKeyDown}
                 disabled={disabled}
-                className={`w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm transition-all text-left group
-                    ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'hover:border-gray-300 hover:bg-gray-50'}
-                `}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-controls={isOpen ? listId : undefined}
+                aria-labelledby={label ? labelId : undefined}
+                className="field flex min-h-9 items-center justify-between gap-2 text-left"
             >
-                <div className="flex items-center gap-2 overflow-hidden">
+                <span className="flex min-w-0 items-center gap-2">
                     {renderValue ? (
                         renderValue(value, selectedOption)
+                    ) : selectedOption ? (
+                        <>
+                            {selectedOption.icon}
+                            <span className="truncate text-sm text-ink">{selectedOption.label}</span>
+                        </>
                     ) : (
-                        selectedOption ? (
-                            <span className="text-sm font-medium text-gray-700 truncate">{selectedOption.label}</span>
-                        ) : (
-                            <span className="text-sm text-gray-400 truncate">{placeholder}</span>
-                        )
+                        <span className="truncate text-sm text-ink-3">{placeholder}</span>
                     )}
-                </div>
-                <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </span>
+                <ChevronDown size={14} aria-hidden="true" className={cn('shrink-0 text-ink-3 transition-transform duration-150', isOpen && 'rotate-180')} />
             </button>
 
-            {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
-                    <div className="max-h-60 overflow-y-auto py-1">
-                        {options.map((option) => (
-                            <button
+            <Popover anchorRef={buttonRef} open={isOpen} onClose={close} matchWidth className="min-w-[12rem]">
+                <div
+                    ref={listRef}
+                    id={listId}
+                    role="listbox"
+                    tabIndex={-1}
+                    aria-labelledby={label ? labelId : undefined}
+                    aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+                    onKeyDown={onListKeyDown}
+                    className="max-h-64 overflow-y-auto py-1 outline-none"
+                >
+                    {options.map((option, index) => {
+                        const selected = value === option.value;
+                        return (
+                            <div
                                 key={option.value}
+                                id={`${listId}-${index}`}
+                                data-index={index}
+                                role="option"
+                                aria-selected={selected}
+                                onMouseEnter={() => setActiveIndex(index)}
                                 onClick={() => handleSelect(option.value)}
-                                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors ${value === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'
-                                    }`}
+                                className={cn(
+                                    'flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-ink',
+                                    index === activeIndex && 'bg-ink/[0.06]',
+                                    selected && 'font-semibold'
+                                )}
                             >
                                 {option.icon}
                                 <span className="truncate">{option.label}</span>
-                                {value === option.value && (
-                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
+                                {selected && <Check size={14} aria-hidden="true" className="ml-auto shrink-0 text-brand" />}
+                            </div>
+                        );
+                    })}
                 </div>
-            )}
+            </Popover>
         </div>
     );
 }

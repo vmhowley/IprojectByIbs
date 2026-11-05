@@ -1,74 +1,107 @@
-import { BarChart3, Calendar, Clock, Layout, MessageSquare, Users } from 'lucide-react';
+import { BookOpen, CalendarRange, FileDown, KanbanSquare, LucideIcon, MessagesSquare, Mic, ShieldCheck, Wallet } from 'lucide-react';
 
-const features = [
+const steps = [
     {
-        icon: <Layout className="w-6 h-6 text-white" />,
-        color: "bg-indigo-500",
-        title: "Gestión Centralizada",
-        description: "Tableros Kanban, Listas y Vistas de detalle. Todo tu flujo de trabajo en una sola vista unificada."
+        title: 'Registra el cliente y el proyecto',
+        description: 'Con su contacto, sus fechas y el precio cotizado en dólares o en pesos.',
     },
     {
-        icon: <Users className="w-6 h-6 text-white" />,
-        color: "bg-violet-500",
-        title: "Portal de Clientes",
-        description: "Dales a tus clientes acceso controlado para ver el progreso, comentar y aprobar entregables."
+        title: 'Lleva el trabajo en tickets',
+        description: 'Cada pedido es un ticket con número, prioridad y fecha límite. Muévelos en el tablero.',
     },
     {
-        icon: <Calendar className="w-6 h-6 text-white" />,
-        color: "bg-pink-500",
-        title: "Roadmap & Calendario",
-        description: "Planifica a largo plazo con diagramas de Gantt y vistas de calendario sincronizadas."
+        title: 'El cliente aprueba la entrega',
+        description: 'Desde su portal, sin correos. Tú ves lo cotizado por cliente y por moneda.',
+    },
+];
+
+const features: { icon: LucideIcon; title: string; description: string }[] = [
+    {
+        icon: Wallet,
+        title: 'Precios y totales por cliente',
+        description: 'Cada proyecto lleva su precio. Los totales salen por cliente y por moneda, sin mezclar dólares y pesos. Solo los administradores los ven.',
     },
     {
-        icon: <MessageSquare className="w-6 h-6 text-white" />,
-        color: "bg-orange-500",
-        title: "Comunicación Contextual",
-        description: "Olvídate de los correos dispersos. Comenta directamente en las tareas y tickets."
+        icon: KanbanSquare,
+        title: 'Proyectos y tickets',
+        description: 'Lista, fichas o tablero con arrastrar y soltar. Subtareas, objetos, archivos, comentarios y control de calidad en cada ticket.',
     },
     {
-        icon: <Clock className="w-6 h-6 text-white" />,
-        color: "bg-teal-500",
-        title: "Control de Tiempos",
-        description: "Registra horas por tarea y proyecto para mantener la rentabilidad bajo control."
+        icon: ShieldCheck,
+        title: 'Portal del cliente',
+        description: 'Tus clientes ven sus proyectos y tickets, y aprueban una entrega o piden cambios sin escribirte un correo.',
     },
     {
-        icon: <BarChart3 className="w-6 h-6 text-white" />,
-        color: "bg-blue-500",
-        title: "Reportes Avanzados",
-        description: "Analíticas en tiempo real sobre velocidad del equipo, cuellos de botella y cumplimiento."
-    }
+        icon: CalendarRange,
+        title: 'Agenda y cronograma',
+        description: 'Fechas límite, entregas y reuniones en un mismo calendario. El cronograma muestra seis meses de proyectos.',
+    },
+    {
+        icon: Mic,
+        title: 'Reuniones con resumen',
+        description: 'Graba la reunión o sube el audio. La IA escribe el resumen, los pendientes y la transcripción.',
+    },
+    {
+        icon: MessagesSquare,
+        title: 'Mensajes y canales',
+        description: 'Conversaciones directas y canales del equipo, en tiempo real, al lado del trabajo.',
+    },
+    {
+        icon: BookOpen,
+        title: 'Documentación',
+        description: 'Manuales, especificaciones y entregables, generales o de cada proyecto, en un solo archivo.',
+    },
+    {
+        icon: FileDown,
+        title: 'Resumen en PDF',
+        description: 'Exporta el tablero de inicio para la reunión de seguimiento con el cliente.',
+    },
 ];
 
 export function Features() {
     return (
-        <div id="features" className="py-24 bg-white relative overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center max-w-3xl mx-auto mb-20">
-                    <h2 className="text-indigo-600 font-semibold tracking-wide uppercase text-sm mb-3">Características Potentes</h2>
-                    <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-                        Todo lo que necesitas para escalar
-                    </h3>
-                    <p className="text-xl text-gray-600 leading-relaxed">
-                        Hemos destilado las mejores prácticas de gestión de proyectos en una suite de herramientas intuitivas.
-                    </p>
+        <>
+            <section className="border-b border-rule bg-paper" aria-labelledby="steps-title">
+                <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+                    <h2 id="steps-title" className="max-w-2xl text-3xl font-bold tracking-[-0.015em] text-ink [font-stretch:108%]">
+                        Del pedido a la entrega, en el mismo lugar
+                    </h2>
+                    <ol className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-sheet border border-rule bg-rule md:grid-cols-3">
+                        {steps.map((step, index) => (
+                            <li key={step.title} className="bg-paper p-6">
+                                <span className="font-mono text-sm font-semibold text-brand">{String(index + 1).padStart(2, '0')}</span>
+                                <h3 className="mt-3 text-lg font-semibold text-ink">{step.title}</h3>
+                                <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{step.description}</p>
+                            </li>
+                        ))}
+                    </ol>
                 </div>
+            </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {features.map((feature, idx) => (
-                        <div key={idx} className="group p-8 rounded-3xl bg-gray-50 border border-transparent hover:border-gray-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300">
-                            <div className={`w-14 h-14 ${feature.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-gray-200 group-hover:scale-110 transition-transform duration-300`}>
-                                {feature.icon}
-                            </div>
-                            <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
-                                {feature.title}
-                            </h4>
-                            <p className="text-gray-600 leading-relaxed">
-                                {feature.description}
-                            </p>
-                        </div>
-                    ))}
+            <section id="funciones" className="scroll-mt-20 border-b border-rule" aria-labelledby="features-title">
+                <div className="mx-auto grid grid-cols-1 max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-16 lg:py-24">
+                    <div className="lg:sticky lg:top-24 lg:self-start">
+                        <h2 id="features-title" className="text-3xl font-bold tracking-[-0.015em] text-ink [font-stretch:108%]">
+                            Lo que lleva ibPulse
+                        </h2>
+                        <p className="mt-4 text-[15px] leading-relaxed text-ink-2">
+                            Hecho para equipos y agencias que trabajan para varios clientes y necesitan saber, cada día, qué falta y cuánto vale.
+                        </p>
+                    </div>
+
+                    <ul className="grid grid-cols-1 gap-x-10 sm:grid-cols-2">
+                        {features.map(({ icon: Icon, title, description }) => (
+                            <li key={title} className="border-t border-rule py-6">
+                                <h3 className="flex items-center gap-2.5 text-base font-semibold text-ink">
+                                    <Icon size={18} aria-hidden="true" className="shrink-0 text-brand" strokeWidth={1.75} />
+                                    {title}
+                                </h3>
+                                <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{description}</p>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
-            </div>
-        </div>
+            </section>
+        </>
     );
 }

@@ -1,20 +1,24 @@
-import { Moon, Sun } from "lucide-react";
-import { useTheme } from "../../contexts/ThemeContext";
+import { Moon, Sun } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
+import { cn } from '../../lib/utils';
 
-export function ThemeToggle() {
-    const { theme, toggleTheme } = useTheme();
-
-    return (
-        <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-all shadow-sm flex items-center justify-center"
-            title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
-        >
-            {theme === 'light' ? (
-                <Moon size={18} />
-            ) : (
-                <Sun size={18} />
-            )}
-        </button>
-    );
+/** Paper by day, carbon paper by night. */
+export function ThemeToggle({ className }: { className?: string }) {
+  const { theme, toggleTheme } = useTheme();
+  const isLight = theme === 'light';
+  const label = isLight ? 'Cambiar a modo carbón (oscuro)' : 'Cambiar a modo papel (claro)';
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'inline-flex h-8 w-8 items-center justify-center rounded-control text-ink-2 transition-colors hover:bg-ink/[0.06] hover:text-ink',
+        className
+      )}
+    >
+      {isLight ? <Moon size={16} /> : <Sun size={16} />}
+    </button>
+  );
 }

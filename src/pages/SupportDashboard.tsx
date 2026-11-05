@@ -1,14 +1,20 @@
-
-import { CheckCircle, MessageCircle, Send, User as UserIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CheckCircle, LifeBuoy, Send } from 'lucide-react';
+import { KeyboardEvent, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { ChatMessageItem } from '../components/chat/chat-message';
+import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonRows } from '../components/ui/Skeleton';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useChatScroll } from '../hooks/use-chat-scroll';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { SupportChat, SupportMessage, supportService } from '../services/supportService';
+import { formatDate, timeAgo } from '../utils/format';
 
+/** The support desk: open conversations on the left, the selected one on the right. */
 export default function SupportDashboard() {
     const { user } = useAuthContext();
     const navigate = useNavigate();
@@ -17,11 +23,12 @@ export default function SupportDashboard() {
     const [messages, setMessages] = useState<SupportMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const [sending, setSending] = useState(false);
+    const { containerRef, scrollToBottom } = useChatScroll();
 
     // Load chats on mount
     useEffect(() => {
-        if (user.role !== 'admin' && user.role !== 'support_agent') {
+        if (!user || (user.role !== 'admin' && user.role !== 'support_agent')) {
             navigate('/'); // Redirect non-support_agents
             return;
         }
@@ -62,6 +69,7 @@ export default function SupportDashboard() {
             setMessages(msgs);
         };
 
+        setMessages([]);
         loadMessages();
 
         // Subscribe to messages for this chat
@@ -76,7 +84,7 @@ export default function SupportDashboard() {
                 },
                 (payload) => {
                     const newMsg = payload.new as SupportMessage;
-                    setMessages((current) => [...current, newMsg]);
+                    setMessages((current) => (current.some((m) => m.id === newMsg.id) ? current : [...current, newMsg]));
                 }
             )
             .subscribe();
@@ -88,21 +96,32 @@ export default function SupportDashboard() {
 
     // Scroll to bottom
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages]);
+        scrollToBottom();
+    }, [messages, scrollToBottom]);
 
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        const text = newMessage.trim();
+        if (!selectedChatId || !text || !user || sending) return;
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedChatId || !newMessage.trim() || !user) return;
-
+        setSending(true);
+        setNewMessage('');
         try {
-            await supportService.sendMessage(selectedChatId, user.id, newMessage);
-            setNewMessage('');
+            await supportService.sendMessage(selectedChatId, user.id, text);
         } catch (error) {
             console.error('Failed to send message', error);
+            setNewMessage(text);
+            toast.error('No se pudo enviar la respuesta.');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    // Enter sends, Shift+Enter adds a line.
+    const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
@@ -112,125 +131,134 @@ export default function SupportDashboard() {
             await supportService.resolveChat(selectedChatId);
             setSelectedChatId(null);
             setChats(prev => prev.filter(c => c.id !== selectedChatId));
+            toast.success('Conversación resuelta');
         } catch (error) {
             console.error('Failed to resolve chat', error);
+            toast.error('No se pudo marcar como resuelta.');
         }
     };
 
-    if (isLoading) return <div className="p-8 text-center text-gray-500">Loading support dashboard...</div>;
+    const selectedChat = chats.find((c) => c.id === selectedChatId) || null;
+    const customer = selectedChat?.user_email || 'Usuario';
 
     return (
-        <div className="flex h-full bg-gray-50">
+        <div className="flex h-full min-h-0">
             {/* Sidebar: Chat List */}
-            <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
-                <div className="p-4 border-b border-gray-200">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <MessageCircle className="h-5 w-5" />
-                        Support Queue
-                    </h2>
-                    <p className="text-sm text-gray-500">{chats.length} open tickets</p>
+            <aside
+                aria-label="Cola de soporte"
+                className={cn('flex w-full shrink-0 flex-col border-r border-rule bg-paper md:w-80', selectedChatId && 'max-md:hidden')}
+            >
+                <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-rule px-4">
+                    <h1 className="text-[15px] font-semibold text-ink">Cola de soporte</h1>
+                    <span className="text-xs tabular-nums text-ink-3">{chats.length} {chats.length === 1 ? 'abierta' : 'abiertas'}</span>
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                    {chats.length === 0 ? (
-                        <div className="p-8 text-center text-gray-400">No open chats</div>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                    {isLoading ? (
+                        <SkeletonRows rows={6} columns={1} />
+                    ) : chats.length === 0 ? (
+                        <p className="px-4 py-10 text-center text-sm text-ink-3">No hay conversaciones abiertas.</p>
                     ) : (
-                        chats.map(chat => (
-                            <div
-                                key={chat.id}
-                                onClick={() => setSelectedChatId(chat.id)}
-                                className={cn(
-                                    "p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors",
-                                    selectedChatId === chat.id ? "bg-blue-50 border-l-4 border-l-blue-600" : ""
-                                )}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                        <UserIcon className="h-5 w-5 text-gray-500" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-gray-900 truncate">
-                                            {chat.user_email || 'Unknown User'}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            Started {new Date(chat.created_at).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
+                        <ul className="divide-y divide-rule">
+                            {chats.map(chat => {
+                                const active = selectedChatId === chat.id;
+                                return (
+                                    <li key={chat.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedChatId(chat.id)}
+                                            aria-current={active ? 'true' : undefined}
+                                            className={cn(
+                                                'flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus',
+                                                active ? 'bg-focus/[0.08]' : 'hover:bg-ink/[0.03]'
+                                            )}
+                                        >
+                                            <Avatar name={chat.user_email || '?'} size="sm" />
+                                            <span className="min-w-0 flex-1">
+                                                <span className={cn('block truncate text-sm text-ink', active ? 'font-semibold' : 'font-medium')}>
+                                                    {chat.user_email || 'Usuario sin correo'}
+                                                </span>
+                                                <span className="block text-xs text-ink-3">Abierta {timeAgo(chat.created_at)}</span>
+                                            </span>
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     )}
                 </div>
-            </div>
+            </aside>
 
             {/* Main Area: Chat Window */}
-            <div className="flex-1 flex flex-col bg-white">
+            <section className={cn('flex min-w-0 flex-1 flex-col bg-desk', !selectedChatId && 'max-md:hidden')}>
                 {selectedChatId ? (
                     <>
-                        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                            <div>
-                                <h3 className="font-semibold text-lg">Chat Details</h3>
-                                <p className="text-xs text-gray-500">ID: {selectedChatId}</p>
+                        <div className="flex h-14 shrink-0 items-center gap-3 border-b border-rule bg-paper px-4">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedChatId(null)}
+                                aria-label="Volver a la cola"
+                                className="-ml-1 inline-flex h-8 w-8 items-center justify-center rounded-control text-ink-2 hover:bg-ink/[0.06] hover:text-ink md:hidden"
+                            >
+                                <ArrowLeft size={16} />
+                            </button>
+                            <div className="min-w-0 flex-1">
+                                <h2 className="truncate text-[15px] font-semibold text-ink">{customer}</h2>
+                                {selectedChat && <p className="text-xs text-ink-3">Abierta el {formatDate(selectedChat.created_at, 'datetime')}</p>}
                             </div>
-                            <Button variant="secondary" onClick={handleResolveChat} className="text-green-600 hover:text-green-700 hover:bg-green-50">
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Resolve Ticket
+                            <Button variant="secondary" size="sm" onClick={handleResolveChat}>
+                                <CheckCircle size={14} aria-hidden="true" />
+                                Marcar resuelta
                             </Button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50" ref={scrollRef}>
-                            {messages.map((msg) => {
-                                const isAdmin = msg.sender_id === user?.id; // Assuming I am the admin viewer
-                                // Or check if sender is the chat owner (user) vs me (admin)
-                                // Better logic: if msg.sender_id === user.id it's ME (the admin answer)
-
-                                return (
-                                    <div
-                                        key={msg.id}
-                                        className={cn(
-                                            "flex w-full",
-                                            isAdmin ? "justify-end" : "justify-start"
-                                        )}
-                                    >
-                                        <div
-                                            className={cn(
-                                                "max-w-[70%] rounded-lg px-4 py-3 text-sm shadow-sm",
-                                                isAdmin
-                                                    ? "bg-blue-600 text-white rounded-br-none"
-                                                    : "bg-white border border-gray-200 text-slate-900 rounded-bl-none"
-                                            )}
-                                        >
-                                            {msg.content}
-                                            <div className={cn("text-[10px] mt-1 opacity-70", isAdmin ? "text-blue-100" : "text-gray-400")}>
-                                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
+                        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3" ref={containerRef} aria-live="polite">
+                            {messages.length === 0 ? (
+                                <p className="py-8 text-center text-sm text-ink-3">Sin mensajes todavía.</p>
+                            ) : (
+                                messages.map((msg, index) => {
+                                    const mine = msg.sender_id === user?.id;
+                                    const fromCustomer = msg.sender_id === selectedChat?.user_id;
+                                    const showHeader = index === 0 || messages[index - 1].sender_id !== msg.sender_id;
+                                    return (
+                                        <ChatMessageItem
+                                            key={msg.id}
+                                            message={{
+                                                id: msg.id,
+                                                content: msg.content,
+                                                user: { name: fromCustomer ? customer : 'Soporte' },
+                                                createdAt: msg.created_at,
+                                                userId: msg.sender_id,
+                                            }}
+                                            isOwnMessage={mine}
+                                            showHeader={showHeader}
+                                        />
+                                    );
+                                })
+                            )}
                         </div>
 
-                        <div className="p-4 border-t border-gray-200 bg-white">
-                            <form onSubmit={handleSendMessage} className="flex gap-2">
-                                <Input
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type a reply..."
-                                    className="flex-1"
-                                />
-                                <Button type="submit" disabled={!newMessage.trim()}>
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Send
-                                </Button>
-                            </form>
-                        </div>
+                        <form onSubmit={handleSendMessage} className="flex shrink-0 items-end gap-2 border-t border-rule bg-well p-3">
+                            <label htmlFor="support-reply" className="sr-only">Respuesta para {customer}</label>
+                            <textarea
+                                id="support-reply"
+                                rows={1}
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyDown={onKeyDown}
+                                placeholder="Escribe la respuesta…"
+                                className="field max-h-40 min-h-9 resize-none py-2"
+                            />
+                            <Button type="submit" size="icon" aria-label="Enviar respuesta" disabled={!newMessage.trim()} isLoading={sending}>
+                                {!sending && <Send size={16} />}
+                            </Button>
+                        </form>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                        <MessageCircle className="h-16 w-16 mb-4 opacity-20" />
-                        <p className="text-lg">Select a chat to view messages</p>
-                    </div>
+                    <EmptyState icon={LifeBuoy} title="Elige una conversación" className="m-auto">
+                        Las conversaciones abiertas desde el botón de soporte aparecen en la cola.
+                    </EmptyState>
                 )}
-            </div>
+            </section>
         </div>
     );
 }

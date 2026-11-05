@@ -86,7 +86,10 @@ export const notificationService = {
 
   // Subscribe to real-time notifications
   subscribe(userId: string, callback: (notification: Notification) => void) {
-      const channel = supabase.channel('my-notifications')
+      // One topic per caller: supabase.channel() returns the existing channel for a
+      // name already in use, and subscribing that channel a second time throws.
+      const topic = `notifications:${userId}:${Math.random().toString(36).slice(2)}`;
+      const channel = supabase.channel(topic)
         .on(
             'postgres_changes',
             {
@@ -100,7 +103,11 @@ export const notificationService = {
             }
         )
         .subscribe();
-        
-      return channel;
+
+      return {
+        unsubscribe: () => {
+          supabase.removeChannel(channel);
+        },
+      };
   }
 };

@@ -1,4 +1,10 @@
+import { MessageSquare } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import { Ticket, UserProfile } from '../../types';
+import { isOverdue, relativeDay } from '../../utils/format';
+import { ticketTitle } from '../../utils/tickets';
+import { Avatar } from '../ui/Avatar';
+import { requestTypeLabel } from '../ui/RequestTypeBadge';
 import { UrgencyBadge } from '../ui/UrgencyBadge';
 
 interface TicketBoardCardProps {
@@ -6,43 +12,62 @@ interface TicketBoardCardProps {
     user?: UserProfile;
     onClick: () => void;
     isSelected: boolean;
+    /** "12/37": position of the ticket in its project. */
+    number?: string;
+    isDragging?: boolean;
 }
 
-export function TicketBoardCard({ ticket, user, onClick, isSelected }: TicketBoardCardProps) {
-
+/** A ticket slip in a tray: number, priority, subject, who has it and when it is due. */
+export function TicketBoardCard({ ticket, user, onClick, isSelected, number, isDragging = false }: TicketBoardCardProps) {
+    const late = isOverdue(ticket.deadline, ticket.status);
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
-            className={`bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all mb-3 group ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 shadow-md' : 'border-gray-200'}`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
+            aria-pressed={isSelected}
+            className={cn(
+                'sheet block cursor-pointer p-3 text-left transition-[box-shadow,border-color]',
+                isSelected ? 'border-focus ring-1 ring-focus' : 'hover:border-rule-strong/60 hover:shadow-lift',
+                isDragging && 'rotate-[0.6deg] shadow-lift'
+            )}
         >
-            <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
-                    #{ticket.id.slice(0, 6)}
-                </span>
-                <UrgencyBadge urgency={ticket.urgency} />
+            <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[11px] font-semibold text-ink-3">{number || ''}</span>
+                <UrgencyBadge urgency={ticket.urgency} compact />
             </div>
 
-            <h4 className="text-sm font-medium text-gray-900 line-clamp-3 mb-3 leading-snug group-hover:text-indigo-600 transition-colors">
-                {ticket.subject}sadasd
+            <h4 className="mt-1.5 line-clamp-3 text-sm font-medium leading-snug text-ink">
+                {ticketTitle(ticket)}
             </h4>
+            {ticket.request_type && (
+                <p className="mt-1 truncate text-xs text-ink-3">{requestTypeLabel(ticket.request_type)}</p>
+            )}
 
-            <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-2">
-                <div className="flex items-center gap-1.5" title={user?.name || 'Sin asignar'}>
-                    {user ? (
-                        <div className="w-5 h-5 bg-indigo-50 rounded-full flex items-center justify-center text-[10px] text-indigo-700 font-bold border border-indigo-100">
-                            {user.name.charAt(0).toUpperCase()}
-                        </div>
-                    ) : (
-                        <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-[10px] text-gray-400">
-                            ?
-                        </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-rule pt-2 text-[11px]">
+                <span className="flex min-w-0 items-center gap-1.5" title={user?.name || 'Sin asignar'}>
+                    {user ? <Avatar name={user.name} src={user.avatar} size="xs" /> : null}
+                    <span className="truncate text-ink-2">{user?.name?.split(' ')[0] || 'Sin asignar'}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                    {ticket.comment_count > 0 && (
+                        <span className="flex items-center gap-0.5 text-ink-3" aria-label={`${ticket.comment_count} comentarios`}>
+                            <MessageSquare size={11} aria-hidden="true" />
+                            {ticket.comment_count}
+                        </span>
                     )}
-                    <span className="text-xs text-gray-500 truncate max-w-[80px]">
-                        {user?.name?.split(' ')[0] || 'Unassigned'}
-                    </span>
-                </div>
-
-                {/* You could add more icons here like attachment count if available */}
+                    {ticket.deadline && (
+                        <span className={cn('tabular-nums', late ? 'font-semibold text-st-red' : 'text-ink-3')}>
+                            {late ? `venció ${relativeDay(ticket.deadline)}` : relativeDay(ticket.deadline)}
+                        </span>
+                    )}
+                </span>
             </div>
         </div>
     );

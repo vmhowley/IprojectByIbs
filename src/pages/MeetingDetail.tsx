@@ -1,18 +1,30 @@
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { ArrowLeft, Calendar, CheckSquare, ChevronRight, Clock, FileText, Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
+import { PageHeader } from '../components/layout/PageHeader';
+import { Button } from '../components/ui/Button';
+import { confirmDialog } from '../components/ui/ConfirmDialog';
+import { Input } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
+import { Skeleton } from '../components/ui/Skeleton';
+import { useAuth } from '../hooks/useAuth';
 import { meetingService } from '../services/meetingService';
 import { Meeting } from '../types/meeting';
+import { formatDate } from '../utils/format';
 
+/** The minutes of one meeting: summary, follow-ups, recording and transcript. */
 export function MeetingDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [meeting, setMeeting] = useState<Meeting | null>(null);
     const [loading, setLoading] = useState(true);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [audioMissing, setAudioMissing] = useState(false);
+    const [renaming, setRenaming] = useState(false);
+    const [titleDraft, setTitleDraft] = useState('');
+    const [savingTitle, setSavingTitle] = useState(false);
 
     useEffect(() => {
         if (id) loadMeeting(id);
@@ -24,134 +36,202 @@ export function MeetingDetail() {
             setMeeting(data);
 
             if (data.audio_url) {
-                const signedUrl = await meetingService.getAudioUrl(data.audio_url);
-                setAudioUrl(signedUrl);
+                // A lost recording must not hide the summary: the meeting opens without it.
+                try {
+                    setAudioUrl(await meetingService.getAudioUrl(data.audio_url));
+                } catch (audioError) {
+                    console.error('Failed to sign meeting audio', audioError);
+                    setAudioMissing(true);
+                }
             }
         } catch (error) {
             console.error('Failed to load meeting', error);
-            toast.error('Error al cargar la reunión');
+            toast.error('No se pudo abrir la reunión.');
             navigate('/meetings');
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-                <p className="text-slate-500 font-medium animate-pulse">Analizando detalles de la reunión...</p>
+    // Only whoever recorded it can rename or delete it; the database applies the same rule.
+    const isOwner = !!meeting && meeting.user_id === user?.id;
+
+    const handleRename = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!meeting || !titleDraft.trim()) return;
+        setSavingTitle(true);
+        try {
+            const updated = await meetingService.update(meeting.id, { title: titleDraft.trim() });
+            setMeeting((prev) => (prev ? { ...prev, title: updated.title } : prev));
+            setRenaming(false);
+            toast.success('Título actualizado');
+        } catch (error) {
+            console.error('Failed to rename meeting', error);
+            toast.error('No se pudo cambiar el título.');
+        } finally {
+            setSavingTitle(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!meeting) return;
+        const ok = await confirmDialog({
+            title: 'Eliminar reunión',
+            message: `Se eliminará «${meeting.title}» con su resumen, pendientes y transcripción.`,
+            confirmText: 'Eliminar reunión',
+            tone: 'danger',
+        });
+        if (!ok) return;
+        try {
+            await meetingService.delete(meeting.id);
+            toast.success('Reunión eliminada');
+            navigate('/meetings');
+        } catch (error) {
+            console.error('Failed to delete meeting', error);
+            toast.error('No se pudo eliminar la reunión.');
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="space-y-5 px-4 py-5 sm:px-6" role="status" aria-label="Cargando">
+                <Skeleton className="h-7 w-80 max-w-full" />
+                <Skeleton className="h-4 w-56" />
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                    <Skeleton className="h-64" />
+                    <Skeleton className="h-48" />
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     if (!meeting) return null;
 
+    const items = meeting.action_items || [];
+
     return (
-        <div className="min-h-screen bg-slate-50/50 pb-12">
-            <div className="max-w-5xl mx-auto px-6 pt-8 space-y-8">
-                <button
-                    onClick={() => navigate('/meetings')}
-                    className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-medium"
-                >
-                    <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-                        <ArrowLeft className="w-4 h-4" />
-                    </div>
-                    <span>Volver a Reuniones</span>
-                </button>
+        <div className="flex min-h-full flex-col">
+            <PageHeader
+                back={{ to: '/meetings', label: 'Reuniones' }}
+                title={meeting.title}
+                subtitle={
+                    <>
+                        <span className="tabular-nums">{formatDate(meeting.date, 'long')}, {formatDate(meeting.date, 'time')}</span>
+                        {meeting.user_profiles?.name && <> · Grabó {meeting.user_profiles.name}</>}
+                    </>
+                }
+            >
+                {isOwner && (
+                    <>
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                setTitleDraft(meeting.title);
+                                setRenaming(true);
+                            }}
+                        >
+                            <Pencil size={15} aria-hidden="true" />
+                            Cambiar título
+                        </Button>
+                        <Button variant="danger" size="icon" onClick={handleDelete} aria-label="Eliminar reunión" title="Eliminar reunión">
+                            <Trash2 size={16} />
+                        </Button>
+                    </>
+                )}
+            </PageHeader>
 
-                <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10 pb-8 border-b border-slate-100">
-                        <div className="space-y-3">
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
-                                {meeting.title}
-                            </h1>
-                            <div className="flex flex-wrap items-center gap-4 text-slate-500">
-                                <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                                    {format(new Date(meeting.date), "PPP", { locale: es })}
-                                </div>
-                                <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                                    <Clock className="w-3.5 h-3.5 text-blue-600" />
-                                    {format(new Date(meeting.date), "HH:mm", { locale: es })}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {audioUrl && (
-                        <div className="bg-slate-50 rounded-2xl p-6 mb-10 border border-slate-100">
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                    <Play className="w-3 h-3 fill-current" />
-                                    Grabación Original
-                                </div>
-                                <audio controls className="w-full h-10 accent-emerald-500" src={audioUrl}>
-                                    Tu navegador no soporta el elemento de audio.
-                                </audio>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="grid lg:grid-cols-5 gap-10">
-                        <div className="lg:col-span-3 space-y-6">
-                            <div className="flex items-center gap-3 text-emerald-600 font-bold text-xl">
-                                <div className="p-2 bg-emerald-50 rounded-xl">
-                                    <FileText className="w-6 h-6" />
-                                </div>
-                                <h2>Resumen Ejecutivo</h2>
-                            </div>
-                            <div className="bg-slate-50/50 p-8 rounded-2xl border border-slate-100 leading-relaxed text-slate-700 font-medium text-lg whitespace-pre-wrap">
-                                {meeting.summary || 'No hay resumen disponible.'}
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="flex items-center gap-3 text-blue-600 font-bold text-xl">
-                                <div className="p-2 bg-blue-50 rounded-xl">
-                                    <CheckSquare className="w-6 h-6" />
-                                </div>
-                                <h2>Action Items</h2>
-                            </div>
-                            {meeting.action_items && meeting.action_items.length > 0 ? (
-                                <ul className="space-y-4">
-                                    {meeting.action_items.map((item, index) => (
-                                        <li key={index} className="flex items-start gap-4 bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:border-blue-300 transition-colors group">
-                                            <div className="mt-1 min-w-6 h-6 rounded-lg border-2 border-slate-200 group-hover:border-blue-500 group-hover:bg-blue-50 transition-all flex items-center justify-center">
-                                                <div className="w-2.5 h-2.5 bg-blue-500 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                            <span className="text-slate-700 font-medium leading-tight">{item}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="text-slate-400 italic p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center">
-                                    No se detectaron tareas pendientes.
-                                </div>
-                            )}
-                        </div>
-                    </div>
+            <div className="grid grid-cols-1 items-start gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="min-w-0 space-y-5">
+                    <section className="sheet" aria-labelledby="meeting-summary">
+                        <h2 id="meeting-summary" className="border-b border-rule px-5 py-3 text-[15px] font-semibold text-ink">
+                            Resumen
+                        </h2>
+                        <p className="max-w-[72ch] whitespace-pre-wrap px-5 py-4 text-[15px] leading-relaxed text-ink-2">
+                            {meeting.summary || 'No hay resumen para esta reunión.'}
+                        </p>
+                    </section>
 
                     {meeting.transcription && (
-                        <div className="mt-12 pt-10 border-t border-slate-100">
-                            <details className="group">
-                                <summary className="flex items-center justify-between cursor-pointer list-none bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white rounded-lg border border-slate-200">
-                                            <FileText className="w-5 h-5 text-slate-400" />
-                                        </div>
-                                        <span className="font-bold text-slate-600 uppercase tracking-wider text-xs">Transcripción Completa</span>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-slate-400 group-open:rotate-90 transition-transform" />
-                                </summary>
-                                <div className="mt-4 p-8 bg-white border border-slate-200 rounded-2xl text-slate-600 text-sm leading-loose whitespace-pre-wrap max-h-[500px] overflow-y-auto shadow-inner">
-                                    {meeting.transcription}
-                                </div>
-                            </details>
-                        </div>
+                        <details className="sheet group">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 hover:bg-ink/[0.02] [&::-webkit-details-marker]:hidden">
+                                <span className="text-[15px] font-semibold text-ink">Transcripción</span>
+                                <span className="flex items-center gap-1 text-[13px] text-ink-3">
+                                    <span className="group-open:hidden">Mostrar</span>
+                                    <span className="hidden group-open:inline">Ocultar</span>
+                                    <ChevronRight size={15} aria-hidden="true" className="transition-transform group-open:rotate-90" />
+                                </span>
+                            </summary>
+                            <div className="max-h-[32rem] overflow-y-auto border-t border-rule px-5 py-4">
+                                <p className="max-w-[72ch] whitespace-pre-wrap text-sm leading-7 text-ink-2">{meeting.transcription}</p>
+                            </div>
+                        </details>
                     )}
                 </div>
+
+                <aside className="space-y-5">
+                    <section className="sheet" aria-labelledby="meeting-items">
+                        <h2 id="meeting-items" className="border-b border-rule px-5 py-3 text-[15px] font-semibold text-ink">
+                            Pendientes <span className="font-normal tabular-nums text-ink-3">{items.length}</span>
+                        </h2>
+                        {items.length > 0 ? (
+                            <ol className="divide-y divide-rule">
+                                {items.map((item, index) => (
+                                    <li key={index} className="flex gap-3 px-5 py-2.5 text-sm leading-snug text-ink">
+                                        <span className="w-5 shrink-0 text-right text-xs font-semibold tabular-nums text-ink-3">{index + 1}.</span>
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ol>
+                        ) : (
+                            <p className="px-5 py-4 text-sm text-ink-3">La IA no encontró pendientes en esta reunión.</p>
+                        )}
+                    </section>
+
+                    {(audioUrl || audioMissing) && (
+                        <section className="sheet" aria-labelledby="meeting-audio">
+                            <h2 id="meeting-audio" className="border-b border-rule px-5 py-3 text-[15px] font-semibold text-ink">
+                                Grabación
+                            </h2>
+                            <div className="px-5 py-4">
+                                {audioUrl ? (
+                                    <>
+                                        <audio controls className="h-10 w-full" src={audioUrl}>
+                                            Tu navegador no puede reproducir este audio.
+                                        </audio>
+                                        <p className="mt-2 text-xs text-ink-3">El enlace de la grabación vence en una hora. Recarga la página para renovarlo.</p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-ink-3">No se encontró el archivo de audio. El resumen y la transcripción siguen disponibles.</p>
+                                )}
+                            </div>
+                        </section>
+                    )}
+                </aside>
             </div>
+
+            {renaming && (
+                <Modal
+                    isOpen
+                    onClose={() => setRenaming(false)}
+                    dismissible={!savingTitle}
+                    size="sm"
+                    title="Cambiar título"
+                    footer={
+                        <>
+                            <Button type="button" variant="secondary" onClick={() => setRenaming(false)} disabled={savingTitle}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" form="meeting-title-form" isLoading={savingTitle} disabled={!titleDraft.trim()}>
+                                Guardar
+                            </Button>
+                        </>
+                    }
+                >
+                    <form id="meeting-title-form" onSubmit={handleRename}>
+                        <Input label="Título" value={titleDraft} onChange={(e) => setTitleDraft(e.target.value)} autoFocus required />
+                    </form>
+                </Modal>
+            )}
         </div>
     );
 }

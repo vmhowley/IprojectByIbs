@@ -45,7 +45,8 @@ export const contactService = {
     },
 
     async delete(id: string): Promise<void> {
-      await supabase.from('contacts').delete().eq('id', id);
+      const { error } = await supabase.from('contacts').delete().eq('id', id);
+      if (error) throw error;
       return;
     }
   };

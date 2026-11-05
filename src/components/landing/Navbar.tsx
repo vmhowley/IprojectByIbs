@@ -1,35 +1,33 @@
 import { Link } from 'react-router-dom';
-import Logo from '../../public/Logoibpulse.webp';
+import { Logo } from '../ui/Logo';
 
+/** The letterhead of the public site: the mark, the sections and the way in. */
 export function Navbar() {
     return (
-        <nav className="fixed w-full z-50 transition-all duration-300 bg-white/30  backdrop-blur-md border-b border-gray-200/50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-20">
-                    <div className="flex items-center gap-2">
-                        <img src={Logo} alt="ibPulse" className="w-60 h-20  object-center object-cover" />
-                        <span className="font-bold text-2xl text-gray-900 tracking-tight"></span>
-                    </div>
+        <header className="sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur-sm">
+            <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+                <Link to="/" aria-label="ibPulse, inicio" className="shrink-0">
+                    <Logo className="h-6 sm:h-7" />
+                </Link>
 
-                    <div className="hidden md:flex items-center gap-8">
-                        <a href="#features" className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">Características</a>
-                        <a href="#trust" className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">Clientes</a>
-                        <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">Precios</a>
-                    </div>
+                <nav aria-label="Secciones" className="hidden items-center gap-7 md:flex">
+                    <a href="#funciones" className="text-sm font-medium text-ink-2 hover:text-ink">Funciones</a>
+                    <a href="#precios" className="text-sm font-medium text-ink-2 hover:text-ink">Precios</a>
+                    <Link to="/demo" className="text-sm font-medium text-ink-2 hover:text-ink">Demo</Link>
+                </nav>
 
-                    <div className="flex items-center gap-4">
-                        <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-                            Iniciar Sesión
-                        </Link>
-                        <Link
-                            to="/register"
-                            className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-800 transition-all shadow-lg hover:shadow-gray-900/20 hover:-translate-y-0.5"
-                        >
-                            Comenzar Gratis
-                        </Link>
-                    </div>
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <Link to="/login" className="whitespace-nowrap rounded-control px-2 py-2 text-sm font-medium text-ink-2 hover:text-ink">
+                        Iniciar sesión
+                    </Link>
+                    <Link
+                        to="/register"
+                        className="inline-flex h-9 items-center whitespace-nowrap rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-on-brand hover:border-brand-strong hover:bg-brand-strong sm:px-3.5"
+                    >
+                        Crear cuenta
+                    </Link>
                 </div>
             </div>
-        </nav>
+        </header>
     );
 }

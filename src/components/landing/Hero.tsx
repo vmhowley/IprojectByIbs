@@ -1,66 +1,128 @@
-import { ArrowRight, ChevronRight, Play } from 'lucide-react';
+import { ArrowRight, Check, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatMoney } from '../../utils/format';
+import { StatusBadge } from '../ui/StatusBadge';
 
-export function Hero() {
+// Example rows for the preview. Invented names: never real client data on a public page.
+const SAMPLE = [
+    { client: 'Clínica del Este', project: 'Portal de citas', status: 'active', amount: 4800, currency: 'USD' },
+    { client: 'Ferretería Ozama', project: 'Catálogo y pedidos', status: 'on_hold', amount: 185000, currency: 'DOP' },
+    { client: 'Cooperativa Ahorra+', project: 'App de socios', status: 'active', amount: 2150, currency: 'USD' },
+    { client: 'Colegio San Pablo', project: 'Notas en línea', status: 'completed', amount: 96500, currency: 'DOP' },
+];
+
+function sampleTotals() {
+    const totals: Record<string, number> = {};
+    SAMPLE.forEach((row) => (totals[row.currency] = (totals[row.currency] || 0) + row.amount));
+    return totals;
+}
+
+/** The app's own ledger, drawn live with sample data, with a ticket waiting for the client on top. */
+function ProductPreview() {
+    const totals = sampleTotals();
     return (
-        <div className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-            {/* Background Elements */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl mix-blend-multiply animate-blob"></div>
-                <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-3xl mix-blend-multiply animate-blob animation-delay-2000"></div>
-                <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl mix-blend-multiply animate-blob animation-delay-4000"></div>
+        <div className="relative" aria-label="Vista de ejemplo de ibPulse" role="img">
+            <div className="sheet overflow-hidden shadow-lift" aria-hidden="true">
+                <div className="flex items-center justify-between border-b border-rule px-4 py-2.5">
+                    <p className="text-sm font-semibold text-ink">Libro de cotizaciones</p>
+                    <p className="text-xs text-ink-3">Datos de ejemplo</p>
+                </div>
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-rule bg-well">
+                            <th className="caption px-4 py-1.5 text-left font-semibold">Cliente · proyecto</th>
+                            <th className="caption hidden px-2 py-1.5 text-left font-semibold sm:table-cell">Estado</th>
+                            <th className="caption px-4 py-1.5 text-right font-semibold">Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-rule">
+                        {SAMPLE.map((row) => (
+                            <tr key={row.client}>
+                                <td className="px-4 py-2.5">
+                                    <span className="block font-medium text-ink">{row.client}</span>
+                                    <span className="block text-xs text-ink-3">{row.project}</span>
+                                </td>
+                                <td className="hidden px-2 py-2.5 sm:table-cell">
+                                    <StatusBadge status={row.status} size="sm" />
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                                    {formatMoney(row.amount, row.currency)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr className="rule-total">
+                            <th scope="row" className="px-4 py-2.5 text-left text-sm font-semibold text-ink">Total cotizado</th>
+                            <td className="hidden sm:table-cell" />
+                            <td className="px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-ink">
+                                <span className="block">{formatMoney(totals.USD, 'USD')}</span>
+                                <span className="block">{formatMoney(totals.DOP, 'DOP')}</span>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-medium mb-8 animate-fade-in-up">
-                    <span className="flex h-2 w-2 rounded-full bg-indigo-600"></span>
-                    Nuevo: Gestión de Roadmap 2.0
-                    <ChevronRight size={14} />
+            {/* A ticket waiting for the client's answer, laid over the ledger's lower edge. */}
+            <div
+                className="sheet relative -mt-2 ml-auto mr-3 w-[18rem] rotate-[1.25deg] p-4 shadow-lift sm:-mr-4"
+                aria-hidden="true"
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <p className="font-mono text-xs font-semibold text-ink-3">Ticket 12/40</p>
+                    <StatusBadge status="pending_approval" size="sm" animate />
                 </div>
-
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tight mb-8 leading-tight animate-fade-in-up animation-delay-100">
-                    Gestiona proyectos con <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-                        precisión quirúrgica
+                <p className="mt-1.5 text-sm font-semibold leading-snug text-ink">Ajustar el cálculo de la mora</p>
+                <p className="mt-2 text-xs text-ink-2">Cooperativa Ahorra+ revisa la entrega desde su portal.</p>
+                <div className="mt-3 flex gap-2">
+                    <span className="inline-flex h-7 items-center gap-1 rounded-control border border-brand bg-brand px-2.5 text-xs font-semibold text-on-brand">
+                        <Check size={13} /> Aprobar
                     </span>
-                </h1>
-
-                <p className="max-w-2xl mx-auto text-xl text-gray-600 mb-12 leading-relaxed animate-fade-in-up animation-delay-200">
-                    La plataforma todo-en-uno para agencias y equipos de desarrollo.
-                    Centraliza tareas, colabora con clientes y entrega a tiempo, siempre.
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-300">
-                    <Link
-                        to="/register"
-                        className="group relative inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-indigo-600 rounded-2xl overflow-hidden transition-all hover:bg-indigo-700 shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/40 hover:-translate-y-1"
-                    >
-                        Comenzar Gratis
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
-
-                    <Link
-                        to="/demo"
-                        className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md hover:-translate-y-1"
-                    >
-                        <Play size={20} className="fill-gray-700" />
-                        Ver Demo en vivo
-                    </Link>
-                </div>
-
-                {/* Dashboard Preview Mockup */}
-                <div className="mt-20 relative mx-auto max-w-5xl rounded-2xl border border-gray-200/50 bg-gray-50/50 p-2 backdrop-blur-sm shadow-2xl animate-fade-in-up animation-delay-500">
-                    <div className="rounded-xl overflow-hidden bg-white border border-gray-200 shadow-sm aspect-[16/9] flex items-center justify-center text-gray-400 bg-gradient-to-br from-gray-50 to-white">
-                        {/* Placeholder for actual screenshot */}
-                        <div className="text-center">
-                            <p className="font-medium">Vista Dashboard Interactiva</p>
-                            <p className="text-sm opacity-60">Gráficos, Roadmap y Tareas</p>
-                        </div>
-                    </div>
-                    {/* Decorative blurs */}
-                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl blur opacity-20 -z-10"></div>
+                    <span className="inline-flex h-7 items-center gap-1 rounded-control border border-rule-strong/70 bg-paper px-2.5 text-xs font-semibold text-ink">
+                        <RotateCcw size={12} /> Solicitar cambios
+                    </span>
                 </div>
             </div>
         </div>
+    );
+}
+
+export function Hero() {
+    return (
+        <section className="border-b border-rule" aria-labelledby="hero-title">
+            <div className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-16 lg:pb-24 lg:pt-20">
+                <div>
+                    <h1
+                        id="hero-title"
+                        className="text-[2.5rem] font-bold leading-[1.04] tracking-[-0.02em] text-ink [font-stretch:112%] sm:text-[3.4rem]"
+                    >
+                        Cada proyecto con su precio. Cada cliente con su cuenta.
+                    </h1>
+                    <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2">
+                        ibPulse lleva los proyectos y tickets de tu equipo por cliente: quién pidió qué, en qué estado va,
+                        cuándo vence y cuánto se cotizó. Dólares y pesos, cada uno en su línea.
+                    </p>
+                    <div className="mt-8 flex flex-wrap items-center gap-3">
+                        <Link
+                            to="/register"
+                            className="group inline-flex h-11 items-center gap-2 rounded-control border border-brand bg-brand px-5 text-[15px] font-semibold text-on-brand hover:border-brand-strong hover:bg-brand-strong"
+                        >
+                            Crear cuenta gratis
+                            <ArrowRight size={17} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                        <Link
+                            to="/demo"
+                            className="inline-flex h-11 items-center rounded-control border border-rule-strong/70 bg-paper px-5 text-[15px] font-semibold text-ink hover:border-ink hover:bg-well"
+                        >
+                            Ver la demo
+                        </Link>
+                    </div>
+                    <p className="mt-4 text-sm text-ink-3">Gratis hasta 3 proyectos y 3 clientes. Sin tarjeta para empezar.</p>
+                </div>
+
+                <ProductPreview />
+            </div>
+        </section>
     );
 }

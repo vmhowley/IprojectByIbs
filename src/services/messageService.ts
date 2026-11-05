@@ -39,8 +39,10 @@ export const messageService = {
   },
 
   subscribe(channelId: string, onMessage: (msg: any) => void) {
-    return supabase
-      .channel(`chat:${channelId}`)
+    // A fresh topic each time: supabase.channel() would hand back the old, already
+    // subscribed channel when the same conversation is opened again.
+    const channel = supabase
+      .channel(`chat:${channelId}:${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -67,5 +69,11 @@ export const messageService = {
         }
       )
       .subscribe();
+
+    return {
+      unsubscribe: () => {
+        supabase.removeChannel(channel);
+      },
+    };
   }
 };

@@ -2,12 +2,12 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
-  assignee?: string;
+  assignee?: string | null;
   status: 'active' | 'on_hold' | 'completed' | 'archived';
-  start_date?: string;
-  end_date?: string;
+  start_date?: string | null;
+  end_date?: string | null;
   priority: 'low' | 'medium' | 'high';
-  team?: string;
+  team?: string | null;
   file_attachment?: string;
   created_by?: string | null;
   client_id?: string | null;

@@ -1,28 +1,26 @@
-import toast from 'react-hot-toast';
-import { ToastConfirm } from '../components/ui/ToastConfirm';
+import { ReactNode } from 'react';
+import { confirmDialog } from '../components/ui/ConfirmDialog';
 
 interface ConfirmOptions {
-    message: string;
+    message: ReactNode;
     onConfirm: () => void;
     confirmText?: string;
     cancelText?: string;
+    title?: string;
+    tone?: 'danger' | 'primary';
 }
 
+// Kept for existing callers. The question is now a focused dialog instead of a
+// toast that disappeared after five seconds.
 export const confirmAction = ({
     message,
     onConfirm,
     confirmText = 'Sí',
-    cancelText = 'Cancelar'
+    cancelText = 'Cancelar',
+    title,
+    tone
 }: ConfirmOptions) => {
-    toast.custom((t) => (
-        <ToastConfirm
-            t={t}
-            message={message}
-            onConfirm={onConfirm}
-            confirmText={confirmText}
-            cancelText={cancelText}
-        />
-    ), {
-        duration: 5000, // Give user enough time to consider
+    confirmDialog({ message, confirmText, cancelText, title, tone }).then((confirmed) => {
+        if (confirmed) onConfirm();
     });
 };

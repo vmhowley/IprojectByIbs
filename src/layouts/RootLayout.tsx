@@ -1,102 +1,75 @@
-import { Menu } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { CommandPalette } from '../components/layout/CommandPalette';
+import { Navbar } from '../components/layout/Navbar';
 import { Sidebar } from '../components/layout/Sidebar';
-import SplashScreen from '../components/layout/SplashScreen';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { SupportChatWidget } from '../components/support/SupportChatWidget';
-import Logo from '../public/Logoibpulse.webp';
-import { projectService } from '../services/projectService';
+import { createProjectWithFiles } from '../services/projectCreation';
 import { Project } from '../types';
+
 export function RootLayout() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleCreateProject = async (projectData: Partial<Project>, files: File[]) => {
-    try {
-      // 1. Create Project
-      const data = await projectService.create(projectData);
-
-      // 2. Upload Files
-      if (files.length > 0) {
-        const { storageService } = await import('../services/storageService');
-        const attachments = [];
-
-        for (const file of files) {
-          try {
-            const { url } = await storageService.uploadFile(file, data.id);
-            attachments.push({
-              name: file.name,
-              url,
-              size: file.size,
-              type: file.type
-            });
-          } catch (err) {
-            console.error('Failed to upload file:', file.name, err);
-          }
-        }
-
-        // 3. Update Project with Attachments
-        if (attachments.length > 0) {
-          await projectService.update(data.id, { attachments });
-        }
-      }
-
-      navigate(`/project/${data.id}`);
-    } catch (error) {
-      console.error('Error creating project:', error);
-    }
+    const data = await createProjectWithFiles(projectData, files);
+    navigate(`/project/${data.id}`);
   };
+
+  // Ctrl+K (Cmd+K on Mac) opens the search from anywhere.
   useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        await projectService.getAll();
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading projects:', error);
-        setIsLoading(false);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsSearchOpen((open) => !open);
       }
     };
-    loadProjects();
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  // Every navigation starts at the top of the page and closes the drawer.
+  useEffect(() => {
+    document.getElementById('main')?.scrollTo({ top: 0 });
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
+
   return (
-    <div className="h-screen bg-white dark:bg-slate-950 flex overflow-hidden">
-      {isLoading ? (
-        <SplashScreen />
-      ) : (
-        <>
-          <Sidebar
-            onNewProject={() => setIsNewProjectModalOpen(true)}
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-          />
+    <div className="flex h-dvh overflow-hidden bg-desk">
+      <a
+        href="#main"
+        className="sr-only z-[90] rounded-control bg-paper px-3 py-2 text-sm font-semibold text-ink shadow-lift focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
+      >
+        Saltar al contenido
+      </a>
 
-          <div className="flex-1 flex flex-col min-w-0 h-full">
-            {/* Mobile Header with Menu button */}
-            <div className="md:hidden border-b border-gray-200 dark:border-slate-800 p-4 flex items-center bg-white dark:bg-slate-900 sticky top-0 z-30 shrink-0">
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-2 -ml-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md"
-              >
-                <Menu size={24} />
-              </button>
-              <span className="ml-2 font-semibold text-gray-900 dark:text-white"><img className='w-30 h-8 object-cover object-center dark:brightness-200' src={Logo} alt="" /></span>
-            </div>
+      <Sidebar
+        onNewProject={() => setIsNewProjectModalOpen(true)}
+        isOpen={isSidebarOpen}
+        onClose={closeSidebar}
+      />
 
-            <main className="flex-1 overflow-y-auto">
-              <Outlet />
-            </main>
-          </div>
-        </>
-      )}
+      <div className="flex h-full min-w-0 flex-1 flex-col">
+        <Navbar onOpenMenu={() => setIsSidebarOpen(true)} onOpenSearch={() => setIsSearchOpen(true)} />
+        {/* relative: screen-reader-only captions scroll inside #main instead of stretching the page. */}
+        <main id="main" tabIndex={-1} className="relative flex-1 overflow-y-auto outline-none">
+          <Outlet />
+        </main>
+      </div>
+
       {isNewProjectModalOpen && (
         <NewProjectModal
           onClose={() => setIsNewProjectModalOpen(false)}
           onSubmit={handleCreateProject}
         />
       )}
+      <CommandPalette open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <SupportChatWidget />
     </div>
   );

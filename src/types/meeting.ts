@@ -9,6 +9,9 @@ export interface Meeting {
   user_id: string;
   created_at: string;
   updated_at?: string;
+  user_profiles?: {
+    name: string;
+  };
 }
 
 export interface CreateMeetingDTO {

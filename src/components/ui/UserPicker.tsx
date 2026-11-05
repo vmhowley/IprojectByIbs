@@ -1,19 +1,28 @@
-import { Search, User, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { cn } from '../../lib/utils';
 import { getUsers } from '../../services/usersService';
 import { UserProfile } from '../../types';
+import { Avatar } from './Avatar';
+import { Popover } from './Popover';
 
 interface UserPickerProps {
   value?: string | null;
   onChange: (userId: string | null) => void;
   placeholder?: string;
+  id?: string;
 }
 
-export function UserPicker({ value, onChange, placeholder = 'Seleccionar usuario' }: UserPickerProps) {
+/** "Asignado a" cell: pick a team member by name or email. */
+export function UserPicker({ value, onChange, placeholder = 'Sin asignar', id }: UserPickerProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
 
   useEffect(() => {
     loadUsers();
@@ -30,119 +39,123 @@ export function UserPicker({ value, onChange, placeholder = 'Seleccionar usuario
     }
   }
 
-  const selectedUser = users.find(u => u.id === value);
+  const close = useCallback(() => {
+    setOpen(false);
+    setSearchTerm('');
+  }, []);
 
+  useEffect(() => {
+    if (open) {
+      setActiveIndex(0);
+      requestAnimationFrame(() => searchRef.current?.focus());
+    }
+  }, [open]);
+
+  const selectedUser = users.find(u => u.id === value);
+  const term = searchTerm.trim().toLowerCase();
   const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (u.name || '').toLowerCase().includes(term) || (u.email || '').toLowerCase().includes(term)
   );
 
   function handleSelect(userId: string) {
     onChange(userId);
-    setShowDropdown(false);
-    setSearchTerm('');
+    close();
+    buttonRef.current?.focus();
   }
 
-  function handleClear(e: React.MouseEvent) {
-    e.stopPropagation();
-    onChange(null);
-  }
-
-  if (loading) {
-    return (
-      <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm">
-        Cargando usuarios...
-      </div>
-    );
+  function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIndex(i => Math.min(filteredUsers.length - 1, i + 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIndex(i => Math.max(0, i - 1));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (filteredUsers[activeIndex]) handleSelect(filteredUsers[activeIndex].id);
+    }
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-1">
       <button
+        ref={buttonRef}
+        id={id}
         type="button"
-        onClick={() => setShowDropdown(!showDropdown)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left text-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+        onClick={() => setOpen(o => !o)}
+        disabled={loading}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="field flex min-h-9 items-center justify-between gap-2 text-left"
       >
-        <div className="flex items-center justify-between">
-          {selectedUser ? (
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                {selectedUser.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-gray-900">{selectedUser.name}</span>
-            </div>
-          ) : (
-            <span className="text-gray-500">{placeholder}</span>
-          )}
-          <div className="flex items-center gap-1">
-            {selectedUser && (
-              <button
-                onClick={handleClear}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-400" />
-              </button>
-            )}
-            <User className="w-4 h-4 text-gray-400" />
+        {loading ? (
+          <span className="text-sm text-ink-3">Cargando equipo…</span>
+        ) : selectedUser ? (
+          <span className="flex min-w-0 items-center gap-2">
+            <Avatar name={selectedUser.name} src={selectedUser.avatar} size="xs" />
+            <span className="truncate text-sm text-ink">{selectedUser.name}</span>
+          </span>
+        ) : (
+          <span className="text-sm text-ink-3">{placeholder}</span>
+        )}
+        <ChevronDown size={14} aria-hidden="true" className="shrink-0 text-ink-3" />
+      </button>
+      {selectedUser && (
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          aria-label="Quitar asignación"
+          title="Quitar asignación"
+          className="inline-flex h-9 w-8 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
+        >
+          <X size={15} />
+        </button>
+      )}
+
+      <Popover anchorRef={buttonRef} open={open} onClose={close} matchWidth className="min-w-[16rem]">
+        <div className="border-b border-rule p-2">
+          <div className="relative">
+            <Search size={14} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+            <input
+              ref={searchRef}
+              type="search"
+              placeholder="Buscar por nombre o correo"
+              aria-label="Buscar persona"
+              aria-controls={listId}
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setActiveIndex(0); }}
+              onKeyDown={onSearchKeyDown}
+              className="field h-8 pl-8 text-[13px]"
+            />
           </div>
         </div>
-      </button>
-
-      {showDropdown && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setShowDropdown(false)}
-          />
-          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
-            <div className="p-2 border-b border-gray-200">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar usuario..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {filteredUsers.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-gray-500 text-center">
-                  No se encontraron usuarios
+        <div id={listId} role="listbox" aria-label="Equipo" className="max-h-60 overflow-y-auto py-1">
+          {filteredUsers.length === 0 ? (
+            <p className="px-3 py-3 text-center text-[13px] text-ink-3">Nadie coincide con «{searchTerm}».</p>
+          ) : (
+            filteredUsers.map((user, index) => {
+              const selected = value === user.id;
+              return (
+                <div
+                  key={user.id}
+                  role="option"
+                  aria-selected={selected}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => handleSelect(user.id)}
+                  className={cn('flex cursor-pointer items-center gap-2.5 px-3 py-2', index === activeIndex && 'bg-ink/[0.06]')}
+                >
+                  <Avatar name={user.name} src={user.avatar} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className={cn('block truncate text-sm text-ink', selected && 'font-semibold')}>{user.name}</span>
+                    <span className="block truncate text-xs text-ink-3">{user.email}</span>
+                  </span>
+                  {selected && <Check size={14} aria-hidden="true" className="shrink-0 text-brand" />}
                 </div>
-              ) : (
-                filteredUsers.map((user) => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => handleSelect(user.id)}
-                    className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-2 ${value === user.id ? 'bg-indigo-50' : ''
-                      }`}
-                  >
-                    <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {user.email}
-                      </p>
-                    </div>
-                    {value === user.id && (
-                      <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0" />
-                    )}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </>
-      )}
+              );
+            })
+          )}
+        </div>
+      </Popover>
     </div>
   );
 }

@@ -1,17 +1,25 @@
-import { Loader2, Mic, Pause, Play, Save, Square, Upload } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { KeyRound, Mic, Pause, Play, Square, Trash2, Upload } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { aiService } from '../../services/aiService';
 import { meetingService } from '../../services/meetingService';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
 
+/** The minutes form: a title and the audio; the AI writes the rest. */
 export function MeetingRecorder() {
     const [isRecording, setIsRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const [processing, setProcessing] = useState(false);
     const [title, setTitle] = useState('');
+    const [titleError, setTitleError] = useState<string | undefined>();
+    const [askKey, setAskKey] = useState(false);
+    const [apiKey, setApiKey] = useState('');
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<number | null>(null);
     const navigate = useNavigate();
@@ -19,6 +27,19 @@ export function MeetingRecorder() {
     // Audio Playback State
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Leaving the page turns the microphone off and stops playback.
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+            streamRef.current?.getTracks().forEach(track => track.stop());
+            if (audioRef.current) {
+                audioRef.current.pause();
+                URL.revokeObjectURL(audioRef.current.src);
+            }
+        };
+    }, []);
 
     const getSupportedMimeType = () => {
         const types = [
@@ -38,11 +59,14 @@ export function MeetingRecorder() {
     };
 
     const startRecording = async () => {
+        if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+            toast.error('Este navegador no puede grabar audio. Sube un archivo.');
+            return;
+        }
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
             const mimeType = getSupportedMimeType();
-
-            console.log('Using mimeType for recording:', mimeType);
 
             const options = mimeType ? { mimeType } : {};
             mediaRecorderRef.current = new MediaRecorder(stream, options);
@@ -54,12 +78,12 @@ export function MeetingRecorder() {
 
             mediaRecorderRef.current.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: mediaRecorderRef.current?.mimeType || mimeType || 'audio/webm' });
-                console.log('Recording stopped. Blob size:', blob.size, 'type:', blob.type);
                 setAudioBlob(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
 
             mediaRecorderRef.current.start();
+            setRecordingTime(0);
             setIsRecording(true);
 
             timerRef.current = window.setInterval(() => {
@@ -67,7 +91,7 @@ export function MeetingRecorder() {
             }, 1000);
         } catch (err) {
             console.error('Error accessing microphone:', err);
-            toast.error('No se pudo acceder al micrófono');
+            toast.error('No se pudo usar el micrófono. Revisa el permiso del navegador.');
         }
     };
 
@@ -81,12 +105,13 @@ export function MeetingRecorder() {
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        e.target.value = '';
         if (file) {
             const isMedia = file.type.startsWith('audio/') || file.type.startsWith('video/');
             const hasMediaExt = /\.(webm|mp3|mp4|m4a|wav|ogg|mkv|mov|avi|wma|aac|flac)$/i.test(file.name);
 
             if (!isMedia && !hasMediaExt) {
-                toast.error('El archivo no parece ser audio o video válido.');
+                toast.error('El archivo no parece ser audio o video.');
                 return;
             }
 
@@ -94,20 +119,39 @@ export function MeetingRecorder() {
         }
     };
 
+    const discardAudio = () => {
+        setAudioBlob(null);
+        setRecordingTime(0);
+        if (audioRef.current) {
+            audioRef.current.pause();
+            URL.revokeObjectURL(audioRef.current.src);
+            audioRef.current = null;
+        }
+        setIsPlaying(false);
+    };
+
     const handleSave = async () => {
         if (!title.trim()) {
-            toast.error('Por favor ingresa un título para la reunión');
+            setTitleError('Escribe un título para la reunión.');
             return;
         }
         if (!audioBlob) {
-            toast.error('No hay grabación o archivo de audio');
+            toast.error('Graba la reunión o sube un archivo primero.');
+            return;
+        }
+        // The key lives only in this browser. Ask for it here, not in a prompt.
+        if (!aiService.hasKey()) {
+            setAskKey(true);
             return;
         }
 
         setProcessing(true);
-        const loadingToast = toast.loading('Procesando audio con IA...');
+        const loadingToast = toast.loading('Procesando el audio con IA…');
 
         try {
+            // The AI goes first: if it fails, nothing was uploaded and the audio is still here to retry.
+            const aiResult = await aiService.processMeetingAudio(audioBlob);
+
             // Determine file extension based on mimeType
             let fileExt = 'webm';
             if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) fileExt = 'm4a';
@@ -118,10 +162,8 @@ export function MeetingRecorder() {
             const file = new File([audioBlob], `recording.${fileExt}`, { type: audioBlob.type });
             const audioPath = await meetingService.uploadRecording(file);
 
-            const aiResult = await aiService.processMeetingAudio(audioBlob);
-
-            await meetingService.create({
-                title,
+            const created = await meetingService.create({
+                title: title.trim(),
                 date: new Date().toISOString(),
                 audio_url: audioPath,
                 summary: aiResult.summary,
@@ -130,15 +172,23 @@ export function MeetingRecorder() {
             });
 
             toast.dismiss(loadingToast);
-            toast.success('Reunión guardada y procesada correctamente');
-            navigate('/meetings');
+            toast.success('Reunión guardada');
+            navigate(`/meetings/${created.id}`);
         } catch (error) {
             console.error('Error processing meeting:', error);
             toast.dismiss(loadingToast);
-            toast.error('Error al procesar la reunión con IA');
+            toast.error('No se pudo procesar la reunión. El audio sigue aquí para intentarlo de nuevo.');
         } finally {
             setProcessing(false);
         }
+    };
+
+    const saveKeyAndContinue = () => {
+        if (!apiKey.trim()) return;
+        aiService.setApiKey(apiKey.trim());
+        setApiKey('');
+        setAskKey(false);
+        handleSave();
     };
 
     const formatTime = (seconds: number) => {
@@ -164,133 +214,122 @@ export function MeetingRecorder() {
         }
     };
 
+    const fileName = audioBlob instanceof File ? audioBlob.name : `Grabación de ${formatTime(recordingTime)}`;
 
     return (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm max-w-2xl mx-auto">
-            <div className="space-y-8">
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Título de la Reunión</label>
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Ej: Daily Standup de Ingeniería"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all"
-                    />
-                </div>
+        <Card padding="none" className="max-w-2xl">
+            <div className="space-y-5 p-5">
+                <Input
+                    label="Título de la reunión"
+                    value={title}
+                    onChange={(e) => {
+                        setTitle(e.target.value);
+                        setTitleError(undefined);
+                    }}
+                    placeholder="Ej.: Revisión semanal del proyecto"
+                    error={titleError}
+                    disabled={processing}
+                />
 
-                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                    {!audioBlob ? (
-                        <>
-                            {isRecording ? (
-                                <div className="text-center">
-                                    <div className="relative mb-6">
-                                        <div className="absolute inset-0 animate-ping bg-red-100 rounded-full scale-150 opacity-75"></div>
-                                        <div className="relative bg-red-500 text-white p-4 rounded-full">
-                                            <Mic className="w-10 h-10" />
-                                        </div>
-                                    </div>
-                                    <div className="text-4xl font-mono text-slate-900 mb-8 tracking-wider">{formatTime(recordingTime)}</div>
-                                    <button
-                                        onClick={stopRecording}
-                                        className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-xl flex items-center gap-2 mx-auto transition-all shadow-lg hover:shadow-red-500/20"
-                                    >
-                                        <Square className="w-5 h-5 fill-current" />
-                                        <span className="font-semibold">Detener Grabación</span>
-                                    </button>
+                <fieldset>
+                    <legend className="caption mb-1.5">Audio</legend>
+                    <div className="rounded-control border border-dashed border-rule-strong/70 bg-well/50 px-5 py-6">
+                        {!audioBlob ? (
+                            isRecording ? (
+                                <div className="flex flex-col items-center gap-4 text-center">
+                                    <p role="status" className="flex items-center gap-2 text-sm font-semibold text-st-red">
+                                        <span className="h-2.5 w-2.5 rounded-full bg-st-red motion-safe:animate-pulse" aria-hidden="true" />
+                                        Grabando
+                                    </p>
+                                    <p className="font-mono text-4xl tabular-nums text-ink" aria-label={`Tiempo grabado: ${formatTime(recordingTime)}`}>
+                                        {formatTime(recordingTime)}
+                                    </p>
+                                    <Button variant="secondary" onClick={stopRecording}>
+                                        <Square size={14} className="fill-current" aria-hidden="true" />
+                                        Detener grabación
+                                    </Button>
                                 </div>
                             ) : (
-                                <div className="text-center space-y-6">
-                                    <button
-                                        onClick={startRecording}
-                                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full p-6 mb-2 transition-all hover:scale-110 shadow-lg hover:shadow-emerald-500/20 group"
-                                    >
-                                        <Mic className="w-10 h-10 group-hover:scale-110 transition-transform" />
-                                    </button>
-                                    <div>
-                                        <p className="text-slate-900 font-semibold text-lg">Empezar a grabar</p>
-                                        <p className="text-slate-500 text-sm mt-1">Asegúrate de permitir el acceso al micrófono</p>
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="flex flex-col items-center gap-3 sm:flex-row">
+                                        <Button onClick={startRecording}>
+                                            <Mic size={16} aria-hidden="true" />
+                                            Empezar a grabar
+                                        </Button>
+                                        <span className="text-xs text-ink-3">o</span>
+                                        <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-control border border-rule-strong/70 bg-paper px-3.5 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-well focus-within:ring-2 focus-within:ring-focus">
+                                            <input type="file" accept="audio/*,video/*" className="sr-only" onChange={handleFileUpload} />
+                                            <Upload size={15} aria-hidden="true" />
+                                            Subir un archivo
+                                        </label>
                                     </div>
-
-                                    <div className="flex items-center gap-4 text-slate-300 py-2">
-                                        <div className="h-px flex-1 bg-slate-200"></div>
-                                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400">O</div>
-                                        <div className="h-px flex-1 bg-slate-200"></div>
-                                    </div>
-
-                                    <label className="inline-block cursor-pointer group">
-                                        <input
-                                            type="file"
-                                            accept="audio/*,video/*"
-                                            className="hidden"
-                                            onChange={handleFileUpload}
-                                        />
-                                        <div className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-white hover:border-emerald-500 hover:text-emerald-600 transition-all font-medium">
-                                            <Upload className="w-4 h-4" />
-                                            Subir archivo existente
-                                        </div>
-                                    </label>
+                                    <p className="text-xs text-ink-3">El navegador pedirá permiso para el micrófono. También acepta video.</p>
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="text-center w-full">
-                            <div className="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl mb-6 shadow-sm">
-                                <div className="flex items-center gap-4">
-                                    <button
-                                        onClick={togglePlayback}
-                                        className="w-12 h-12 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors"
-                                    >
-                                        {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
-                                    </button>
-                                    <div className="text-left">
-                                        <p className="text-slate-900 font-semibold text-sm">Grabación lista</p>
-                                        <p className="text-slate-500 text-xs">{(audioBlob.size / (1024 * 1024)).toFixed(2)} MB • {audioBlob.type || 'audio/media'}</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setAudioBlob(null);
-                                        setRecordingTime(0);
-                                        if (audioRef.current) {
-                                            audioRef.current.pause();
-                                            audioRef.current = null;
-                                        }
-                                        setIsPlaying(false);
-                                    }}
-                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                    title="Eliminar"
+                            )
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={togglePlayback}
+                                    aria-label={isPlaying ? 'Pausar' : 'Escuchar'}
+                                    title={isPlaying ? 'Pausar' : 'Escuchar'}
                                 >
-                                    <Square className="w-5 h-5" />
-                                </button>
+                                    {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                                </Button>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-ink">{fileName}</p>
+                                    <p className="text-xs tabular-nums text-ink-3">
+                                        {(audioBlob.size / (1024 * 1024)).toFixed(2)} MB · {audioBlob.type || 'audio'}
+                                    </p>
+                                </div>
+                                <Button variant="ghost" size="sm" onClick={discardAudio} disabled={processing}>
+                                    <Trash2 size={14} aria-hidden="true" />
+                                    Descartar
+                                </Button>
                             </div>
+                        )}
+                    </div>
+                </fieldset>
 
-                            <button
-                                onClick={handleSave}
-                                disabled={processing}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-wait"
-                            >
-                                {processing ? (
-                                    <>
-                                        <Loader2 className="w-6 h-6 animate-spin" />
-                                        <span className="font-semibold text-lg">Procesando con IA...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-6 h-6" />
-                                        <span className="font-semibold text-lg">Guardar y Procesar Reunión</span>
-                                    </>
-                                )}
-                            </button>
+                {askKey && (
+                    <div className="rounded-control border border-rule bg-well p-3">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                            <KeyRound size={15} aria-hidden="true" className="text-ink-3" />
+                            Clave de Google Gemini
+                        </p>
+                        <p className="mt-1 text-xs text-ink-2">La IA necesita tu clave. Se guarda solo en este navegador.</p>
+                        <div className="mt-2 flex gap-2">
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                aria-label="Clave de Google Gemini"
+                                className="field h-8 py-1 font-mono text-[13px]"
+                                placeholder="AIza…"
+                                autoComplete="off"
+                            />
+                            <Button type="button" size="sm" variant="secondary" onClick={saveKeyAndContinue} disabled={!apiKey.trim()}>
+                                Guardar y seguir
+                            </Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setAskKey(false)}>
+                                Cancelar
+                            </Button>
                         </div>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-center gap-2 text-xs text-slate-400 font-medium">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                    La IA generará automáticamente un resumen y lista de tareas.
-                </div>
+                    </div>
+                )}
             </div>
-        </div>
+
+            {audioBlob && (
+                <div className="flex flex-col gap-3 border-t border-rule bg-well px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-ink-3">
+                        {processing ? 'Puede tardar unos minutos según la duración del audio.' : 'La IA escribe el resumen y los pendientes. Revísalos antes de compartirlos.'}
+                    </p>
+                    <Button onClick={handleSave} isLoading={processing}>
+                        {processing ? 'Procesando…' : 'Guardar y procesar'}
+                    </Button>
+                </div>
+            )}
+        </Card>
     );
 }

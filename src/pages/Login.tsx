@@ -1,9 +1,12 @@
-import { Chrome, Lock, LogIn, Mail } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import toast from 'react-hot-toast'; // Assuming react-toastify for toast messages
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AuthShell, GoogleMark } from '../components/auth/AuthShell';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
+import { authErrorMessage } from '../utils/errors';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -16,7 +19,7 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,14 +29,14 @@ export function Login() {
     try {
       if (isResetMode) {
         await authService.resetPassword(email);
-        toast.success('Se ha enviado un correo para restablecer tu contraseña');
+        toast.success('Te enviamos un correo para restablecer tu contraseña.');
         setIsResetMode(false);
       } else {
         await login({ email, password });
         navigate(from, { replace: true });
       }
-    } catch (err: any) {
-      setError(err.message || (isResetMode ? 'Error al solicitar restablecimiento' : 'Error al iniciar sesión'));
+    } catch (err) {
+      setError(authErrorMessage(err, isResetMode ? 'No se pudo enviar el correo de restablecimiento.' : 'No se pudo iniciar sesión.'));
     } finally {
       setLoading(false);
     }
@@ -46,133 +49,97 @@ export function Login() {
     try {
       await loginWithGoogle();
       // Redirect will happen automatically
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión con Google');
+    } catch (err) {
+      setError(authErrorMessage(err, 'No se pudo iniciar sesión con Google.'));
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full mb-4">
-            <LogIn className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">{isResetMode ? 'Restablecer contraseña' : 'Bienvenido'}</h1>
-          <p className="text-gray-600 mt-2">{isResetMode ? 'Ingresa tu correo para recibir un enlace de recuperación' : 'Inicia sesión para continuar'}</p>
-        </div>
+    <AuthShell
+      title={isResetMode ? 'Restablecer contraseña' : 'Iniciar sesión'}
+      subtitle={isResetMode ? 'Escribe tu correo y te enviamos un enlace para crear una nueva.' : 'Entra para ver tus proyectos y clientes.'}
+      footer={
+        isResetMode ? (
+          <button
+            type="button"
+            onClick={() => {
+              setIsResetMode(false);
+              setError('');
+            }}
+            className="font-semibold text-ink underline-offset-2 hover:underline"
+          >
+            Volver a iniciar sesión
+          </button>
+        ) : (
+          <>
+            ¿No tienes una cuenta?{' '}
+            <Link to="/register" className="font-semibold text-ink underline-offset-2 hover:underline">
+              Crear una
+            </Link>
+          </>
+        )
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Correo"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          autoFocus
+          placeholder="nombre@empresa.com"
+          disabled={loading}
+        />
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 text-sm">{error}</p>
+        {!isResetMode && (
+          <div>
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setIsResetMode(true);
+                setError('');
+              }}
+              className="mt-1.5 text-[13px] font-medium text-ink-2 underline-offset-2 hover:text-ink hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Correo electrónico
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                placeholder="tu@email.com"
-                disabled={loading}
-              />
-            </div>
+        {error && (
+          <p role="alert" className="rounded-control border border-st-red/40 bg-st-red/[0.06] px-3 py-2 text-sm text-st-red">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" className="w-full" isLoading={loading}>
+          {isResetMode ? 'Enviar enlace' : 'Iniciar sesión'}
+        </Button>
+      </form>
+
+      {!isResetMode && (
+        <>
+          <div className="my-5 flex items-center gap-3 text-xs text-ink-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-rule" />o<span className="h-px flex-1 bg-rule" />
           </div>
-
-          {!isResetMode && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Contraseña
-                </label>
-                <div className="text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setIsResetMode(true)}
-                    className="font-medium text-indigo-600 hover:text-indigo-500"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </button>
-                </div>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  placeholder="••••••••"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Procesando...' : (isResetMode ? 'Enviar enlace' : 'Iniciar sesión')}
-          </button>
-        </form>
-
-        <div className="mt-6">
-          {isResetMode ? (
-            <button
-              type="button"
-              onClick={() => setIsResetMode(false)}
-              className="w-full text-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Volver al inicio de sesión
-            </button>
-          ) : (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">O continúa con</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                className="mt-4 w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Chrome className="w-5 h-5" />
-                Google
-              </button>
-
-              <p className="mt-8 text-center text-sm text-gray-600">
-                ¿No tienes una cuenta?{' '}
-                <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Regístrate aquí
-                </Link>
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+          <Button type="button" variant="secondary" size="lg" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
+            <GoogleMark className="h-[18px] w-[18px]" />
+            Continuar con Google
+          </Button>
+        </>
+      )}
+    </AuthShell>
   );
 }

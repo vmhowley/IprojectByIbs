@@ -6,13 +6,14 @@ import { Pricing } from '../components/landing/Pricing';
 
 export function LandingPage() {
     return (
-        <div className="min-h-screen bg-white font-sans selection:bg-indigo-100 selection:text-indigo-900">
+        <div className="min-h-screen bg-desk text-ink selection:bg-brand/15">
             <Navbar />
-            <Hero />
-            <Features />
-            <Pricing />
+            <main>
+                <Hero />
+                <Features />
+                <Pricing />
+            </main>
             <Footer />
         </div>
     );
 }
-

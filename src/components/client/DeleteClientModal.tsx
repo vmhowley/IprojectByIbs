@@ -1,26 +1,29 @@
-import { AlertTriangle, X } from "lucide-react";
-import { useState } from "react";
-import { createPortal } from "react-dom";
+import { FormEvent, useState } from "react";
 import { Client } from "../../types/Client";
+import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { Modal } from "../ui/Modal";
 
 interface DeleteClientModalProps {
     client: Client;
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => Promise<void>;
+    /** Things that keep the client in use: the database refuses the delete while they exist. */
+    blockers?: string[];
 }
 
-export function DeleteClientModal({ client, isOpen, onClose, onConfirm }: DeleteClientModalProps) {
+export function DeleteClientModal({ client, isOpen, onClose, onConfirm, blockers = [] }: DeleteClientModalProps) {
     const [confirmationName, setConfirmationName] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const blocked = blockers.length > 0;
     const isValidMatch = confirmationName.trim() === client.name;
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if (!isValidMatch) return;
+        if (!isValidMatch || blocked) return;
 
         setIsDeleting(true);
         setError(null);
@@ -29,82 +32,58 @@ export function DeleteClientModal({ client, isOpen, onClose, onConfirm }: Delete
             await onConfirm();
             onClose();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al eliminar el cliente');
+            setError(err instanceof Error ? err.message : 'No se pudo eliminar el cliente.');
             setIsDeleting(false);
         }
     };
 
-    if (!isOpen) return null;
-
-    return createPortal(
-        <div className="fixed inset-0 z-60 flex items-center justify-center">
-            <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={() => !isDeleting && onClose()}
-            />
-            <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-gray-200 dark:border-slate-800">
-                <div className="bg-red-50 dark:bg-red-900/10 px-6 py-4 border-b border-red-100 dark:border-red-900/20 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-                        <AlertTriangle size={20} />
-                        <h2 className="text-lg font-bold">Eliminar Cliente</h2>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-red-400 hover:text-red-600 transition-colors"
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            dismissible={!isDeleting}
+            size="sm"
+            title="Eliminar cliente"
+            description={client.name}
+            footer={
+                <>
+                    <Button type="button" variant="secondary" onClick={onClose} disabled={isDeleting} data-autofocus={blocked || undefined}>
+                        {blocked ? 'Entendido' : 'Cancelar'}
+                    </Button>
+                    {!blocked && (
+                        <Button type="submit" form="delete-client-form" variant="danger" isLoading={isDeleting} disabled={!isValidMatch}>
+                            Eliminar cliente
+                        </Button>
+                    )}
+                </>
+            }
+        >
+            {blocked ? (
+                <div className="space-y-3 text-sm text-ink-2">
+                    <p>Este cliente todavía está en uso, así que no se puede eliminar:</p>
+                    <ul className="list-disc space-y-1 pl-5 text-ink">
+                        {blockers.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                    <p>Pasa esos proyectos a otro cliente, elimínalos o quita el acceso al portal, y vuelve a intentarlo.</p>
+                </div>
+            ) : (
+                <form id="delete-client-form" onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-sm text-ink-2">
+                        Se eliminará <strong className="font-semibold text-ink">{client.name}</strong> junto con sus contactos.
+                        Esta acción no se puede deshacer.
+                    </p>
+                    <Input
+                        label="Escribe el nombre del cliente para confirmar"
+                        value={confirmationName}
+                        onChange={(e) => setConfirmationName(e.target.value)}
+                        placeholder={client.name}
                         disabled={isDeleting}
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <div className="p-6">
-                    <div className="mb-6">
-                        <p className="text-gray-700 dark:text-slate-300 mb-2">
-                            Esta acción es <strong>irreversible</strong>. Se eliminará el cliente
-                            <span className="text-red-600 dark:text-red-400 font-bold"> "{client.name}"</span> y todos sus datos asociados.
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-slate-400">
-                            Para confirmar, escribe el nombre del cliente a continuación:
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <Input
-                            value={confirmationName}
-                            onChange={(e) => setConfirmationName(e.target.value)}
-                            placeholder={client.name}
-                            disabled={isDeleting}
-                            autoFocus
-                            className={isValidMatch ? 'border-red-500 focus:ring-red-500' : ''}
-                        />
-
-                        {error && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                <p className="text-sm text-red-800">{error}</p>
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-end gap-3 pt-2">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={isDeleting}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={!isValidMatch || isDeleting}
-                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
-                            >
-                                {isDeleting ? 'Eliminando...' : 'Eliminar Permanentemente'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>,
-        document.body
+                        autoComplete="off"
+                        autoFocus
+                        error={error || undefined}
+                    />
+                </form>
+            )}
+        </Modal>
     );
 }

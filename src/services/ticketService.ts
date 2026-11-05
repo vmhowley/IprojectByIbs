@@ -116,7 +116,7 @@ export const ticketService = {
              notificationService.create(
                 updates.assigned_to,
                 'Tarea Asignada',
-                `Te han asignado la tarea #${updatedTicket.ticket_number}: ${updatedTicket.subject || 'Sin asunto'}`,
+                `Te han asignado la tarea${updatedTicket.ticket_number ? ` #${updatedTicket.ticket_number}` : ''}: ${updatedTicket.subject || 'Sin asunto'}`,
                 'assignment',
                 `/ticket/${updatedTicket.id}`
             );

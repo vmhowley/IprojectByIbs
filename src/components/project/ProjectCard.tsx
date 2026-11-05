@@ -1,15 +1,24 @@
-import { Building2, Calendar, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { cn } from '../../lib/utils';
 import { Project } from '../../types';
+import { formatDate, isOverdue } from '../../utils/format';
+import { Avatar } from '../ui/Avatar';
+import { Money } from '../ui/Money';
+import { StatusBadge } from '../ui/StatusBadge';
 
 interface ProjectCardProps {
   project: Project;
   taskCount?: number;
   completedTaskCount?: number;
+  /** Show the price line (admins only). */
+  showPrice?: boolean;
 }
 
-export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: ProjectCardProps) {
+const PRIORITY_LABEL: Record<string, string> = { high: 'Prioridad alta', medium: 'Prioridad media', low: 'Prioridad baja' };
+
+/** A project's index card: status stamp, name, client, progress, dates and price. */
+export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0, showPrice = false }: ProjectCardProps) {
   const { user } = useAuth();
 
   // Check if this project belongs to the client the user is linked to
@@ -17,133 +26,64 @@ export function ProjectCard({ project, taskCount = 0, completedTaskCount = 0 }: 
 
   // Calculate progress percentage
   const progressPercent = taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0;
-
-  const formatDate = (date: string) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('es-ES', {
-      month: 'short',
-      day: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20';
-      case 'on_hold': return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100 dark:border-amber-500/20';
-      case 'completed': return 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/20';
-      case 'archived': return 'bg-slate-50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400 border-slate-100 dark:border-slate-700';
-      default: return 'bg-gray-50 text-gray-700 border-gray-100';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 ring-rose-500/20';
-      case 'medium': return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 ring-amber-500/20';
-      case 'low': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 ring-blue-500/20';
-      default: return 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/20 ring-slate-500/20';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return 'Activo';
-      case 'on_hold': return 'En Espera';
-      case 'completed': return 'Completado';
-      case 'archived': return 'Archivado';
-      default: return status;
-    }
-  };
-
-
+  const late = isOverdue(project.end_date, project.status);
 
   return (
     <Link
       to={`/project/${project.id}`}
-      className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 relative overflow-hidden h-full border border-gray-100 dark:border-slate-800"
+      className="sheet group flex h-full flex-col p-4 transition-[box-shadow,border-color] hover:border-rule-strong/60 hover:shadow-lift"
     >
-      {/* Decorative top gradient line */}
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+      <div className="flex items-start justify-between gap-2">
+        <StatusBadge status={project.status || 'active'} size="sm" />
+        {isLinkedProject && <span className="text-[11px] font-semibold text-ink-3">Tu empresa</span>}
+      </div>
 
-      <div className="p-5 flex-1 flex flex-col">
+      <h3 className="mt-3 line-clamp-2 text-[15px] font-semibold leading-snug text-ink group-hover:underline group-hover:decoration-rule-strong">
+        {project.name}
+      </h3>
+      <p className="mt-0.5 truncate text-[13px] text-ink-2">
+        {!isLinkedProject && project.clients?.name ? project.clients.name : 'Sin cliente'}
+        {project.priority === 'high' && <span className="text-st-red"> · {PRIORITY_LABEL.high}</span>}
+      </p>
 
-        {/* Header Row: Status + Priority + Linked */}
-        <div className="flex items-start justify-between mb-3 gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(project.status || 'active')}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${project.status === 'active' ? 'bg-current' : 'bg-gray-400'}`} />
-              {getStatusLabel(project.status || 'active')}
-            </span>
+      {project.description ? (
+        <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-ink-3">{project.description}</p>
+      ) : null}
 
-            {project.priority && (
-              <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ring-1 ring-inset ${getPriorityColor(project.priority)}`}>
-                {project.priority}
-              </span>
-            )}
-          </div>
-
-          {isLinkedProject && (
-            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/20">
-              <Building2 size={10} />
-              VINCULADO
-            </span>
-          )}
+      <div className="mt-auto pt-4">
+        <div className="flex items-center justify-between text-xs text-ink-3">
+          <span>
+            <span className="font-semibold tabular-nums text-ink">{completedTaskCount}</span>/{taskCount} tickets
+          </span>
+          <span className="tabular-nums">{progressPercent}%</span>
+        </div>
+        <div className="mt-1 h-1 overflow-hidden rounded-full bg-well" aria-hidden="true">
+          <div className="h-full bg-st-green" style={{ width: `${progressPercent}%` }} />
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
-          {project.name}
-        </h3>
+        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-rule pt-3 text-xs">
+          <dt className="text-ink-3">Inicio</dt>
+          <dd className="text-right tabular-nums text-ink-2">{formatDate(project.start_date || project.created_at)}</dd>
+          <dt className="text-ink-3">Entrega</dt>
+          <dd className={cn('text-right tabular-nums', late ? 'font-semibold text-st-red' : 'text-ink-2')}>
+            {project.end_date ? formatDate(project.end_date) : '—'}
+          </dd>
+          {showPrice && (
+            <>
+              <dt className="text-ink-3">Precio</dt>
+              <dd className="text-right font-semibold text-ink">
+                <Money amount={project.cost} currency={project.currency} />
+              </dd>
+            </>
+          )}
+        </dl>
 
-        {project.description ? (
-          <p className="text-gray-500 dark:text-slate-400 text-sm line-clamp-2 mb-5">
-            {project.description}
-          </p>
-        ) : (
-          <p className="text-gray-400 dark:text-slate-600 text-sm italic mb-5">Sin descripción...</p>
+        {project.assignee_profile && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-ink-2" title={`Responsable: ${project.assignee_profile.name}`}>
+            <Avatar name={project.assignee_profile.name} size="xs" />
+            <span className="truncate">{project.assignee_profile.name}</span>
+          </div>
         )}
-
-        {/* Stats Row */}
-        <div className="mt-auto grid grid-cols-2 gap-4 py-4 border-t border-gray-50 dark:border-slate-800">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 uppercase font-semibold">Progreso</span>
-            <div className="flex items-end gap-1.5 mt-0.5">
-              <span className="text-lg font-bold text-gray-900 dark:text-white">{progressPercent}%</span>
-              <div className="mb-1.5 h-1.5 w-16 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${progressPercent}%` }}></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-gray-400 uppercase font-semibold">Inicio</span>
-            <div className="flex items-center gap-1.5 mt-1 text-sm font-medium text-gray-700 dark:text-slate-300">
-              <Calendar size={14} className="text-indigo-500" />
-              {formatDate(project.start_date || project.created_at)}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="pt-3 flex items-center justify-between text-xs text-gray-400 mt-1">
-          {!isLinkedProject && project.clients && (
-            <div className="flex items-center gap-2">
-              <Users size={12} />
-              <span className="truncate max-w-40">{project.clients.name}</span>
-            </div>
-          )}
-          {!project.clients && <div></div>} {/* Spacer if no client */}
-
-          {project.assignee_profile && (
-            <div className="flex items-center gap-1.5 ml-auto" title={`Asignado a: ${project.assignee_profile.name}`}>
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold">
-                {project.assignee_profile.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="max-w-[100px] truncate">{project.assignee_profile.name}</span>
-            </div>
-          )}
-        </div>
-
       </div>
     </Link>
   );

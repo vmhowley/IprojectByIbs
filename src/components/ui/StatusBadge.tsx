@@ -1,88 +1,90 @@
-import { CheckCircle2, Circle, Clock, Eye, PlayCircle } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
-type Status = "pending_analysis" | "pending_approval" | "approved" | "ongoing" | "completed" | "done"
+type Ink = 'graphite' | 'ochre' | 'blue' | 'violet' | 'green' | 'red';
+
+interface StampSpec {
+  label: string;
+  ink: Ink;
+}
+
+// Every status is a rubber stamp in an office ink. Waiting on someone is
+// ochre, work in progress violet, approved blue, finished green.
+const STAMPS: Record<string, StampSpec> = {
+  pending_analysis: { label: 'Pendiente de análisis', ink: 'graphite' },
+  pending_approval: { label: 'Pendiente de aprobación', ink: 'ochre' },
+  in_review: { label: 'En revisión', ink: 'ochre' },
+  approved: { label: 'Aprobado', ink: 'blue' },
+  ongoing: { label: 'En desarrollo', ink: 'violet' },
+  completed: { label: 'Completado', ink: 'green' },
+  done: { label: 'Finalizado', ink: 'green' },
+  active: { label: 'Activo', ink: 'violet' },
+  on_hold: { label: 'En espera', ink: 'ochre' },
+  archived: { label: 'Archivado', ink: 'graphite' },
+  pending: { label: 'Pendiente', ink: 'graphite' },
+  cancelled: { label: 'Cancelado', ink: 'red' },
+  overdue: { label: 'Vencido', ink: 'red' },
+};
+
+const INK_CLASS: Record<Ink, string> = {
+  graphite: 'text-st-graphite',
+  ochre: 'text-st-ochre',
+  blue: 'text-st-blue',
+  violet: 'text-st-violet',
+  green: 'text-st-green',
+  red: 'text-st-red',
+};
+
+// On the stamp itself the lettering is the ink pressed deeper, so it stays legible over its own tint.
+const STAMP_INK: Record<Ink, string> = {
+  graphite: 'text-stamp-graphite',
+  ochre: 'text-stamp-ochre',
+  blue: 'text-stamp-blue',
+  violet: 'text-stamp-violet',
+  green: 'text-stamp-green',
+  red: 'text-stamp-red',
+};
+
+export function statusLabel(status: string | null | undefined): string {
+  if (!status) return '';
+  return STAMPS[status]?.label ?? status.replace(/_/g, ' ');
+}
+
+export function statusInkClass(status: string | null | undefined): string {
+  return INK_CLASS[(status && STAMPS[status]?.ink) || 'graphite'];
+}
 
 interface StatusBadgeProps {
-  status: Status | string;
+  status: string;
+  size?: 'sm' | 'md' | 'lg';
+  /** Plays the stamp landing on the paper. Use only right after a change. */
+  animate?: boolean;
+  className?: string;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  const config: Record<string, { icon: any; text: string; className: string; iconClassName: string }> = {
-    pending_approval: {
-      icon: Circle,
-      text: 'Pendiente de Aprobación',
-      className: 'text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-800/50',
-      iconClassName: 'text-gray-600 dark:text-slate-400'
-    },
-    approved: {
-      icon: CheckCircle2,
-      text: 'Aprobado',
-      className: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10',
-      iconClassName: 'text-green-600 dark:text-green-400'
-    },
-    done: {
-      icon: CheckCircle2,
-      text: 'Finalizado',
-      className: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10',
-      iconClassName: 'text-green-600 dark:text-green-400'
-    },
-    ongoing: {
-      icon: Circle,
-      text: 'En Desarrollo',
-      className: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10',
-      iconClassName: 'text-blue-600 dark:text-blue-400'
-    },
-    completed: {
-      icon: CheckCircle2,
-      text: 'Completado',
-      className: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10',
-      iconClassName: 'text-green-600 dark:text-green-400'
-    },
-    in_review: {
-      icon: Eye,
-      text: 'En Revisión',
-      className: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10',
-      iconClassName: 'text-sky-600 dark:text-sky-400'
-    },
-    pending_analysis: {
-      icon: Clock,
-      text: 'Pendiente de Análisis',
-      className: 'text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-800/50',
-      iconClassName: 'text-gray-600 dark:text-slate-400'
-    },
-    active: {
-      icon: PlayCircle,
-      text: 'Activo',
-      className: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10',
-      iconClassName: 'text-indigo-600 dark:text-indigo-400'
-    },
-    on_hold: {
-      icon: Clock,
-      text: 'En Espera',
-      className: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10',
-      iconClassName: 'text-orange-600 dark:text-orange-400'
-    },
-    pending: {
-      icon: Circle,
-      text: 'Pendiente',
-      className: 'text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-800/50',
-      iconClassName: 'text-gray-600 dark:text-slate-400'
-    },
-    default: {
-      icon: Circle,
-      text: status, // Show the raw status text for debugging if unknown
-      className: 'text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-800/50',
-      iconClassName: 'text-gray-600 dark:text-slate-400'
-    }
-  };
+const SIZE: Record<NonNullable<StatusBadgeProps['size']>, string> = {
+  sm: 'h-[18px] px-1 text-2xs border',
+  md: 'h-5 px-1.5 text-2xs border-[1.5px]',
+  lg: 'h-7 px-2.5 text-xs border-2 tracking-[0.08em]',
+};
 
-  const statusConfig = config[status] || config['default'];
-  const { icon: Icon, text, className, iconClassName } = statusConfig;
-
+/** A framed rubber stamp: double frame, condensed capitals, a trace of ink. */
+export function StatusBadge({ status, size = 'md', animate = false, className }: StatusBadgeProps) {
   return (
-    <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-sm font-medium ${className}`}>
-      <Icon size={14} className={iconClassName} />
-      <span>{text}</span>
-    </div>
+    <span
+      key={animate ? status : undefined}
+      className={cn(
+        'inline-flex shrink-0 select-none items-center whitespace-nowrap rounded-stamp border-current/45 font-bold uppercase leading-none tracking-[0.06em] [font-stretch:82%]',
+        'bg-[color-mix(in_oklch,currentColor_12%,transparent)] shadow-[inset_0_0_0_1px_var(--paper),inset_0_0_0_1.75px_currentColor]',
+        size === 'sm' && 'shadow-none',
+        STAMP_INK[(STAMPS[status]?.ink) || 'graphite'],
+        SIZE[size],
+        animate && 'animate-stamp',
+        className
+      )}
+    >
+      {statusLabel(status)}
+    </span>
   );
 }
+
+export { StatusBadge as Stamp };

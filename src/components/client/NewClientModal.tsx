@@ -1,9 +1,8 @@
-import { X } from 'lucide-react';
-import { useState } from 'react';
-import { createPortal } from 'react-dom';
+import { FormEvent, useState } from 'react';
 import { Client } from '../../types/Client';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Modal } from '../ui/Modal';
 import { Textarea } from '../ui/Textarea';
 
 interface NewClientModalProps {
@@ -12,6 +11,7 @@ interface NewClientModalProps {
   initialData?: Client;
 }
 
+/** Client registration form: the company and how to reach it. */
 export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModalProps) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -28,11 +28,13 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
     setError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Keep the event inside this form when it is opened from another form.
+    e.stopPropagation();
 
     if (!formData.name.trim()) {
-      setError('El nombre de la empresa es requerido');
+      setError('Escribe el nombre de la empresa.');
       return;
     }
 
@@ -40,137 +42,91 @@ export function NewClientModal({ onClose, onSubmit, initialData }: NewClientModa
     setError(null);
 
     try {
+      // Empty cells are saved as null so clearing a field on edit sticks.
       await onSubmit({
         ...initialData,
-        name: formData.name,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        address: formData.address || undefined,
-        notes: formData.notes || undefined
+        name: formData.name.trim(),
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        address: formData.address.trim() || null,
+        notes: formData.notes.trim() || null
       });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar el cliente');
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el cliente. Inténtalo de nuevo.');
       setIsSubmitting(false);
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50"
-        onClick={() => !isSubmitting && onClose()}
-      />
-      <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md mx-4 border border-gray-200 dark:border-slate-800">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {initialData ? 'Editar Cliente' : 'Nuevo Cliente'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
-            disabled={isSubmitting}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Nombre de la Empresa <span className="text-red-500">*</span>
-            </label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Ej: Acme Corporation"
-              disabled={isSubmitting}
-              required
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              placeholder="contacto@empresa.com"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Teléfono
-            </label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
-              placeholder="+1 234 567 8900"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Dirección
-            </label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleChange('address', e.target.value)}
-              placeholder="Dirección de la empresa"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Notas
-            </label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleChange('notes', e.target.value)}
-              placeholder="Información adicional..."
-              rows={3}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-500/20 transition-all"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Guardando...' : (initialData ? 'Guardar Cambios' : 'Crear Cliente')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      dismissible={!isSubmitting}
+      size="md"
+      title={initialData ? 'Editar cliente' : 'Nuevo cliente'}
+      description={initialData ? initialData.name : 'La empresa para la que se hace el trabajo.'}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="client-form" isLoading={isSubmitting}>
+            {initialData ? 'Guardar cambios' : 'Registrar cliente'}
+          </Button>
+        </>
+      }
+    >
+      <form id="client-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Input
+          label="Empresa"
+          wrapperClassName="sm:col-span-2"
+          value={formData.name}
+          onChange={(e) => handleChange('name', e.target.value)}
+          placeholder="Ej.: Asociación Popular de Ahorros y Préstamos"
+          disabled={isSubmitting}
+          required
+          autoFocus
+          error={error && !formData.name.trim() ? error : undefined}
+        />
+        <Input
+          label="Correo"
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleChange('email', e.target.value)}
+          placeholder="contacto@empresa.com.do"
+          disabled={isSubmitting}
+        />
+        <Input
+          label="Teléfono"
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => handleChange('phone', e.target.value)}
+          placeholder="809 000 0000"
+          disabled={isSubmitting}
+        />
+        <Input
+          label="Dirección"
+          wrapperClassName="sm:col-span-2"
+          value={formData.address}
+          onChange={(e) => handleChange('address', e.target.value)}
+          disabled={isSubmitting}
+        />
+        <Textarea
+          label="Notas"
+          wrapperClassName="sm:col-span-2"
+          value={formData.notes}
+          onChange={(e) => handleChange('notes', e.target.value)}
+          placeholder="Acuerdos, horarios, a quién llamar para aprobar…"
+          rows={3}
+          disabled={isSubmitting}
+        />
+        {error && formData.name.trim() && (
+          <p role="alert" className="rounded-control border border-st-red/40 bg-st-red/[0.06] px-3 py-2 text-sm text-st-red sm:col-span-2">
+            {error}
+          </p>
+        )}
+      </form>
+    </Modal>
   );
 }

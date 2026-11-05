@@ -1,140 +1,108 @@
-'use client'
-
 import { ChatMessageItem } from '@/components/chat/chat-message'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/Button'
 import { useChatScroll } from '@/hooks/use-chat-scroll'
-import {
-    type ChatMessage,
-    useRealtimeChat,
-} from '@/hooks/use-realtime-chat'
-import { cn } from '@/lib/utils'
+import { useRealtimeChat } from '@/hooks/use-realtime-chat'
 import { Send } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FormEvent, KeyboardEvent, useEffect, useState } from 'react'
+
+interface ChatPerson {
+    id: string
+    name: string
+}
 
 interface RealtimeChatProps {
-    roomName: string
-    username: string
-    userId: string
-    onMessage?: (messages: ChatMessage[]) => void
-    messages?: ChatMessage[]
+    me: ChatPerson
+    other: ChatPerson
 }
 
 /**
  * Realtime chat component
- * @param roomName - The name of the room to join. Each room is a unique chat.
- * @param username - The username of the user
- * @param userId - The ID of the user
- * @param onMessage - The callback function to handle the messages. Useful if you want to store the messages in a database.
- * @param messages - The messages to display in the chat. Useful if you want to display messages from a database.
- * @returns The chat component
+ * @param me - The signed-in person
+ * @param other - The person on the other side of the conversation
+ * @returns The conversation and its composer
  */
-export const RealtimeChat = ({
-    roomName,
-    username,
-    userId,
-    onMessage,
-    messages: initialMessages = [],
-}: RealtimeChatProps) => {
+export const RealtimeChat = ({ me, other }: RealtimeChatProps) => {
     const { containerRef, scrollToBottom } = useChatScroll()
-
-    const {
-        messages: realtimeMessages,
-        sendMessage,
-        isConnected,
-    } = useRealtimeChat({
-        roomName,
-        username,
-        userId,
-    })
+    const { messages, sendMessage, isConnected, loading } = useRealtimeChat({ me, other })
     const [newMessage, setNewMessage] = useState('')
-
-    // Merge realtime messages with initial messages
-    const allMessages = useMemo(() => {
-        const mergedMessages = [...initialMessages, ...realtimeMessages]
-        // Remove duplicates based on message id
-        const uniqueMessages = mergedMessages.filter(
-            (message, index, self) => index === self.findIndex((m) => m.id === message.id)
-        )
-        // Sort by creation date
-        const sortedMessages = uniqueMessages.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-
-        return sortedMessages
-    }, [initialMessages, realtimeMessages])
-
-    useEffect(() => {
-        if (onMessage) {
-            onMessage(allMessages)
-        }
-    }, [allMessages, onMessage])
+    const [sending, setSending] = useState(false)
 
     useEffect(() => {
         // Scroll to bottom whenever messages change
         scrollToBottom()
-    }, [allMessages, scrollToBottom])
+    }, [messages, scrollToBottom])
 
-    const handleSendMessage = useCallback(
-        (e: React.FormEvent) => {
+    const handleSendMessage = async (e?: FormEvent) => {
+        e?.preventDefault()
+        const text = newMessage.trim()
+        if (!text || sending) return
+        setSending(true)
+        setNewMessage('')
+        try {
+            await sendMessage(text)
+        } catch {
+            // Give the text back so nothing typed is lost.
+            setNewMessage(text)
+        } finally {
+            setSending(false)
+        }
+    }
+
+    // Enter sends, Shift+Enter adds a line.
+    const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            if (!newMessage.trim() || !isConnected) return
-
-            sendMessage(newMessage)
-            setNewMessage('')
-        },
-        [newMessage, isConnected, sendMessage]
-    )
+            handleSendMessage()
+        }
+    }
 
     return (
-        <div className="flex flex-col h-full w-full bg-background text-foreground antialiased">
-            {/* Messages */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-                {allMessages.length === 0 ? (
-                    <div className="text-center text-sm text-muted-foreground">
-                        No messages yet. Start the conversation!
-                    </div>
-                ) : null}
-                <div className="space-y-1">
-                    {allMessages.map((message, index) => {
-                        const prevMessage = index > 0 ? allMessages[index - 1] : null
-                        const showHeader = !prevMessage || prevMessage.user.name !== message.user.name
-
+        <div className="flex h-full w-full flex-col">
+            <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-3" aria-live="polite">
+                {loading ? (
+                    <p className="py-8 text-center text-sm text-ink-3">Cargando conversación…</p>
+                ) : messages.length === 0 ? (
+                    <p className="mx-auto max-w-xs py-8 text-center text-sm text-ink-3">
+                        Aún no hay mensajes con {other.name}. Escribe el primero abajo.
+                    </p>
+                ) : (
+                    messages.map((message, index) => {
+                        const prevMessage = index > 0 ? messages[index - 1] : null
+                        const showHeader = !prevMessage || prevMessage.userId !== message.userId
                         return (
-                            <div
+                            <ChatMessageItem
                                 key={message.id}
-                                className="animate-in fade-in slide-in-from-bottom-4 duration-300"
-                            >
-                                <ChatMessageItem
-                                    message={message}
-                                    isOwnMessage={message.user.name === username}
-                                    showHeader={showHeader}
-                                />
-                            </div>
+                                message={message}
+                                isOwnMessage={message.userId === me.id}
+                                showHeader={showHeader}
+                            />
                         )
-                    })}
-                </div>
+                    })
+                )}
             </div>
 
-            <form onSubmit={handleSendMessage} className="flex w-full gap-2 border-t border-border p-4">
-                <Input
-                    className={cn(
-                        'rounded-full bg-background text-sm transition-all duration-300',
-                        isConnected && newMessage.trim() ? 'w-[calc(100%-36px)]' : 'w-full'
-                    )}
-                    type="text"
+            <form onSubmit={handleSendMessage} className="flex items-end gap-2 border-t border-rule bg-well p-3">
+                <label htmlFor="dm-composer" className="sr-only">
+                    Mensaje para {other.name}
+                </label>
+                <textarea
+                    id="dm-composer"
+                    rows={1}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    disabled={!isConnected}
+                    onKeyDown={onKeyDown}
+                    placeholder={`Escribe a ${other.name}…`}
+                    className="field max-h-40 min-h-9 resize-none py-2"
                 />
-                {isConnected && newMessage.trim() && (
-                    <button
-                        className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
-                        type="submit"
-                        disabled={!isConnected}
-                    >
-                        <Send className="size-4" />
-                    </button>
-                )}
+                <Button type="submit" size="icon" aria-label="Enviar mensaje" disabled={!newMessage.trim()} isLoading={sending}>
+                    {!sending && <Send size={16} />}
+                </Button>
             </form>
+            {!isConnected && !loading && (
+                <p className="border-t border-rule bg-well px-3 pb-2 text-xs text-ink-3">
+                    Sin conexión en tiempo real: los mensajes nuevos aparecerán al recargar.
+                </p>
+            )}
         </div>
     )
 }

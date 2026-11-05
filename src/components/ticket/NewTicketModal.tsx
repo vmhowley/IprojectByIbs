@@ -1,7 +1,11 @@
-import { FileIcon, Info, Sparkles, Upload, X, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { KeyRound, Paperclip, Plus, Sparkles, Upload, X } from 'lucide-react';
+import { DragEvent, FormEvent, KeyboardEvent, useEffect, useState } from 'react';
+import { cn } from '../../lib/utils';
 import { requestTypeService, TicketRequestType } from '../../services/requestTypeService';
+import { Button } from '../ui/Button';
+import { FormField } from '../ui/FormField';
 import { Input } from '../ui/Input';
+import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { UserPicker } from '../ui/UserPicker';
@@ -28,7 +32,8 @@ export interface TicketFormData {
   subtasks?: string[];
 }
 
-export function NewTicketModal({ projectId: _projectId, projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
+/** Request form: what the client asks for, how urgent, and who takes it. */
+export function NewTicketModal({ projectName, clientId, contactId, onClose, onSubmit }: NewTicketModalProps) {
   const [formData, setFormData] = useState<TicketFormData>({
     client_id: clientId || '',
     contact_id: contactId || '',
@@ -43,8 +48,11 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
   const [newSubtask, setNewSubtask] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [askKey, setAskKey] = useState(false);
+  const [apiKey, setApiKey] = useState('');
   const [requestTypes, setRequestTypes] = useState<TicketRequestType[]>([]);
 
   useEffect(() => {
@@ -62,36 +70,18 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
     loadRequestTypes();
   }, []);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSubmitting) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isSubmitting, onClose]);
-
   const handleChange = (field: keyof TicketFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setFormData(prev => ({
-        ...prev,
-        files: [...(prev.files || []), ...newFiles]
-      }));
-    }
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    const newFiles = Array.from(list);
+    setFormData(prev => ({
+      ...prev,
+      files: [...(prev.files || []), ...newFiles]
+    }));
   };
 
   const removeFile = (index: number) => {
@@ -125,7 +115,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
     }));
   };
 
-  const handleSubtaskKeyDown = (e: React.KeyboardEvent) => {
+  const handleSubtaskKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddSubtask();
@@ -137,7 +127,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
     // Actually, following the "Text-to-Ticket" idea:
     const textToAnalyze = formData.description || formData.subject;
     if (!textToAnalyze || textToAnalyze.length < 5) {
-      setError("Por favor escribe una idea básica en el asunto o descripción primero.");
+      setError('Escribe primero una idea básica en el asunto o en la descripción.');
       return;
     }
 
@@ -147,31 +137,41 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
       // Lazy load service to avoid issues if not set up
       const { aiService } = await import('../../services/aiService');
 
-      // Temporary: Check if key exists, if not, prompt user (for development/demo)
+      // The key lives only in this browser. Ask for it in the form, not in a prompt.
       if (!aiService.hasKey()) {
-        const key = prompt("Para probar la IA, por favor introduce tu Google Gemini API Key:");
-        if (key) aiService.setApiKey(key);
-        else throw new Error("API Key requerida para usar IA");
+        setAskKey(true);
+        return;
       }
 
       const generated = await aiService.generateTicketFromText(textToAnalyze);
+      // The AI also answers with its own priority and type names.
+      const extra = generated as { priority?: string; type?: string };
 
       setFormData(prev => ({
         ...prev,
         subject: generated.subject || prev.subject,
         description: generated.description || prev.description,
-        urgency: (generated as any).priority || prev.urgency,
-        request_type: (generated as any).type === 'bug' ? 'bug' : (generated as any).type === 'feature_request' ? 'feature' : 'other',
+        urgency: (extra.priority as TicketFormData['urgency']) || prev.urgency,
+        request_type: extra.type === 'bug' ? 'bug' : extra.type === 'feature_request' ? 'feature' : 'other',
       }));
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Error generando ticket con IA");
+      setError(err instanceof Error ? err.message : 'No se pudo completar con IA.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const saveKeyAndFill = async () => {
+    if (!apiKey.trim()) return;
+    const { aiService } = await import('../../services/aiService');
+    aiService.setApiKey(apiKey.trim());
+    setAskKey(false);
+    setApiKey('');
+    handleMagicFill();
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     // Client ID validation removed to allow internal projects
@@ -181,7 +181,7 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
     // }
 
     if (!formData.subject.trim()) {
-      setError('Asunto es requerido');
+      setError('Escribe el asunto del ticket.');
       return;
     }
 
@@ -192,293 +192,241 @@ export function NewTicketModal({ projectId: _projectId, projectName, clientId, c
       await onSubmit(formData);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear la solicitud');
+      setError(err instanceof Error ? err.message : 'No se pudo crear el ticket. Inténtalo de nuevo.');
       setIsSubmitting(false);
     }
   };
 
+  const onDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    addFiles(event.dataTransfer.files);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50"
-        onClick={() => !isSubmitting && onClose()}
-      />
-      <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-slate-800">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nueva Solicitud</h2>
-            <button
-              type="button"
-              onClick={handleMagicFill}
-              disabled={isGenerating}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors border border-purple-200 dark:border-purple-800/50"
-              title="Escribe una idea en la descripción y haz clic para autocompletar"
-            >
-              <Sparkles className="w-3 h-3" />
-              {isGenerating ? 'Generando...' : 'Autocompletar con IA'}
-            </button>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
-            disabled={isSubmitting}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Proyecto
-              </label>
-              <div className="px-3 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-800 rounded-md text-sm text-gray-600 dark:text-slate-400">
-                {projectName}
-              </div>
-            </div>
-
-            {/* Client and Contact are now inherited from Project */}
-
-            <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Asunto <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="subject"
-                value={formData.subject}
-                onChange={(e) => handleChange('subject', e.target.value)}
-                placeholder="Resumen del asunto"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="request_type" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Tipo de Solicitud <span className="text-red-500">*</span>
-              </label>
-              <Select
-                id="request_type"
-                value={formData.request_type}
-                onChange={(e) => handleChange('request_type', e.target.value)}
-                disabled={isSubmitting}
-                required
-              >
-                {requestTypes.length === 0 ? (
-                  // Fallback if loading or error
-                  <>
-                    <option value="feature">Requerimiento de Adecuación</option>
-                    <option value="bug">Incidencia Reportada</option>
-                  </>
-                ) : (
-                  requestTypes.map(type => (
-                    <option key={type.id} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))
-                )}
-              </Select>
-            </div>
-            <div className="border-t border-gray-200 dark:border-slate-800 pt-6 mt-6">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Info size={16} className="text-indigo-500" />
-                Detalles del Ticket
-              </h3>
-
-              <div className="space-y-4">
-                {/* Subtasks Section */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                    Subtareas
-                  </label>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      value={newSubtask}
-                      onChange={(e) => setNewSubtask(e.target.value)}
-                      onKeyDown={handleSubtaskKeyDown}
-                      placeholder="Escribir una subtarea (Enter para agregar)"
-                      disabled={isSubmitting}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddSubtask}
-                      disabled={isSubmitting || !newSubtask.trim()}
-                      className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors text-sm font-medium disabled:opacity-50"
-                    >
-                      Agregar
-                    </button>
-                  </div>
-                  {formData.subtasks && formData.subtasks.length > 0 && (
-                    <div className="space-y-2 mt-2">
-                      {formData.subtasks.map((task, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-800 p-2.5 rounded-lg text-sm">
-                          <span className="text-gray-700 dark:text-slate-300">{task}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSubtask(index)}
-                            className="text-gray-400 hover:text-red-500"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                    Descripción
-                  </label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    placeholder="Describe los detalles de la solicitud..."
-                    rows={4}
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Estado
-                    </label>
-                    <Select
-                      id="status"
-                      value={formData.status}
-                      onChange={(e) => handleChange('status', e.target.value)}
-                      disabled={isSubmitting}
-                    >
-                      <option value="pending_analysis">Pendiente de Análisis</option>
-                      <option value="pending_approval">Pendiente de Aprobación</option>
-                      <option value="approved">Aprobado</option>
-                      <option value="ongoing">En Desarrollo</option>
-                      <option value="completed">Completado</option>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="urgency" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Prioridad
-                    </label>
-                    <Select
-                      id="urgency"
-                      value={formData.urgency}
-                      onChange={(e) => handleChange('urgency', e.target.value)}
-                      disabled={isSubmitting}
-                    >
-                      <option value="low">Baja</option>
-                      <option value="medium">Media</option>
-                      <option value="high">Alta</option>
-                      <option value="critical">Crítica</option>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Asignado a
-                    </label>
-                    <UserPicker
-                      value={formData.assigned_to || null}
-                      onChange={(userId) => setFormData(prev => ({ ...prev, assigned_to: userId }))}
-                      placeholder="Seleccionar usuario"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Archivos Adjuntos
-                </label>
-
-                <div className="border-2 border-dashed border-gray-300 dark:border-slate-800 rounded-lg p-6 text-center hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors bg-gray-50/50 dark:bg-slate-800/10 relative group">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    multiple
-                    onChange={handleFileChange}
-                    disabled={isSubmitting}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  />
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-8 h-8 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-                    <div className="text-sm text-gray-600 dark:text-slate-400">
-                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">
-                        Haz clic para subir
-                      </span>{' '}
-                      o arrastra archivos aquí
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Máximo 10MB por archivo
-                    </p>
-                  </div>
-                </div>
-
-                {formData.files && formData.files.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {formData.files.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-800"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <FileIcon className="w-5 h-5 text-gray-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatFileSize(file.size)}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFile(index)}
-                          disabled={isSubmitting}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                        >
-                          <XCircle className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-800">{error}</p>
-              </div>
-            )}
-          </div>
-        </form>
-
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
-          <button
+    <Modal
+      isOpen
+      onClose={onClose}
+      dismissible={!isSubmitting}
+      size="lg"
+      title="Nuevo ticket"
+      description={projectName}
+      footer={
+        <>
+          <Button
             type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            variant="ghost"
+            onClick={handleMagicFill}
+            isLoading={isGenerating}
+            className="mr-auto"
+            title="Escribe una idea en el asunto o la descripción y deja que la IA complete el resto"
           >
+            {!isGenerating && <Sparkles size={15} aria-hidden="true" />}
+            {isGenerating ? 'Redactando…' : 'Completar con IA'}
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Creando...' : 'Crear Solicitud'}
-          </button>
+          </Button>
+          <Button type="submit" form="new-ticket-form" isLoading={isSubmitting}>
+            Crear ticket
+          </Button>
+        </>
+      }
+    >
+      <form id="new-ticket-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Client and Contact are now inherited from Project */}
+        <Input
+          label="Asunto"
+          wrapperClassName="sm:col-span-2"
+          value={formData.subject}
+          onChange={(e) => handleChange('subject', e.target.value)}
+          placeholder="Ej.: Ajustar cálculo de mora en estado de cuenta"
+          disabled={isSubmitting}
+          required
+          autoFocus
+          error={error === 'Escribe el asunto del ticket.' ? error : undefined}
+        />
+
+        {askKey && (
+          <div className="rounded-control border border-rule bg-well p-3 sm:col-span-2">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <KeyRound size={15} aria-hidden="true" className="text-ink-3" />
+              Clave de Google Gemini
+            </p>
+            <p className="mt-1 text-xs text-ink-2">La IA necesita tu clave. Se guarda solo en este navegador.</p>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                aria-label="Clave de Google Gemini"
+                className="field h-8 py-1 font-mono text-[13px]"
+                placeholder="AIza…"
+                autoComplete="off"
+              />
+              <Button type="button" size="sm" variant="secondary" onClick={saveKeyAndFill} disabled={!apiKey.trim()}>
+                Guardar y completar
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setAskKey(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <Select
+          label="Tipo de solicitud"
+          value={formData.request_type}
+          onChange={(e) => handleChange('request_type', e.target.value)}
+          disabled={isSubmitting}
+          required
+        >
+          {requestTypes.length === 0 ? (
+            // Fallback if loading or error
+            <>
+              <option value="feature">Requerimiento de adecuación</option>
+              <option value="bug">Incidencia reportada</option>
+            </>
+          ) : (
+            requestTypes.map(type => (
+              <option key={type.id} value={type.value}>
+                {type.label}
+              </option>
+            ))
+          )}
+        </Select>
+
+        <Select
+          label="Prioridad"
+          value={formData.urgency}
+          onChange={(e) => handleChange('urgency', e.target.value)}
+          disabled={isSubmitting}
+          options={[
+            { value: 'low', label: 'Baja' },
+            { value: 'medium', label: 'Media' },
+            { value: 'high', label: 'Alta' },
+            { value: 'critical', label: 'Crítica' },
+          ]}
+        />
+
+        <Select
+          label="Estado inicial"
+          value={formData.status}
+          onChange={(e) => handleChange('status', e.target.value)}
+          disabled={isSubmitting}
+          options={[
+            { value: 'pending_analysis', label: 'Pendiente de análisis' },
+            { value: 'pending_approval', label: 'Pendiente de aprobación' },
+            { value: 'approved', label: 'Aprobado' },
+            { value: 'ongoing', label: 'En desarrollo' },
+            { value: 'completed', label: 'Completado' },
+          ]}
+        />
+
+        <FormField id="new-ticket-assignee" label="Asignado a">
+          <UserPicker
+            id="new-ticket-assignee"
+            value={formData.assigned_to || null}
+            onChange={(userId) => setFormData(prev => ({ ...prev, assigned_to: userId }))}
+            placeholder="Sin asignar"
+          />
+        </FormField>
+
+        <Textarea
+          label="Descripción"
+          wrapperClassName="sm:col-span-2"
+          value={formData.description}
+          onChange={(e) => handleChange('description', e.target.value)}
+          placeholder="Qué se pide, en qué pantalla o programa, y cómo se prueba."
+          rows={4}
+          disabled={isSubmitting}
+        />
+
+        {/* Subtasks Section */}
+        <div className="sm:col-span-2">
+          <span className="caption mb-1.5 block">Subtareas</span>
+          <div className="flex gap-2">
+            <input
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              onKeyDown={handleSubtaskKeyDown}
+              placeholder="Escribe un paso y pulsa Enter"
+              aria-label="Nueva subtarea"
+              className="field"
+              disabled={isSubmitting}
+            />
+            <Button type="button" variant="secondary" onClick={handleAddSubtask} disabled={isSubmitting || !newSubtask.trim()}>
+              <Plus size={15} aria-hidden="true" />
+              Agregar
+            </Button>
+          </div>
+          {formData.subtasks && formData.subtasks.length > 0 && (
+            <ol className="mt-2 divide-y divide-rule rounded-control border border-rule">
+              {formData.subtasks.map((task, index) => (
+                <li key={index} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+                  <span className="w-5 text-xs tabular-nums text-ink-3">{index + 1}.</span>
+                  <span className="min-w-0 flex-1 text-ink">{task}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSubtask(index)}
+                    aria-label={`Quitar subtarea ${task}`}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-inner text-ink-3 hover:bg-ink/[0.06] hover:text-st-red"
+                  >
+                    <X size={14} />
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
-      </div>
-    </div>
+
+        <div className="sm:col-span-2">
+          <span className="caption mb-1.5 block">Adjuntos</span>
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            className={cn(
+              'flex cursor-pointer flex-col items-center gap-1 rounded-control border border-dashed px-4 py-4 text-center transition-colors focus-within:border-focus',
+              dragging ? 'border-ink bg-well' : 'border-rule-strong/60 hover:border-ink/60 hover:bg-well/60'
+            )}
+          >
+            <input type="file" multiple onChange={(e) => addFiles(e.target.files)} disabled={isSubmitting} className="sr-only" />
+            <Upload size={18} aria-hidden="true" className="text-ink-3" />
+            <span className="text-sm text-ink">
+              <span className="font-semibold underline decoration-rule-strong">Elige archivos</span> o arrástralos aquí
+            </span>
+            <span className="text-xs text-ink-3">Máximo 10 MB por archivo</span>
+          </label>
+
+          {formData.files && formData.files.length > 0 && (
+            <ul className="mt-2 divide-y divide-rule rounded-control border border-rule">
+              {formData.files.map((file, index) => (
+                <li key={index} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+                  <Paperclip size={14} aria-hidden="true" className="shrink-0 text-ink-3" />
+                  <span className="min-w-0 flex-1 truncate text-ink">{file.name}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-ink-3">{formatFileSize(file.size)}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(index)}
+                    disabled={isSubmitting}
+                    aria-label={`Quitar ${file.name}`}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-inner text-ink-3 hover:bg-ink/[0.06] hover:text-st-red"
+                  >
+                    <X size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {error && error !== 'Escribe el asunto del ticket.' && (
+          <p role="alert" className="rounded-control border border-st-red/40 bg-st-red/[0.06] px-3 py-2 text-sm text-st-red sm:col-span-2">
+            {error}
+          </p>
+        )}
+      </form>
+    </Modal>
   );
 }

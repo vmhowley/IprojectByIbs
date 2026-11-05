@@ -1,53 +1,69 @@
-
-import { Activity, ChevronDown, ChevronUp, FolderKanban, Plus, Zap } from 'lucide-react';
-import { useEffect, useState } from 'react'; // Added useMemo
-import { useNavigate } from 'react-router-dom';
+import { ChevronDown, ChevronRight, FolderKanban, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/layout/PageHeader';
 import { NewProjectModal } from '../components/project/NewProjectModal';
 import { ProjectBoardCard } from '../components/project/ProjectBoardCard';
 import { ProjectCard } from '../components/project/ProjectCard';
+import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
+import { confirmDialog } from '../components/ui/ConfirmDialog';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Money } from '../components/ui/Money';
+import { Skeleton } from '../components/ui/Skeleton';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ViewSwitcher, ViewType } from '../components/ui/ViewSwitcher';
 import { BoardView } from '../components/views/BoardView';
 import { TableView } from '../components/views/TableView';
 import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { useSubscription } from '../hooks/useSubscription';
+import { cn } from '../lib/utils';
 import NProgress from '../lib/nprogress';
+import { createProjectWithFiles } from '../services/projectCreation';
 import { projectService } from '../services/projectService';
 import { Project } from '../types';
+import { formatDate, formatMoney, isOverdue, sortCurrencies, sumByCurrency } from '../utils/format';
+import { normalizeText } from '../utils/tickets';
 
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'active', label: 'Activos' },
+  { value: 'on_hold', label: 'En espera' },
+  { value: 'completed', label: 'Completados' },
+  { value: 'archived', label: 'Archivados' },
+];
 
+/** The project register: every project with its client, status, dates and price. */
 export function Projects() {
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const { limits } = useSubscription();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewType>('grid');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectDefaultClient, setNewProjectDefaultClient] = useState<string | undefined>();
+  const [collapsedClients, setCollapsedClients] = useState<Set<string>>(new Set());
 
-  // New state for collapsible sections
-  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const viewMode = (searchParams.get('view') as ViewType) || 'list';
+  const statusFilter = searchParams.get('status') || 'all';
+  const clientFilter = searchParams.get('client') || '';
+  const canSeeMoney = isAdmin();
+  const isGuest = user?.role === 'guest';
+
+  const setParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     loadProjects();
   }, []);
-
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const filtered = projects.filter(project =>
-        project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredProjects(filtered);
-    } else {
-      setFilteredProjects(projects);
-    }
-  }, [searchQuery, projects]);
 
   const loadProjects = async () => {
     try {
@@ -55,12 +71,6 @@ export function Projects() {
       setIsLoading(true);
       const data = await projectService.getAll();
       setProjects(data);
-      setFilteredProjects(data);
-
-      // Auto-expand all clients by default
-      const allClientIds = new Set(data.map(p => p.client_id || 'unassigned'));
-      setExpandedClients(allClientIds);
-
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -69,59 +79,56 @@ export function Projects() {
     }
   };
 
-
   const handleCreateProject = async (projectData: Partial<Project>, files: File[]) => {
-    try {
-      // 1. Create Project
-      const newProject = await projectService.create(projectData);
-
-      // 2. Upload Files
-      if (files.length > 0) {
-        const { storageService } = await import('../services/storageService');
-        const attachments = [];
-
-        for (const file of files) {
-          try {
-            const { url } = await storageService.uploadFile(file, newProject.id);
-            attachments.push({
-              name: file.name,
-              url,
-              size: file.size,
-              type: file.type
-            });
-          } catch (err) {
-            console.error('Failed to upload file:', file.name, err);
-            // Continue with other files
-          }
-        }
-
-        // 3. Update Project with Attachments
-        if (attachments.length > 0) {
-          await projectService.update(newProject.id, { attachments });
-        }
-      }
-
-      await loadProjects();
-      setShowNewProjectModal(false);
-    } catch (error) {
-      console.error('Error creating project:', error);
-      throw error;
-    }
+    const created = await createProjectWithFiles(projectData, files);
+    setShowNewProjectModal(false);
+    navigate(`/project/${created.id}`);
   };
 
-  const handleNewProjectClick = (clientId?: string) => {
+  const handleNewProjectClick = async (clientId?: string) => {
     if (projects.length >= limits.maxProjects) {
-      if (confirm(`Has alcanzado el límite de ${limits.maxProjects} proyectos de tu plan Gratis. \n\n¿Quieres actualizar a Pro para tener proyectos ilimitados?`)) {
-        navigate('/pricing');
-      }
+      const upgrade = await confirmDialog({
+        title: 'Llegaste al límite del plan Gratis',
+        message: `El plan Gratis incluye ${limits.maxProjects} proyectos. Con Pro los proyectos son ilimitados.`,
+        confirmText: 'Ver planes',
+        cancelText: 'Ahora no',
+        tone: 'primary',
+      });
+      if (upgrade) navigate('/pricing');
       return;
     }
     setNewProjectDefaultClient(clientId);
     setShowNewProjectModal(true);
   };
 
+  const clients = useMemo(() => {
+    const map = new Map<string, string>();
+    projects.forEach((p) => p.client_id && map.set(p.client_id, p.clients?.name || 'Cliente'));
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [projects]);
+
+  const counts = useMemo(() => {
+    const base = clientFilter ? projects.filter((p) => p.client_id === clientFilter) : projects;
+    const result: Record<string, number> = { all: base.length };
+    base.forEach((p) => (result[p.status] = (result[p.status] || 0) + 1));
+    return result;
+  }, [projects, clientFilter]);
+
+  const filteredProjects = useMemo(() => {
+    const term = normalizeText(searchQuery.trim());
+    return projects.filter((project) => {
+      if (statusFilter !== 'all' && project.status !== statusFilter) return false;
+      if (clientFilter && project.client_id !== clientFilter) return false;
+      if (!term) return true;
+      return normalizeText(`${project.name} ${project.description || ''} ${project.clients?.name || ''} ${project.use_case_id || ''}`).includes(term);
+    });
+  }, [projects, searchQuery, statusFilter, clientFilter]);
+
+  const totals = sumByCurrency(filteredProjects, (p) => ({ amount: p.cost, currency: p.currency }));
+  const clientCount = new Set(filteredProjects.map((p) => p.client_id).filter(Boolean)).size;
+
   const toggleClient = (clientId: string) => {
-    setExpandedClients(prev => {
+    setCollapsedClients(prev => {
       const next = new Set(prev);
       if (next.has(clientId)) {
         next.delete(clientId);
@@ -134,254 +141,310 @@ export function Projects() {
 
   const renderContent = () => {
     if (isLoading) {
-      return null;
+      return viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-56" />)}
+        </div>
+      ) : (
+        <TableView data={[]} columns={[{ header: 'Proyecto' }, { header: 'Estado' }, { header: 'Avance' }, { header: 'Entrega' }]} isLoading />
+      );
     }
-
 
     if (filteredProjects.length === 0) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <FolderKanban size={64} className="text-gray-300 dark:text-slate-700 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              {searchQuery ? 'No se encontraron proyectos' : 'No hay proyectos'}
-            </h3>
-            <p className="text-gray-600 dark:text-slate-400 mb-4">
-              {searchQuery
-                ? 'Intenta con otro término de búsqueda'
-                : 'Comienza creando tu primer proyecto'}
-            </p>
-            {!searchQuery && user?.role !== 'guest' && (
-              <Button onClick={() => handleNewProjectClick()}>
-                <Plus size={18} />
-                Crear Proyecto
+        <EmptyState
+          icon={FolderKanban}
+          title={searchQuery || statusFilter !== 'all' || clientFilter ? 'Ningún proyecto coincide' : 'Aún no hay proyectos'}
+          action={
+            searchQuery || statusFilter !== 'all' || clientFilter ? (
+              <Button variant="secondary" onClick={() => { setSearchQuery(''); setSearchParams({}, { replace: true }); }}>
+                Quitar filtros
               </Button>
-            )}
-          </div>
-        </div>
+            ) : !isGuest ? (
+              <Button onClick={() => handleNewProjectClick()}>
+                <Plus size={16} aria-hidden="true" />
+                Crear proyecto
+              </Button>
+            ) : null
+          }
+        >
+          {searchQuery || statusFilter !== 'all' || clientFilter
+            ? 'Prueba con otro nombre o quita los filtros de estado y cliente.'
+            : 'Un proyecto agrupa los tickets de un cliente y lleva su precio.'}
+        </EmptyState>
       );
     }
 
     if (viewMode === 'board') {
       const columns = [
-        {
-          id: 'active',
-          title: 'Activos',
-          items: filteredProjects.filter(p => p.status === 'active'),
-        },
-        {
-          id: 'completed',
-          title: 'Completados',
-          items: filteredProjects.filter(p => p.status === 'completed'),
-        },
-        {
-          id: 'archived',
-          title: 'Archivados',
-          items: filteredProjects.filter(p => !p.status || p.status === 'archived'),
-        },
+        { id: 'active', title: 'Activos', inkClass: 'text-st-violet', items: filteredProjects.filter(p => p.status === 'active') },
+        { id: 'on_hold', title: 'En espera', inkClass: 'text-st-ochre', items: filteredProjects.filter(p => p.status === 'on_hold') },
+        { id: 'completed', title: 'Completados', inkClass: 'text-st-green', items: filteredProjects.filter(p => p.status === 'completed') },
+        { id: 'archived', title: 'Archivados', inkClass: 'text-st-graphite', items: filteredProjects.filter(p => !p.status || p.status === 'archived') },
       ];
 
       return (
         <BoardView
           columns={columns}
-          renderItem={(project) => (
-            <ProjectBoardCard key={project.id} project={project} />
-          )}
+          emptyMessage="Sin proyectos"
+          renderItem={(project) => <ProjectBoardCard project={project} showPrice={canSeeMoney} />}
         />
       );
     }
 
-    if (viewMode === 'list') {
+    if (viewMode === 'grid') {
+      // Group Projects by Client
+      const groupedProjects = filteredProjects.reduce((groups, project) => {
+        const clientId = project.client_id || 'unassigned';
+        let clientName = project.clients?.name || 'Sin cliente';
+        if (user?.client_id && clientId === user.client_id) {
+          clientName = `${clientName} (tu empresa)`;
+        }
+        if (!groups[clientId]) {
+          groups[clientId] = { id: clientId, name: clientName, projects: [] };
+        }
+        groups[clientId].projects.push(project);
+        return groups;
+      }, {} as Record<string, { id: string, name: string, projects: Project[] }>);
+
+      const sortedClientIds = Object.keys(groupedProjects).sort((a, b) =>
+        a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : groupedProjects[a].name.localeCompare(groupedProjects[b].name)
+      );
+
       return (
-        <TableView
-          data={filteredProjects}
-          onRowClick={(project) => navigate(`/project/${project.id}`)}
-          columns={[
-            { header: 'Nombre', accessorKey: 'name', className: 'font-medium text-gray-900' },
-            {
-              header: 'Estado',
-              cell: (p) => <StatusBadge status={p.status || 'active'} /> // Assuming status exists
-            },
-            {
-              header: 'Cliente',
-              cell: (p) => p.clients?.name || '-'
-            },
-            {
-              header: 'Tareas',
-              cell: (p) => `${p.stats?.completed_tasks || 0}/${p.stats?.total_tasks || 0}`
-            },
-            {
-              header: 'Fecha Creación',
-              cell: (p) => new Date(p.created_at).toLocaleDateString()
-            }
-          ]}
-        />
-      );
-    }
-
-    // Default: List (Grid) organized by Client
-
-    // Group Projects by Client
-    const groupedProjects = filteredProjects.reduce((groups, project) => {
-      const clientId = project.client_id || 'unassigned';
-
-      let clientName = project.clients?.name || 'Sin Cliente Asignado';
-
-      // Customize labels
-      if (clientId === 'unassigned') {
-        clientName = 'Proyectos Personales';
-      }
-
-      if (user?.client_id && clientId === user.client_id) {
-        clientName = `${clientName} (Vinculado)`;
-      }
-
-      if (!groups[clientId]) {
-        groups[clientId] = {
-          id: clientId,
-          name: clientName,
-          projects: []
-        };
-      }
-      groups[clientId].projects.push(project);
-      return groups;
-    }, {} as Record<string, { id: string, name: string, projects: Project[] }>);
-
-    const sortedClientIds = Object.keys(groupedProjects).sort((a, b) =>
-      groupedProjects[a].name.localeCompare(groupedProjects[b].name)
-    );
-
-    const totalProjects = filteredProjects.length;
-    const activeProjects = filteredProjects.filter(p => p.status === 'active').length;
-    const completedProjects = filteredProjects.filter(p => p.status === 'completed').length;
-
-    return (
-      <div className="space-y-10 animate-in fade-in duration-500">
-
-        {/* New: Stats Dashboard Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <FolderKanban size={80} className="text-indigo-500" />
-            </div>
-            <h3 className="text-gray-500 dark:text-slate-400 text-sm font-medium mb-1">Total Proyectos</h3>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">{totalProjects}</p>
-            <div className="mt-4 flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-500/10 w-fit px-2 py-1 rounded-full">
-              <span>+2 esta semana</span>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Activity size={80} className="text-emerald-500" />
-            </div>
-            <h3 className="text-gray-500 dark:text-slate-400 text-sm font-medium mb-1">En Curso</h3>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">{activeProjects}</p>
-            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 w-fit px-2 py-1 rounded-full">
-              <span>Activos ahora</span>
-            </div>
-          </div>
-
-          <div className="bg-linear-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden group">
-            <div className="absolute -right-6 -bottom-6 opacity-20 transform rotate-12 group-hover:scale-110 transition-transform">
-              <Zap size={100} />
-            </div>
-            <h3 className="text-indigo-100 text-sm font-medium mb-1">Productividad</h3>
-            <div className="flex items-end gap-2">
-              <p className="text-4xl font-bold">{completedProjects}</p>
-              <span className="mb-1.5 text-indigo-200 text-sm">completados</span>
-            </div>
-            <p className="mt-4 text-xs text-indigo-100/80 leading-relaxed max-w-[80%]">
-              Mantén el ritmo! Has completado {completedProjects} proyectos este año.
-            </p>
-          </div>
-        </div>
-
-        {/* Categories / Clients Section */}
-        <div className="space-y-12">
+        <div className="space-y-6">
           {sortedClientIds.map(clientId => {
             const group = groupedProjects[clientId];
-            const isExpanded = expandedClients.has(clientId);
-
+            const isExpanded = !collapsedClients.has(clientId);
+            const groupTotals = sumByCurrency(group.projects, (p) => ({ amount: p.cost, currency: p.currency }));
             return (
-              <div key={clientId} className="group/section">
-                {/* Modern Section Header */}
-                <div className="flex items-end justify-between mb-6 border-b border-gray-100 dark:border-slate-800 pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                      {group.name}
-                    </h2>
-                    <span className="text-sm text-gray-400 font-medium self-center mt-1">({group.projects.length})</span>
-                  </div>
-
+              <section key={clientId} aria-label={group.name}>
+                <div className="mb-3 flex items-center justify-between gap-3 border-b border-rule pb-2">
                   <button
+                    type="button"
                     onClick={() => toggleClient(clientId)}
-                    className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors flex items-center gap-1"
+                    aria-expanded={isExpanded}
+                    className="flex min-w-0 items-center gap-2 text-left"
                   >
-                    {isExpanded ? 'Ocultar' : 'Mostrar'}
-                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {isExpanded ? <ChevronDown size={16} className="text-ink-3" /> : <ChevronRight size={16} className="text-ink-3" />}
+                    <h2 className="truncate text-base font-semibold text-ink">{group.name}</h2>
+                    <span className="text-sm tabular-nums text-ink-3">{group.projects.length}</span>
                   </button>
+                  <div className="flex shrink-0 items-center gap-3">
+                    {canSeeMoney && Object.keys(groupTotals).length > 0 && (
+                      <span className="hidden font-mono text-[13px] font-semibold tabular-nums text-ink sm:inline">
+                        {sortCurrencies(Object.keys(groupTotals)).map((c) => formatMoney(groupTotals[c], c)).join(' · ')}
+                      </span>
+                    )}
+                    {!isGuest && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleNewProjectClick(clientId === 'unassigned' ? undefined : clientId)}
+                        aria-label={`Nuevo proyecto para ${group.name}`}
+                      >
+                        <Plus size={14} aria-hidden="true" />
+                        <span className="hidden sm:inline">Proyecto</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-
-                {/* Projects Content */}
-                <div
-                  className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 transition-all duration-300 ease-in-out ${isExpanded ? 'opacity-100' : 'hidden opacity-0'}`}
-                >
-                  {group.projects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      taskCount={project.stats?.total_tasks || 0}
-                      completedTaskCount={project.stats?.completed_tasks || 0}
-                    />
-                  ))}
-
-                  {/* "Add New" Ghost Card */}
-                  <button
-                    onClick={() => handleNewProjectClick(clientId === 'unassigned' ? undefined : clientId)}
-                    className="flex flex-col items-center justify-center h-full min-h-70 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition-all group/add gap-4"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center group-hover/add:bg-indigo-100 dark:group-hover/add:bg-indigo-500/20 transition-colors">
-                      <Plus size={24} className="text-gray-400 group-hover/add:text-indigo-600 dark:group-hover/add:text-indigo-400" />
-                    </div>
-                    <span className="font-semibold text-gray-500 group-hover/add:text-indigo-600 dark:text-slate-400 dark:group-hover/add:text-indigo-400 transition-colors">Nuevo Proyecto</span>
-                  </button>
-                </div>
-              </div>
+                {isExpanded && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {group.projects.map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        taskCount={project.stats?.total_tasks || 0}
+                        completedTaskCount={project.stats?.completed_tasks || 0}
+                        showPrice={canSeeMoney}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
             );
           })}
         </div>
-      </div>
+      );
+    }
+
+    // Default: the register
+    const currencies = sortCurrencies(Object.keys(totals));
+    return (
+      <TableView
+        caption="Registro de proyectos"
+        data={filteredProjects}
+        rowHref={(project) => `/project/${project.id}`}
+        defaultSort={{ index: 1, dir: 'asc' }}
+        columns={[
+          {
+            header: 'Proyecto',
+            sortValue: (p) => p.name.toLowerCase(),
+            className: 'sm:min-w-[16rem]',
+            cell: (p) => (
+              // wrap-anywhere: names pasted with non-breaking spaces would otherwise hold the table open on phones.
+              <div className="min-w-0 wrap-anywhere">
+                <Link to={`/project/${p.id}`} className="font-medium text-ink hover:underline">
+                  {p.name}
+                </Link>
+                <p className="line-clamp-1 text-xs text-ink-3">
+                  {p.clients?.name || 'Sin cliente'}
+                  {p.use_case_id && <span className="font-mono"> · {p.use_case_id}</span>}
+                </p>
+                {/* On phones the Estado column folds in here, so the price stays in view. */}
+                <div className="mt-1 sm:hidden">
+                  <StatusBadge status={p.status || 'active'} size="sm" />
+                </div>
+              </div>
+            ),
+          },
+          {
+            header: 'Estado',
+            hideBelow: 'sm',
+            sortValue: (p) => ['active', 'on_hold', 'completed', 'archived'].indexOf(p.status),
+            cell: (p) => <StatusBadge status={p.status || 'active'} size="sm" />,
+          },
+          {
+            header: 'Avance',
+            hideBelow: 'md',
+            sortValue: (p) => (p.stats?.total_tasks ? (p.stats.completed_tasks / p.stats.total_tasks) : -1),
+            cell: (p) => {
+              const total = p.stats?.total_tasks || 0;
+              const done = p.stats?.completed_tasks || 0;
+              return (
+                <div className="flex w-28 items-center gap-2">
+                  <span className="h-1 flex-1 overflow-hidden rounded-full bg-well" aria-hidden="true">
+                    <span className="block h-full bg-st-green" style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+                  </span>
+                  <span className="text-xs tabular-nums text-ink-2">{done}/{total}</span>
+                </div>
+              );
+            },
+          },
+          {
+            header: 'Responsable',
+            hideBelow: 'lg',
+            sortValue: (p) => p.assignee_profile?.name?.toLowerCase(),
+            cell: (p) =>
+              p.assignee_profile ? (
+                <span className="flex items-center gap-2 text-[13px] text-ink-2">
+                  <Avatar name={p.assignee_profile.name} size="xs" />
+                  <span className="line-clamp-1 max-w-[9rem]">{p.assignee_profile.name}</span>
+                </span>
+              ) : (
+                <span className="text-[13px] text-ink-3">—</span>
+              ),
+          },
+          {
+            header: 'Inicio',
+            hideBelow: 'xl',
+            sortValue: (p) => p.start_date || '',
+            cell: (p) => <span className="text-[13px] tabular-nums text-ink-2">{formatDate(p.start_date) || '—'}</span>,
+          },
+          {
+            header: 'Entrega',
+            hideBelow: 'sm',
+            sortValue: (p) => p.end_date || '',
+            cell: (p) => (
+              <span className={cn('text-[13px] tabular-nums', isOverdue(p.end_date, p.status) ? 'font-semibold text-st-red' : 'text-ink-2')}>
+                {formatDate(p.end_date) || '—'}
+              </span>
+            ),
+          },
+          ...(canSeeMoney
+            ? [{
+              header: 'Precio',
+              align: 'right' as const,
+              sortValue: (p: Project) => p.cost ?? null,
+              cell: (p: Project) => <Money amount={p.cost} currency={p.currency} className="text-[13px]" empty="—" />,
+            }]
+            : []),
+        ]}
+        footer={
+          canSeeMoney && currencies.length > 0 ? (
+            <tr className="rule-total">
+              <th scope="row" className="px-4 py-2.5 text-left text-sm font-semibold text-ink">
+                Total · {filteredProjects.length} proyectos
+              </th>
+              {/* One empty cell per middle column, hidden at the same breakpoints. */}
+              <td className="max-sm:hidden" />
+              <td className="max-md:hidden" />
+              <td className="max-lg:hidden" />
+              <td className="max-xl:hidden" />
+              <td className="max-sm:hidden" />
+              <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-ink">
+                {currencies.map((c) => (
+                  <span key={c} className="block">{formatMoney(totals[c], c)}</span>
+                ))}
+              </td>
+            </tr>
+          ) : undefined
+        }
+      />
     );
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-slate-950 overflow-hidden">
+    <div className="flex min-h-full flex-col">
       <PageHeader
         title="Proyectos"
-        subtitle="Gestiona todos tus proyectos en un solo lugar"
+        subtitle={
+          isLoading
+            ? 'Cargando proyectos…'
+            : `${filteredProjects.length} ${filteredProjects.length === 1 ? 'proyecto' : 'proyectos'} de ${clientCount} ${clientCount === 1 ? 'cliente' : 'clientes'}.`
+        }
         search={{
           value: searchQuery,
           onChange: setSearchQuery,
-          placeholder: "Buscar proyectos..."
+          placeholder: 'Buscar por nombre, cliente o caso',
         }}
-        actions={user?.role !== 'guest' ? [
-          {
-            label: 'Crear Proyecto',
-            icon: Plus,
-            onClick: () => handleNewProjectClick()
-          }
-        ] : []}
+        actions={!isGuest ? [{ label: 'Nuevo proyecto', icon: Plus, onClick: () => handleNewProjectClick() }] : []}
       >
-        <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
+        <ViewSwitcher currentView={viewMode} onViewChange={(view) => setParam('view', view === 'list' ? null : view)} />
       </PageHeader>
 
-      <div className="flex-1 overflow-y-auto p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          {renderContent()}
+      <div className="flex flex-wrap items-center gap-2 border-b border-rule bg-desk px-4 py-2.5 sm:px-6">
+        <div role="group" aria-label="Estado" className="flex flex-wrap gap-1">
+          {STATUS_FILTERS.map(({ value, label }) => {
+            const active = statusFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setParam('status', value === 'all' ? null : value)}
+                className={cn(
+                  'inline-flex h-7 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium transition-colors',
+                  active ? 'bg-brand/10 text-brand-strong' : 'text-ink-2 hover:bg-ink/[0.06] hover:text-ink'
+                )}
+              >
+                {label}
+                <span className={cn('text-xs tabular-nums', active ? 'text-brand-strong/75' : 'text-ink-3')}>{counts[value] || 0}</span>
+              </button>
+            );
+          })}
         </div>
+        {clients.length > 0 && (
+          <div className="relative ml-auto">
+            <label htmlFor="project-client-filter" className="sr-only">Cliente</label>
+            <select
+              id="project-client-filter"
+              value={clientFilter}
+              onChange={(e) => setParam('client', e.target.value || null)}
+              className="field h-8 w-auto max-w-[16rem] appearance-none py-1 pr-8 text-[13px]"
+            >
+              <option value="">Todos los clientes</option>
+              {clients.map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+          </div>
+        )}
       </div>
+
+      <div className="flex-1 px-4 py-5 sm:px-6">{renderContent()}</div>
 
       {showNewProjectModal && (
         <NewProjectModal

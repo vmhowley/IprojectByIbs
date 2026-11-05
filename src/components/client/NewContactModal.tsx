@@ -1,36 +1,41 @@
-import { X } from "lucide-react";
-import { useState } from "react";
-import { createPortal } from "react-dom";
-import { Input } from "../ui/Input";
+import { FormEvent, useState } from 'react';
+import { Contact } from '../../types/Client';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Modal } from '../ui/Modal';
 
 interface NewContactModalProps {
   clientId: string;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  initialData?: any;
+  onSubmit: (data: Partial<Contact>) => Promise<void>;
+  initialData?: Contact;
 }
 
+/** A person at the client: who to call and who approves. */
 export function NewContactModal({ clientId, isOpen, onClose, onSubmit, initialData }: NewContactModalProps) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     email: initialData?.email || '',
     phone: initialData?.phone || '',
-    position: initialData?.position || ''
+    position: initialData?.position || '',
+    is_primary: initialData?.is_primary ?? false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: 'name' | 'email' | 'phone' | 'position', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Keep the event inside this form when it is opened from another form.
+    e.stopPropagation();
 
     if (!formData.name.trim()) {
-      setError('El nombre del contacto es requerido');
+      setError('Escribe el nombre del contacto.');
       return;
     }
 
@@ -38,126 +43,94 @@ export function NewContactModal({ clientId, isOpen, onClose, onSubmit, initialDa
     setError(null);
 
     try {
+      // Empty cells are saved as null so clearing a field on edit sticks.
       await onSubmit({
         client_id: clientId,
-        name: formData.name,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        position: formData.position || undefined,
-        is_primary: false
+        name: formData.name.trim(),
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        position: formData.position.trim() || null,
+        is_primary: formData.is_primary,
       });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el contacto');
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el contacto. Inténtalo de nuevo.');
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-60 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50"
-        onClick={() => !isSubmitting && onClose()}
-      />
-      <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md mx-4 border border-gray-200 dark:border-slate-800 focus:outline-none">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {initialData ? 'Editar Contacto' : 'Nuevo Contacto'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      dismissible={!isSubmitting}
+      size="sm"
+      title={initialData ? 'Editar contacto' : 'Nuevo contacto'}
+      description={initialData ? initialData.name : 'Una persona del cliente: quién pide, quién aprueba.'}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="contact-form" isLoading={isSubmitting}>
+            {initialData ? 'Guardar cambios' : 'Registrar contacto'}
+          </Button>
+        </>
+      }
+    >
+      <form id="contact-form" onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Nombre"
+          value={formData.name}
+          onChange={(e) => handleChange('name', e.target.value)}
+          placeholder="Ej.: María Rodríguez"
+          disabled={isSubmitting}
+          required
+          autoFocus
+          error={error && !formData.name.trim() ? error : undefined}
+        />
+        <Input
+          label="Cargo"
+          value={formData.position}
+          onChange={(e) => handleChange('position', e.target.value)}
+          placeholder="Ej.: Gerente de TI"
+          disabled={isSubmitting}
+        />
+        <Input
+          label="Correo"
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleChange('email', e.target.value)}
+          placeholder="maria@empresa.com.do"
+          disabled={isSubmitting}
+        />
+        <Input
+          label="Teléfono"
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => handleChange('phone', e.target.value)}
+          placeholder="809 000 0000"
+          disabled={isSubmitting}
+        />
+        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={formData.is_primary}
+            onChange={(e) => setFormData(prev => ({ ...prev, is_primary: e.target.checked }))}
             disabled={isSubmitting}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre <span className="text-red-500">*</span>
-            </label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Ej: Juan Pérez"
-              disabled={isSubmitting}
-              required
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              placeholder="juan@empresa.com"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono
-            </label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
-              placeholder="+1 234 567 8900"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Cargo
-            </label>
-            <Input
-              id="position"
-              value={formData.position}
-              onChange={(e) => handleChange('position', e.target.value)}
-              placeholder="Ej: Gerente de TI"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-wait transition-all shadow-sm hover:shadow"
-            >
-              {isSubmitting ? 'Guardando...' : (initialData ? 'Guardar Cambios' : 'Crear Contacto')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body
+            className="mt-0.5 h-4 w-4 accent-[var(--ink)]"
+          />
+          <span>
+            Contacto principal
+            <span className="block text-xs text-ink-3">Aparece primero en la lista del cliente.</span>
+          </span>
+        </label>
+        {error && formData.name.trim() && (
+          <p role="alert" className="rounded-control border border-st-red/40 bg-st-red/[0.06] px-3 py-2 text-sm text-st-red">
+            {error}
+          </p>
+        )}
+      </form>
+    </Modal>
   );
 }
-

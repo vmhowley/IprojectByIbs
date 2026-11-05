@@ -1,52 +1,62 @@
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react';
+import { cn } from '../../lib/utils';
 
-interface buttonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Size = 'sm' | 'md' | 'lg' | 'icon';
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  size?: Size;
   isLoading?: boolean;
   children: ReactNode;
 }
 
-export function Button({
-  variant = 'primary',
-  size = 'md',
-  children,
-  className = '',
-  isLoading,
-  ...props
-}: buttonProps) {
-  const baseClasses = 'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+// Primary is the brand ink: one per view. Danger never looks like primary:
+// it is an outline until the pointer is on it.
+const variantClasses: Record<Variant, string> = {
+  primary: 'bg-brand text-on-brand border-brand shadow-control hover:bg-brand-strong hover:border-brand-strong',
+  secondary: 'bg-raised text-ink border-rule-field shadow-control hover:border-rule-strong hover:bg-well',
+  danger: 'bg-paper text-st-red border-st-red/50 hover:bg-st-red hover:text-on-brand hover:border-st-red',
+  ghost: 'bg-transparent text-ink-2 border-transparent hover:bg-ink/[0.06] hover:text-ink',
+};
 
-  const variantClasses = {
-    primary: 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ',
-    secondary: 'bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed',
-    danger: 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed',
-    ghost: 'bg-transparent text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed'
-  };
+const sizeClasses: Record<Size, string> = {
+  sm: 'h-8 px-2.5 text-[13px] gap-1.5',
+  md: 'h-9 px-3.5 text-sm gap-2',
+  lg: 'h-11 px-5 text-[15px] gap-2',
+  icon: 'h-9 w-9 p-0',
+};
 
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base'
-  };
-
+export function Spinner({ className = '' }: { className?: string }) {
   return (
-    <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-      disabled={isLoading || props.disabled}
-      {...props}
-    >
-      {isLoading ? (
-        <span className="flex items-center gap-2">
-          <svg className="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {children}
-        </span>
-      ) : (
-        children
-      )}
-    </button>
+    <svg className={cn('h-4 w-4 animate-spin', className)} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
   );
 }
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = 'primary', size = 'md', isLoading, className, children, disabled, ...props },
+  ref
+) {
+  return (
+    <button
+      ref={ref}
+      disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
+      className={cn(
+        'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-control border font-semibold',
+        'transition-[background-color,border-color,color,box-shadow] duration-150 active:translate-y-px active:shadow-none',
+        'disabled:pointer-events-none disabled:opacity-50',
+        variantClasses[variant],
+        sizeClasses[size],
+        className
+      )}
+      {...props}
+    >
+      {isLoading && <Spinner />}
+      {children}
+    </button>
+  );
+});

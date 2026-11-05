@@ -1,5 +1,8 @@
-import { LucideIcon, Search } from 'lucide-react';
+import { ArrowLeft, LucideIcon, Search } from 'lucide-react';
 import { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { cn } from '../../lib/utils';
+import { Button } from '../ui/Button';
 
 interface Action {
     label: string;
@@ -9,8 +12,12 @@ interface Action {
 }
 
 interface PageHeaderProps {
-    title: string;
-    subtitle?: string;
+    title: ReactNode;
+    subtitle?: ReactNode;
+    /** Way back to the list this page belongs to. */
+    back?: { to: string; label: string };
+    /** Top-right box of the form: document type and number, totals. */
+    meta?: ReactNode;
     search?: {
         value: string;
         onChange: (value: string) => void;
@@ -18,51 +25,72 @@ interface PageHeaderProps {
     };
     actions?: Action[];
     children?: ReactNode;
+    /** Folder tabs along the bottom edge; the active one covers the rule. */
+    tabs?: ReactNode;
+    className?: string;
 }
 
-export function PageHeader({ title, subtitle, search, actions, children }: PageHeaderProps) {
+/** The head of the form: title, what it covers, and the actions for the whole page. */
+export function PageHeader({ title, subtitle, back, meta, search, actions, children, tabs, className }: PageHeaderProps) {
     return (
-        <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-white transition-colors">{title}</h1>
-                    {subtitle && <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+        <header className={cn('border-b border-rule bg-desk px-4 pt-4 sm:px-6 sm:pt-5', tabs ? 'pb-0' : 'pb-4', className)}>
+            {back && (
+                <Link
+                    to={back.to}
+                    className="mb-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink"
+                >
+                    <ArrowLeft size={14} aria-hidden="true" />
+                    {back.label}
+                </Link>
+            )}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="flex min-w-0 items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.01em] text-ink">{title}</h1>
+                        {subtitle && <p className="mt-1 max-w-3xl text-sm text-ink-2">{subtitle}</p>}
+                    </div>
+                    {meta && <div className="shrink-0 lg:hidden">{meta}</div>}
                 </div>
 
-                <div className="flex flex-1 md:justify-end items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
                     {search && (
-                        <div className="relative flex-1 max-w-md">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <div className="relative w-full sm:w-72">
+                            <Search size={15} aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
                             <input
-                                type="text"
-                                placeholder={search.placeholder || "Buscar..."}
+                                type="search"
+                                aria-label={search.placeholder || 'Buscar'}
+                                placeholder={search.placeholder || 'Buscar…'}
                                 value={search.value}
                                 onChange={(e) => search.onChange(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-gray-900 dark:text-white"
+                                className="field h-9 pl-8"
                             />
                         </div>
                     )}
-
-                    <div className="flex items-center gap-2">
-                        {actions?.map((action, index) => (
-                            <button
-                                key={index}
-                                onClick={action.onClick}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 whitespace-nowrap ${action.variant === 'secondary'
-                                        ? 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
-                                        : action.variant === 'outline'
-                                            ? 'border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20'
-                                    }`}
-                            >
-                                <action.icon size={18} />
-                                <span className="hidden sm:inline">{action.label}</span>
-                            </button>
-                        ))}
-                        {children}
-                    </div>
+                    {children}
+                    {actions?.map((action, index) => (
+                        <Button
+                            key={index}
+                            onClick={action.onClick}
+                            variant={action.variant === 'primary' || !action.variant ? 'primary' : 'secondary'}
+                        >
+                            <action.icon size={16} aria-hidden="true" />
+                            {action.label}
+                        </Button>
+                    ))}
+                    {meta && <div className="hidden lg:block">{meta}</div>}
                 </div>
             </div>
+            {tabs && <div className="mt-4">{tabs}</div>}
+        </header>
+    );
+}
+
+/** The numbered box in the top-right corner of a printed form. */
+export function DocNumber({ label, value, className }: { label: string; value: ReactNode; className?: string }) {
+    return (
+        <div className={cn('rounded-control border border-rule-strong/60 bg-paper px-3 py-1.5 text-right', className)}>
+            <p className="caption leading-none">{label}</p>
+            <p className="mt-1 font-mono text-[15px] font-semibold leading-none text-ink tabular-nums">{value}</p>
         </div>
     );
 }

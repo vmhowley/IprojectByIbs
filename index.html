@@ -1,17 +1,56 @@
 <!doctype html>
-<html lang="en">
+<!--
+  THESIS: ibPulse is the set of business forms of IBSYSTEMS.SRL. A project is a
+  quote, a ticket is a work order, a status is a rubber stamp. It refuses the
+  category default of white cards, indigo accents and a row of stat tiles.
+  OWN-WORLD: bond paper sheets on a cool grey desk, black print ink, the logo red
+  as the only printed spot color for rules, numbers and the primary action.
+  Statuses are framed stamps in office inks: graphite, ochre, blue, violet,
+  green, red. Archivo for every word, Red Hat Mono for codes and amounts, ruled
+  tables with tabular figures and double rules under totals. Counts and dates
+  keep Archivo's tabular figures: they sit inside sentences and stamps, where a
+  monospaced face would jump out of the line. Dark mode is carbon paper.
+  SECOND EDITION: same forms and same density, a newer press. Sheets have soft
+  corners and a layered shadow, controls rise a hair off the paper, segmented
+  scopes sit in a recessed track, stamps are inked inside their frame and the
+  sidebar is paper. Color takes jobs: a hue per person, cerulean for quantities,
+  a 10% red wash for the current place, Focus Blue for the selected record.
+  STORY: a consultant sees what waits for them today and stamps work forward; an
+  admin reads what each client is worth, per currency, never mixed.
+  FIRST VIEWPORT: Inicio opens on the quote ledger, one ruled row per client
+  with US$ and RD$ in separate columns, active projects and tickets waiting for
+  approval; below it, today's tray ordered by due date. The create action sits
+  in the page letterhead, top right. Non-admins see no prices, so their Inicio
+  opens on the tray.
+  FORM: candidate 4 of 7 (business forms), dense ledger staging, seed:e42c23e1dd069d62
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<html lang="es">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ibPulse - By IBSYSTEMS.SRL</title>
-  <!-- <meta property="og:image" content="https://bolt.new/static/og_default.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png"> -->
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#eef1f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0e1219" media="(prefers-color-scheme: dark)" />
+  <meta name="description" content="ibPulse: proyectos, tickets y el valor de cada cliente en un solo lugar. Por IBSYSTEMS.SRL." />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <title>ibPulse · IBSYSTEMS.SRL</title>
+  <script>
+    // Apply the saved theme before the first paint so the page never flashes.
+    (function () {
+      try {
+        var saved = localStorage.getItem('theme');
+        var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.add(dark ? 'dark' : 'light');
+      } catch (e) {
+        document.documentElement.classList.add('light');
+      }
+    })();
+  </script>
 </head>
 
 <body>

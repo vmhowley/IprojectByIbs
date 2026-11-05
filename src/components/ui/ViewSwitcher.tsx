@@ -1,45 +1,44 @@
-import { Kanban, LayoutGrid, List } from 'lucide-react';
+import { Kanban, LayoutGrid, List, LucideIcon } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export type ViewType = 'grid' | 'list' | 'board';
 
 interface ViewSwitcherProps {
-    currentView: ViewType;
-    onViewChange: (view: ViewType) => void;
+  currentView: ViewType;
+  onViewChange: (view: ViewType) => void;
+  views?: ViewType[];
+  className?: string;
 }
 
-export function ViewSwitcher({ currentView, onViewChange }: ViewSwitcherProps) {
-    return (
-        <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200">
-            <button
-                onClick={() => onViewChange('grid')}
-                title="Cuadrícula"
-                className={`p-1.5 rounded-md transition-all ${currentView === 'grid'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                    }`}
-            >
-                <LayoutGrid size={18} />
-            </button>
-            <button
-                onClick={() => onViewChange('list')}
-                title="Lista"
-                className={`p-1.5 rounded-md transition-all ${currentView === 'list'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                    }`}
-            >
-                <List size={18} />
-            </button>
-            <button
-                onClick={() => onViewChange('board')}
-                title="Tablero"
-                className={`p-1.5 rounded-md transition-all ${currentView === 'board'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                    }`}
-            >
-                <Kanban size={18} />
-            </button>
-        </div>
-    );
+const VIEWS: Record<ViewType, { label: string; icon: LucideIcon }> = {
+  list: { label: 'Lista', icon: List },
+  grid: { label: 'Fichas', icon: LayoutGrid },
+  board: { label: 'Bandejas', icon: Kanban },
+};
+
+export function ViewSwitcher({ currentView, onViewChange, views = ['list', 'grid', 'board'], className }: ViewSwitcherProps) {
+  return (
+    <div role="group" aria-label="Vista" className={cn('segmented h-9', className)}>
+      {views.map((view) => {
+        const { label, icon: Icon } = VIEWS[view];
+        const active = currentView === view;
+        return (
+          <button
+            key={view}
+            type="button"
+            onClick={() => onViewChange(view)}
+            aria-pressed={active}
+            title={label}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-inner px-2.5 text-[13px] font-medium transition-colors',
+              active ? 'bg-raised text-ink shadow-control' : 'text-ink-2 hover:text-ink'
+            )}
+          >
+            <Icon size={15} aria-hidden="true" />
+            <span className="hidden lg:inline">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }

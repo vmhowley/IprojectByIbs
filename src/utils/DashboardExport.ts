@@ -13,55 +13,78 @@ interface DashboardData {
   clientNames: Record<string, string>;
 }
 
+// The app's inks in RGB: the PDF is printed on the same letterhead.
+const INK: [number, number, number] = [24, 28, 38];
+const INK_3: [number, number, number] = [110, 116, 128];
+const BRAND: [number, number, number] = [210, 23, 25];
+const RULE: [number, number, number] = [220, 224, 230];
+const WELL: [number, number, number] = [245, 246, 248];
+
+// Tables are ruled forms: grey head, ink text, thin rules.
+const TABLE_STYLE = {
+  theme: 'grid' as const,
+  styles: { textColor: INK, lineColor: RULE, lineWidth: 0.2, fontSize: 10, cellPadding: 2.5 },
+  headStyles: { fillColor: WELL, textColor: INK, fontStyle: 'bold' as const },
+};
+
 export async function exportDashboardToPDF(data: DashboardData, filename: string = 'dashboard-report.pdf') {
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
+  const lastY = () => (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
   // Header
-  pdf.setFillColor(79, 70, 229); // Indigo 600
-  pdf.rect(0, 0, pageWidth, 40, 'F');
-  
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(24);
-  pdf.text('IBS Project Tracker', 15, 25);
-  
-  pdf.setFontSize(12);
-  pdf.text('Reporte Ejecutivo de Dashboard', 15, 33);
+  pdf.setTextColor(...INK);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(22);
+  pdf.text('ibPulse', 15, 22);
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(11);
+  pdf.setTextColor(...INK_3);
+  pdf.text('Reporte del tablero', 15, 29);
 
   // Info Section
-  pdf.setTextColor(100);
-  pdf.setFontSize(10);
-  pdf.text(`Fecha: ${new Date().toLocaleString()}`, pageWidth - 70, 25);
-  
-  let currentY = 50;
+  pdf.setFontSize(9);
+  pdf.text(`Fecha: ${new Date().toLocaleString('es-DO')}`, pageWidth - 15, 22, { align: 'right' });
+  pdf.text('BY IBSYSTEMS.SRL', pageWidth - 15, 29, { align: 'right' });
+
+  // The red rule of the letterhead.
+  pdf.setDrawColor(...BRAND);
+  pdf.setLineWidth(0.8);
+  pdf.line(15, 34, pageWidth - 15, 34);
+
+  let currentY = 46;
+  const heading = (text: string) => {
+    pdf.setTextColor(...INK);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(13);
+    pdf.text(text, 15, currentY);
+    pdf.setFont('helvetica', 'normal');
+    currentY += 5;
+  };
 
   // Key Metrics
-  pdf.setTextColor(40);
-  pdf.setFontSize(14);
-  pdf.text('Indicadores Clave', 15, currentY);
-  currentY += 10;
+  heading('Indicadores');
 
   autoTable(pdf, {
     startY: currentY,
-    head: [['Métrica', 'Valor']],
+    head: [['Indicador', 'Valor']],
     body: [
-      ['Total Proyectos', data.projectsCount],
-      ['Proyectos Activos', data.activeProjectsCount],
-      ['Total Solicitudes', data.ticketsCount],
-      ['Solicitudes Completadas', data.completedTicketsCount],
+      ['Proyectos', data.projectsCount],
+      ['Proyectos activos', data.activeProjectsCount],
+      ['Tickets', data.ticketsCount],
+      ['Tickets completados', data.completedTicketsCount],
     ],
-    theme: 'striped',
-    headStyles: { fillColor: [79, 70, 229] },
+    ...TABLE_STYLE,
+    columnStyles: { 1: { halign: 'right' } },
   });
 
-  currentY = (pdf as any).lastAutoTable.finalY + 15;
+  currentY = lastY() + 14;
 
   // Earnings Section (Admin only)
   if (Object.keys(data.earningsByCurrency).length > 0) {
     if (currentY > 250) { pdf.addPage(); currentY = 20; }
-    pdf.setFontSize(14);
-    pdf.text('Resumen de Ganancias', 15, currentY);
-    currentY += 10;
+    heading('Cotizado por moneda');
 
     const earningsBody = Object.entries(data.earningsByCurrency).map(([curr, amount]) => [
       curr,
@@ -72,49 +95,45 @@ export async function exportDashboardToPDF(data: DashboardData, filename: string
       startY: currentY,
       head: [['Moneda', 'Total']],
       body: earningsBody,
-      theme: 'grid',
-      headStyles: { fillColor: [16, 185, 129] }, // Emerald 500
+      ...TABLE_STYLE,
+      columnStyles: { 1: { halign: 'right' } },
     });
 
-    currentY = (pdf as any).lastAutoTable.finalY + 15;
+    currentY = lastY() + 14;
   }
 
   // Earnings by Client
   if (data.earningsByClient.length > 0) {
     if (currentY > 250) { pdf.addPage(); currentY = 20; }
-    pdf.setFontSize(14);
-    pdf.text('Ganancias por Cliente', 15, currentY);
-    currentY += 10;
+    heading('Cotizado por cliente');
 
     autoTable(pdf, {
       startY: currentY,
-      head: [['Cliente', 'Monto Acumulado']],
+      head: [['Cliente', 'Cotizado']],
       body: data.earningsByClient.map(e => [e.name, e.display]),
-      theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] },
+      ...TABLE_STYLE,
+      columnStyles: { 1: { halign: 'right' } },
     });
 
-    currentY = (pdf as any).lastAutoTable.finalY + 15;
+    currentY = lastY() + 14;
   }
 
   // Tickets by Status
   if (currentY > 220) { pdf.addPage(); currentY = 20; }
-  pdf.setFontSize(14);
-  pdf.text('Tickets por Estado', 15, currentY);
-  currentY += 10;
+  heading('Tickets por estado');
 
   autoTable(pdf, {
     startY: currentY,
     head: [['Estado', 'Cantidad']],
     body: [
-      ['Pendiente de Analizar', data.statusStats.pending_analysis],
-      ['Pendiente de Aprobación', data.statusStats.pending_approval],
-      ['Aprobado', data.statusStats.approved],
-      ['En Progreso', data.statusStats.ongoing],
-      ['Completado', data.statusStats.completed + data.statusStats.done],
+      ['Análisis', data.statusStats.pending_analysis || 0],
+      ['Aprobación del cliente', data.statusStats.pending_approval || 0],
+      ['Aprobado', data.statusStats.approved || 0],
+      ['En desarrollo', data.statusStats.ongoing || 0],
+      ['Completado', (data.statusStats.completed || 0) + (data.statusStats.done || 0)],
     ],
-    theme: 'grid',
-    headStyles: { fillColor: [147, 51, 234] }, // Purple 600
+    ...TABLE_STYLE,
+    columnStyles: { 1: { halign: 'right' } },
   });
 
   pdf.save(filename);

@@ -273,11 +273,13 @@ export const documentService = {
                                 shading: { fill: "F3F4F6" }, width: { size: 25, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100 }
                             }),
                             new TableCell({
-                                children: [new Paragraph({ 
-                                    text: ticket.qa_status === 'verified' ? "VERIFICADO EN STAGING" : 
-                                          ticket.qa_status === 'failed' ? "FALLIDO" : "PENDIENTE / EN PROCESO", 
-                                    bold: true,
-                                    color: ticket.qa_status === 'verified' ? "059669" : TEXT_COLOR 
+                                children: [new Paragraph({
+                                    children: [new TextRun({
+                                        text: ticket.qa_status === 'verified' ? "VERIFICADO EN STAGING" :
+                                              ticket.qa_status === 'failed' ? "FALLIDO" : "PENDIENTE / EN PROCESO",
+                                        bold: true,
+                                        color: ticket.qa_status === 'verified' ? "059669" : TEXT_COLOR
+                                    })]
                                 })],
                                  margins: { top: 100, bottom: 100, left: 100 }
                             }),

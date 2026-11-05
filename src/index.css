@@ -1,117 +1,365 @@
 @import "tailwindcss";
-@config "../tailwind.config.js";
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/red-hat-mono";
+
+/*
+ * "Formularios de la casa": ibPulse se ve como los formularios comerciales de
+ * IBSYSTEMS.SRL. Papel bond y tinta negra; el rojo del logo es la única tinta
+ * impresa; los estados son sellos en tintas de oficina. El modo oscuro es papel
+ * carbón. Todos los textos de color cumplen 4.5:1 sobre papel y sobre carbón.
+ *
+ * Segunda edición: las hojas tienen esquinas suaves y sombra en capas, los
+ * controles se levantan del papel, los sellos se entintan por dentro y el color
+ * también nombra a las personas y a los datos. La densidad no cambia.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --desk: oklch(0.958 0.008 255);
+  --paper: oklch(0.995 0.002 250);
+  --raised: oklch(1 0 0);
+  --shelf: oklch(0.942 0.009 255);
+  --well: oklch(0.974 0.006 255);
+  --ink: oklch(0.21 0.02 260);
+  --ink-2: oklch(0.42 0.018 260);
+  --ink-3: oklch(0.52 0.014 260);
+  --rule: oklch(0.9 0.007 260);
+  --rule-strong: oklch(0.6 0.012 260);
+  --rule-field: oklch(0.8 0.01 260);
+  --brand: oklch(0.55 0.215 28);
+  --brand-strong: oklch(0.48 0.2 28);
+  --on-brand: oklch(0.99 0.005 28);
+  --focus: oklch(0.55 0.17 255);
+  --st-graphite: oklch(0.4 0.02 260);
+  --st-ochre: oklch(0.52 0.12 65);
+  --st-blue: oklch(0.47 0.15 255);
+  --st-violet: oklch(0.47 0.16 300);
+  --st-green: oklch(0.48 0.12 150);
+  --st-red: oklch(0.55 0.215 28);
+  /* Quantities in charts: its own hue, so a bar never reads as a status or an alert. */
+  --data: oklch(0.55 0.1 215);
+  /* A person's seal: the hue comes from the name (Avatar), lightness and chroma from here. */
+  --av-bg-l: 0.92;
+  --av-bg-c: 0.05;
+  --av-fg-l: 0.42;
+  --av-fg-c: 0.11;
+  --shadow-control: 0 1px 2px oklch(0.2 0.02 260 / 0.07);
+  --shadow-sheet: 0 1px 2px oklch(0.2 0.02 260 / 0.05), 0 4px 12px -6px oklch(0.2 0.02 260 / 0.12);
+  --shadow-lift: 0 18px 40px -16px oklch(0.2 0.02 260 / 0.3), 0 4px 10px -2px oklch(0.2 0.02 260 / 0.08);
+}
+
+.dark {
+  color-scheme: dark;
+  --desk: oklch(0.17 0.02 262);
+  --paper: oklch(0.21 0.022 262);
+  --raised: oklch(0.275 0.024 262);
+  --shelf: oklch(0.19 0.02 262);
+  --well: oklch(0.185 0.02 262);
+  --ink: oklch(0.93 0.01 250);
+  --ink-2: oklch(0.78 0.015 250);
+  --ink-3: oklch(0.68 0.015 250);
+  --rule: oklch(0.3 0.02 262);
+  --rule-strong: oklch(0.52 0.02 262);
+  --rule-field: oklch(0.4 0.022 262);
+  --brand: oklch(0.68 0.19 28);
+  --brand-strong: oklch(0.74 0.17 28);
+  --on-brand: oklch(0.16 0.03 28);
+  --focus: oklch(0.75 0.12 250);
+  --st-graphite: oklch(0.8 0.015 250);
+  --st-ochre: oklch(0.8 0.12 75);
+  --st-blue: oklch(0.75 0.12 250);
+  --st-violet: oklch(0.75 0.13 300);
+  --st-green: oklch(0.76 0.12 150);
+  --st-red: oklch(0.7 0.17 28);
+  --data: oklch(0.72 0.1 215);
+  --av-bg-l: 0.34;
+  --av-bg-c: 0.06;
+  --av-fg-l: 0.88;
+  --av-fg-c: 0.07;
+  --shadow-control: 0 1px 2px oklch(0 0 0 / 0.35);
+  --shadow-sheet: 0 1px 2px oklch(0 0 0 / 0.3), 0 4px 12px -6px oklch(0 0 0 / 0.45);
+  --shadow-lift: 0 18px 44px -14px oklch(0 0 0 / 0.65), 0 2px 6px oklch(0 0 0 / 0.35);
+}
+
+@theme inline {
+  --color-desk: var(--desk);
+  --color-paper: var(--paper);
+  --color-raised: var(--raised);
+  --color-shelf: var(--shelf);
+  --color-well: var(--well);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-rule-field: var(--rule-field);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-on-brand: var(--on-brand);
+  --color-focus: var(--focus);
+  --color-st-graphite: var(--st-graphite);
+  --color-st-ochre: var(--st-ochre);
+  --color-st-blue: var(--st-blue);
+  --color-st-violet: var(--st-violet);
+  --color-st-green: var(--st-green);
+  --color-st-red: var(--st-red);
+  /* Stamp lettering: each ink pressed a little deeper, so it keeps 4.5:1 over its own tint.
+     Mixed in OKLab: in OKLCH the near-neutral ink would drag the hue (ochre turned red). */
+  --color-stamp-graphite: color-mix(in oklab, var(--st-graphite) 80%, var(--ink));
+  --color-stamp-ochre: color-mix(in oklab, var(--st-ochre) 80%, var(--ink));
+  --color-stamp-blue: color-mix(in oklab, var(--st-blue) 80%, var(--ink));
+  --color-stamp-violet: color-mix(in oklab, var(--st-violet) 80%, var(--ink));
+  --color-stamp-green: color-mix(in oklab, var(--st-green) 80%, var(--ink));
+  --color-stamp-red: color-mix(in oklab, var(--st-red) 80%, var(--ink));
+  --color-data: var(--data);
+  --shadow-control: var(--shadow-control);
+  --shadow-sheet: var(--shadow-sheet);
+  --shadow-lift: var(--shadow-lift);
+}
 
 @theme {
-  --dark-mode: selector;
+  --font-sans: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Red Hat Mono Variable", ui-monospace, "Cascadia Mono", monospace;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  /* Corners, from the sheet down to a stamp: nested corners step down so the curves stay concentric. */
+  --radius-sheet: 0.75rem;
+  --radius-control: 0.5rem;
+  --radius-inner: 0.375rem;
+  --radius-stamp: 0.3125rem;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-stamp: stamp 260ms var(--ease-out-expo);
+  --animate-sheet-in: sheet-in 200ms var(--ease-out-expo);
+  --animate-fade: fade 160ms ease-out;
+}
+
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.35) rotate(-4deg);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Loading line on the splash screen. */
+@keyframes splash-line {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
 }
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+  html {
+    font-family: var(--font-sans);
+    background: var(--desk);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+  body {
+    background: var(--desk);
+    color: var(--ink);
+    caret-color: var(--brand);
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--rule);
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--brand) 22%, transparent);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  a {
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-3);
+    opacity: 1;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  /* No single word left alone on a paragraph's last line. */
+  p {
+    text-wrap: pretty;
   }
 
   * {
-    @apply transition-colors duration-200 border-border;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--rule);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--rule-strong);
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-/* NProgress Custom Styling */
+/* A sheet of paper on the desk. */
+@utility sheet {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sheet);
+  box-shadow: var(--shadow-sheet);
+}
+
+/* Form caption: labels, column heads and field names. */
+@utility caption {
+  font-size: var(--text-2xs);
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* A person's color: pale seal, deep initials, one hue per name (set by Avatar as --av-h). */
+@utility avatar-tint {
+  background: oklch(var(--av-bg-l) var(--av-bg-c) var(--av-h, 250));
+  color: oklch(var(--av-fg-l) var(--av-fg-c) var(--av-h, 250));
+}
+
+/* Segmented control: a recessed track; the chosen segment is raised onto it. */
+@utility segmented {
+  display: inline-flex;
+  border-radius: var(--radius-control);
+  background: color-mix(in oklch, var(--ink) 6%, var(--paper));
+  padding: 0.125rem;
+}
+
+/* Accounting rule under totals. */
+@utility rule-total {
+  border-top: 3px double var(--ink);
+}
+
+/* Field that looks like a printed form cell. */
+@utility field {
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule-field);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-control);
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: border-color 150ms, box-shadow 150ms;
+
+  &:hover:not(:disabled) {
+    border-color: var(--rule-strong);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--focus) 22%, transparent);
+  }
+
+  &:disabled {
+    background: var(--well);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--st-red);
+  }
+}
+
+/* NProgress: a thin line of brand ink across the top of the page. */
+#nprogress {
+  pointer-events: none;
+}
+
 #nprogress .bar {
-  background: #ff0000 !important; /* blue-600 */
-  height: 3px !important;
+  background: var(--brand) !important;
+  height: 2px !important;
+  position: fixed;
+  z-index: 1031;
+  top: 0;
+  left: 0;
+  width: 100%;
 }
 
 #nprogress .peg {
-  box-shadow: 0 0 10px #ff0000, 0 0 5px #ff0000 !important;
+  box-shadow: none !important;
 }
 
-#nprogress .spinner-icon {
-  border-top-color: #ff0000 !important;
-  border-left-color: #ff0000 !important;
-}
-
-/* From Uiverse.io by milley69 */
-.loading svg polyline {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.loading svg polyline#back {
-  fill: none;
-  stroke: #ff4d5033;
-}
-
-.loading svg polyline#front {
-  fill: none;
-  stroke: #ff4d4f;
-  stroke-dasharray: 48, 144;
-  stroke-dashoffset: 192;
-  animation: dash_682 1.4s linear infinite;
-}
-
-@keyframes dash_682 {
-  72.5% {
-    opacity: 0;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* Toggle Checkbox */
-.toggle-checkbox:checked {
-  right: 0;
-  border-color: #68d391;
-}
-.toggle-checkbox:checked + .toggle-label {
-  background-color: #68d391;
+#nprogress .spinner {
+  display: none !important;
 }

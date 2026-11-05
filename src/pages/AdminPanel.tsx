@@ -1,20 +1,37 @@
-import { Search, Shield, Users as UsersIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';
+import { PageHeader } from '../components/layout/PageHeader';
+import { Avatar } from '../components/ui/Avatar';
+import { confirmDialog } from '../components/ui/ConfirmDialog';
+import { TableView } from '../components/views/TableView';
 import { useAuth } from '../hooks/useAuth';
-import { usePermissions } from '../hooks/usePermissions';
 import NProgress from '../lib/nprogress';
 import { supabase } from '../services/api';
 import { getUsers } from '../services/usersService';
 import { Client, Contact, UserProfile } from '../types';
+import { formatDate } from '../utils/format';
+import { normalizeText } from '../utils/tickets';
 
+type Role = 'admin' | 'support_agent' | 'user' | 'guest';
+
+const ROLES: { value: Role; label: string; help: string }[] = [
+  { value: 'admin', label: 'Administrador', help: 'Acceso completo: edita y elimina cualquier proyecto o tarea, y ve los precios.' },
+  { value: 'support_agent', label: 'Agente de soporte', help: 'Atiende el chat de soporte y edita las listas del sistema.' },
+  { value: 'user', label: 'Usuario', help: 'Crea proyectos y tareas, pero solo edita o elimina los suyos.' },
+  { value: 'guest', label: 'Invitado', help: 'Solo ve proyectos y tareas, sin permisos de escritura.' },
+];
+
+const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label || role;
+
+/** Who can use the workspace and with what role. */
 export function AdminPanel() {
   const { user, loading: loadingAuth } = useAuth();
-  const { isAdmin } = usePermissions();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
@@ -23,6 +40,12 @@ export function AdminPanel() {
       loadUsers();
     }
   }, [loadingAuth, user]);
+
+  const filteredUsers = useMemo(() => {
+    const term = normalizeText(searchTerm.trim());
+    if (!term) return users;
+    return users.filter(u => normalizeText(`${u.name} ${u.email}`).includes(term));
+  }, [users, searchTerm]);
 
   // Redirect if not support_agent
   if (!loadingAuth && (!user || (user.role !== 'admin' && user.role !== 'support_agent'))) {
@@ -58,29 +81,40 @@ export function AdminPanel() {
 
     } catch (error) {
       console.error('Error loading users:', error);
-      alert('Error cargando usuarios. Por favor revise la consola.');
+      toast.error('No se pudieron cargar los usuarios.');
     } finally {
       setLoading(false);
       NProgress.done();
     }
   }
 
+  async function updateUserRole(target: UserProfile, newRole: Role) {
+    // Admin sees prices and can delete anything: ask before handing it out.
+    if (newRole === 'admin') {
+      const ok = await confirmDialog({
+        title: 'Dar rol de administrador',
+        message: `${target.name} podrá editar y eliminar cualquier proyecto o tarea, y verá los precios.`,
+        confirmText: 'Hacer administrador',
+        tone: 'primary',
+      });
+      if (!ok) return;
+    }
 
-  async function updateUserRole(userId: string, newRole: 'admin' | 'user' | 'guest') {
     try {
-      setUpdatingUserId(userId);
+      setUpdatingUserId(target.id);
       const { error } = await supabase
         .from('user_profiles')
         .update({ role: newRole })
-        .eq('id', userId);
+        .eq('id', target.id);
 
       if (error) throw error;
 
       // Update local state
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      setUsers(prev => prev.map(u => u.id === target.id ? { ...u, role: newRole } : u));
+      toast.success(`${target.name}: ${roleLabel(newRole)}`);
     } catch (error) {
       console.error('Error updating user role:', error);
-      alert('Error al actualizar el rol del usuario');
+      toast.error('No se pudo cambiar el rol.');
     } finally {
       setUpdatingUserId(null);
     }
@@ -100,209 +134,128 @@ export function AdminPanel() {
       if (error) throw error;
 
       // Update local state
-      setUsers(users.map(u => u.id === userId ? { ...u, contact_id: finalContactId } : u));
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, contact_id: finalContactId } : u));
+      toast.success(finalContactId ? 'Contacto vinculado' : 'Contacto desvinculado');
     } catch (error) {
       console.error('Error updating user contact:', error);
-      alert('Error al actualizar el contacto del usuario');
+      toast.error('No se pudo cambiar el contacto.');
     } finally {
       setUpdatingUserId(null);
     }
   }
 
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'support_agent':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'user':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'guest':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'support_agent':
-        return 'Agente de Soporte';
-      case 'user':
-        return 'Usuario';
-      case 'guest':
-        return 'Invitado';
-      default:
-        return role;
-    }
-  };
-
-  if (loading) {
-    return null;
-  }
-
+  const selectClass = 'field h-8 w-auto appearance-none py-1 pr-8 text-[13px] disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
-              <p className="text-gray-600">Gestiona usuarios y permisos</p>
-            </div>
-          </div>
-        </div>
+    <div className="flex min-h-full flex-col">
+      <PageHeader
+        title="Usuarios y permisos"
+        subtitle={loading ? 'Cargando usuarios…' : `${users.length} usuarios. Cambia su rol o vincúlalos con el contacto de un cliente.`}
+        search={{ value: searchTerm, onChange: setSearchTerm, placeholder: 'Buscar por nombre o correo' }}
+      />
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <UsersIcon className="w-5 h-5 text-gray-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Usuarios</h2>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded">
-                  {users.length}
-                </span>
+      <div className="space-y-5 px-4 py-5 sm:px-6">
+        <TableView
+          caption="Usuarios"
+          data={filteredUsers}
+          isLoading={loading}
+          defaultSort={{ index: 0, dir: 'asc' }}
+          emptyMessage="Ningún usuario coincide con la búsqueda."
+          columns={[
+            {
+              header: 'Usuario',
+              sortValue: (u) => u.name.toLowerCase(),
+              cell: (u) => (
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={u.name} src={u.avatar} size="sm" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">
+                      {u.name}
+                      {u.id === user?.id && <span className="ml-1.5 text-xs font-normal text-ink-3">(tú)</span>}
+                    </p>
+                    <p className="truncate text-xs text-ink-3 md:hidden">{u.email}</p>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              header: 'Correo',
+              hideBelow: 'md',
+              sortValue: (u) => u.email.toLowerCase(),
+              cell: (u) => <span className="text-[13px] text-ink-2">{u.email}</span>,
+            },
+            {
+              header: 'Rol',
+              sortValue: (u) => ROLES.findIndex((r) => r.value === u.role),
+              cell: (u) => (
+                <div className="relative w-fit">
+                  <label htmlFor={`role-${u.id}`} className="sr-only">Rol de {u.name}</label>
+                  <select
+                    id={`role-${u.id}`}
+                    value={u.role}
+                    onChange={(e) => updateUserRole(u, e.target.value as Role)}
+                    disabled={updatingUserId === u.id || u.id === user?.id}
+                    title={u.id === user?.id ? 'No puedes cambiar tu propio rol' : undefined}
+                    className={selectClass}
+                  >
+                    {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                  <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+                </div>
+              ),
+            },
+            {
+              header: 'Contacto vinculado',
+              hideBelow: 'lg',
+              cell: (u) => (
+                <div className="relative w-fit">
+                  <label htmlFor={`contact-${u.id}`} className="sr-only">Contacto de {u.name}</label>
+                  <select
+                    id={`contact-${u.id}`}
+                    value={u.contact_id || ''}
+                    onChange={(e) => updateUserContact(u.id, e.target.value)}
+                    disabled={updatingUserId === u.id}
+                    className={`${selectClass} max-w-[16rem]`}
+                  >
+                    <option value="">Sin vincular</option>
+                    {clients.map(client => {
+                      const clientContacts = contacts.filter(c => c.client_id === client.id);
+                      if (clientContacts.length === 0) return null;
+                      return (
+                        <optgroup key={client.id} label={client.name}>
+                          {clientContacts.map(contact => (
+                            <option key={contact.id} value={contact.id}>
+                              {contact.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+                </div>
+              ),
+            },
+            {
+              header: 'Registro',
+              hideBelow: 'xl',
+              sortValue: (u) => u.created_at,
+              cell: (u) => <span className="text-[13px] tabular-nums text-ink-2">{formatDate(u.created_at)}</span>,
+            },
+          ]}
+        />
+
+        <section className="sheet max-w-3xl" aria-labelledby="roles-help">
+          <h2 id="roles-help" className="border-b border-rule px-5 py-3 text-[15px] font-semibold text-ink">Qué puede hacer cada rol</h2>
+          <dl className="divide-y divide-rule">
+            {ROLES.map((role) => (
+              <div key={role.value} className="grid grid-cols-1 gap-1 px-5 py-2.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
+                <dt className="text-sm font-medium text-ink">{role.label}</dt>
+                <dd className="text-[13px] text-ink-2">{role.help}</dd>
               </div>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rol Actual
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cambiar Rol
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contacto Vinculado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha de Registro
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {u.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{u.name}</p>
-                          {u.id === user?.id && (
-                            <span className="text-xs text-indigo-600">(Tú)</span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-600">{u.email}</p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(u.role)}`}>
-                        {getRoleLabel(u.role)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={u.role}
-                        onChange={(e) => updateUserRole(u.id, e.target.value as any)}
-                        disabled={updatingUserId === u.id || u.id === user?.id}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <option value="admin">Administrador</option>
-                        <option value="support_agent">Agente de Soporte</option>
-                        <option value="user">Usuario</option>
-                        <option value="guest">Invitado</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={u.contact_id || ''}
-                        onChange={(e) => updateUserContact(u.id, e.target.value)}
-                        disabled={updatingUserId === u.id}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed max-w-xs"
-                      >
-                        <option value="">-- Sin vincular --</option>
-                        {clients.map(client => {
-                          const clientContacts = contacts.filter(c => c.client_id === client.id);
-                          if (clientContacts.length === 0) return null;
-                          return (
-                            <optgroup key={client.id} label={client.name}>
-                              {clientContacts.map(contact => (
-                                <option key={contact.id} value={contact.id}>
-                                  {contact.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          );
-                        })}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-600">
-                        {new Date(u.created_at).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12">
-                <UsersIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No se encontraron usuarios</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">Información sobre Roles</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li><strong>Administrador:</strong> Acceso completo, puede editar y eliminar cualquier proyecto o tarea</li>
-            <li><strong>Usuario:</strong> Puede crear proyectos y tareas, pero solo puede editar/eliminar los suyos</li>
-            <li><strong>Invitado:</strong> Solo puede ver proyectos y tareas, sin permisos de escritura</li>
-          </ul>
-        </div>
+            ))}
+          </dl>
+        </section>
       </div>
     </div>
   );

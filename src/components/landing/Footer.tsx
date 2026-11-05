@@ -1,65 +1,40 @@
-import Logo from '../../public/Logoibpulse.webp';
+import { Link } from 'react-router-dom';
+import { Logo } from '../ui/Logo';
 
 export function Footer() {
     return (
-        <footer className="bg-white border-t border-gray-100 pt-16 pb-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                    <div className="col-span-1 md:col-span-1">
-                        <div className="flex items-center gap-2 mb-6">
-                            <img src={Logo} alt="ibPulse" className="h-10 w-auto" />
-                            <span className="font-bold text-xl text-gray-900">ibPulse</span>
-                        </div>
-                        <p className="text-gray-500 text-sm leading-relaxed mb-6">
-                            Simplificando la gestión de proyectos para equipos modernos que buscan excelencia y control.
-                        </p>
-                        <div className="flex gap-4">
-                            {/* Social placeholders */}
-                            <div className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"></div>
-                            <div className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"></div>
-                            <div className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold text-gray-900 mb-6">Producto</h3>
-                        <ul className="space-y-4 text-sm text-gray-600">
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Características</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Integraciones</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Roadmap</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Precios</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold text-gray-900 mb-6">Compañía</h3>
-                        <ul className="space-y-4 text-sm text-gray-600">
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Sobre Nosotros</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Carreras</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Blog</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Contacto</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold text-gray-900 mb-6">Legal</h3>
-                        <ul className="space-y-4 text-sm text-gray-600">
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Privacidad</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Términos</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Seguridad</a></li>
-                            <li><a href="#" className="hover:text-indigo-600 transition-colors">Cookies</a></li>
-                        </ul>
-                    </div>
+        <footer className="bg-desk">
+            <div className="mx-auto grid grid-cols-1 max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
+                <div>
+                    <Logo className="h-7" />
+                    <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-2">
+                        Simplificando la gestión de proyectos para equipos modernos que buscan excelencia y control.
+                    </p>
                 </div>
 
-                <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-sm text-gray-500">
-                        © {new Date().getFullYear()} IBS ibPulse. Todos los derechos reservados.
-                    </p>
-                    <div className="flex gap-6 text-sm text-gray-500">
-                        <span className="hover:text-gray-900 cursor-pointer">Status</span>
-                        <span className="hover:text-gray-900 cursor-pointer">API</span>
-                    </div>
+                <nav aria-label="Producto">
+                    <h3 className="caption">Producto</h3>
+                    <ul className="mt-3 space-y-2 text-sm">
+                        <li><a href="#funciones" className="text-ink-2 hover:text-ink">Funciones</a></li>
+                        <li><a href="#precios" className="text-ink-2 hover:text-ink">Precios</a></li>
+                        <li><Link to="/demo" className="text-ink-2 hover:text-ink">Demo</Link></li>
+                    </ul>
+                </nav>
+
+                <nav aria-label="Cuenta y contacto">
+                    <h3 className="caption">Cuenta</h3>
+                    <ul className="mt-3 space-y-2 text-sm">
+                        <li><Link to="/login" className="text-ink-2 hover:text-ink">Iniciar sesión</Link></li>
+                        <li><Link to="/register" className="text-ink-2 hover:text-ink">Crear cuenta</Link></li>
+                        <li><a href="mailto:support@ibsystems.srl" className="text-ink-2 hover:text-ink">support@ibsystems.srl</a></li>
+                    </ul>
+                </nav>
+            </div>
+
+            <div className="border-t border-rule">
+                <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <p>© {new Date().getFullYear()} IBS ibPulse. Todos los derechos reservados.</p>
+                    <p className="font-semibold tracking-[0.08em]">BY IBSYSTEMS.SRL</p>
                 </div>
             </div>
         </footer>

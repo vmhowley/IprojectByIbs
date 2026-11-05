@@ -1,0 +1,727 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-05T11:36:17Z",
+  "title": "Design System: ibPulse",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Logo Red",
+        "canonical": "oklch(0.55 0.215 28)",
+        "dark": "oklch(0.68 0.19 28)",
+        "tonalRamp": [
+          "oklch(0.15 0.111 28)",
+          "oklch(0.264 0.169 28)",
+          "oklch(0.379 0.204 28)",
+          "oklch(0.493 0.217 28)",
+          "oklch(0.607 0.207 28)",
+          "oklch(0.721 0.175 28)",
+          "oklch(0.836 0.119 28)",
+          "oklch(0.95 0.041 28)"
+        ]
+      },
+      "brand-strong": {
+        "role": "primary",
+        "displayName": "Pressed Red",
+        "canonical": "oklch(0.48 0.2 28)",
+        "dark": "oklch(0.74 0.17 28)",
+        "tonalRamp": [
+          "oklch(0.15 0.102 28)",
+          "oklch(0.264 0.156 28)",
+          "oklch(0.379 0.189 28)",
+          "oklch(0.493 0.2 28)",
+          "oklch(0.607 0.191 28)",
+          "oklch(0.721 0.161 28)",
+          "oklch(0.836 0.11 28)",
+          "oklch(0.95 0.038 28)"
+        ]
+      },
+      "on-brand": {
+        "role": "primary",
+        "displayName": "Paper on Red",
+        "canonical": "oklch(0.99 0.005 28)",
+        "dark": "oklch(0.16 0.03 28)",
+        "tonalRamp": [
+          "oklch(0.15 0.005 28)",
+          "oklch(0.264 0.005 28)",
+          "oklch(0.379 0.005 28)",
+          "oklch(0.493 0.005 28)",
+          "oklch(0.607 0.005 28)",
+          "oklch(0.721 0.005 28)",
+          "oklch(0.836 0.005 28)",
+          "oklch(0.95 0.005 28)"
+        ]
+      },
+      "st-graphite": {
+        "role": "tertiary",
+        "displayName": "Graphite Ink",
+        "canonical": "oklch(0.4 0.02 260)",
+        "dark": "oklch(0.8 0.015 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.011 260)",
+          "oklch(0.264 0.016 260)",
+          "oklch(0.379 0.02 260)",
+          "oklch(0.493 0.021 260)",
+          "oklch(0.607 0.02 260)",
+          "oklch(0.721 0.017 260)",
+          "oklch(0.836 0.011 260)",
+          "oklch(0.95 0.004 260)"
+        ]
+      },
+      "st-ochre": {
+        "role": "tertiary",
+        "displayName": "Ochre Ink",
+        "canonical": "oklch(0.52 0.12 65)",
+        "dark": "oklch(0.8 0.12 75)",
+        "tonalRamp": [
+          "oklch(0.15 0.061 65)",
+          "oklch(0.264 0.093 65)",
+          "oklch(0.379 0.113 65)",
+          "oklch(0.493 0.12 65)",
+          "oklch(0.607 0.115 65)",
+          "oklch(0.721 0.097 65)",
+          "oklch(0.836 0.066 65)",
+          "oklch(0.95 0.023 65)"
+        ]
+      },
+      "st-blue": {
+        "role": "tertiary",
+        "displayName": "Blue Ink",
+        "canonical": "oklch(0.47 0.15 255)",
+        "dark": "oklch(0.75 0.12 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.077 255)",
+          "oklch(0.264 0.117 255)",
+          "oklch(0.379 0.142 255)",
+          "oklch(0.493 0.151 255)",
+          "oklch(0.607 0.144 255)",
+          "oklch(0.721 0.121 255)",
+          "oklch(0.836 0.083 255)",
+          "oklch(0.95 0.029 255)"
+        ]
+      },
+      "st-violet": {
+        "role": "tertiary",
+        "displayName": "Violet Ink",
+        "canonical": "oklch(0.47 0.16 300)",
+        "dark": "oklch(0.75 0.13 300)",
+        "tonalRamp": [
+          "oklch(0.15 0.082 300)",
+          "oklch(0.264 0.125 300)",
+          "oklch(0.379 0.151 300)",
+          "oklch(0.493 0.161 300)",
+          "oklch(0.607 0.153 300)",
+          "oklch(0.721 0.129 300)",
+          "oklch(0.836 0.088 300)",
+          "oklch(0.95 0.031 300)"
+        ]
+      },
+      "st-green": {
+        "role": "tertiary",
+        "displayName": "Green Ink",
+        "canonical": "oklch(0.48 0.12 150)",
+        "dark": "oklch(0.76 0.12 150)",
+        "tonalRamp": [
+          "oklch(0.15 0.061 150)",
+          "oklch(0.264 0.093 150)",
+          "oklch(0.379 0.113 150)",
+          "oklch(0.493 0.12 150)",
+          "oklch(0.607 0.115 150)",
+          "oklch(0.721 0.097 150)",
+          "oklch(0.836 0.066 150)",
+          "oklch(0.95 0.023 150)"
+        ]
+      },
+      "st-red": {
+        "role": "tertiary",
+        "displayName": "Stamp Red",
+        "canonical": "oklch(0.55 0.215 28)",
+        "dark": "oklch(0.7 0.17 28)",
+        "tonalRamp": [
+          "oklch(0.15 0.111 28)",
+          "oklch(0.264 0.169 28)",
+          "oklch(0.379 0.204 28)",
+          "oklch(0.493 0.217 28)",
+          "oklch(0.607 0.207 28)",
+          "oklch(0.721 0.175 28)",
+          "oklch(0.836 0.119 28)",
+          "oklch(0.95 0.041 28)"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Cool Grey Desk",
+        "canonical": "oklch(0.958 0.008 255)",
+        "dark": "oklch(0.17 0.02 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Bond Paper",
+        "canonical": "oklch(0.995 0.002 250)",
+        "dark": "oklch(0.21 0.022 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised White",
+        "canonical": "oklch(1 0 0)",
+        "dark": "oklch(0.275 0.024 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "shelf": {
+        "role": "neutral",
+        "displayName": "Shelf Grey",
+        "canonical": "oklch(0.942 0.009 255)",
+        "dark": "oklch(0.19 0.02 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "well": {
+        "role": "neutral",
+        "displayName": "Well",
+        "canonical": "oklch(0.974 0.006 255)",
+        "dark": "oklch(0.185 0.02 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Black Ink",
+        "canonical": "oklch(0.21 0.02 260)",
+        "dark": "oklch(0.93 0.01 250)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "oklch(0.42 0.018 260)",
+        "dark": "oklch(0.78 0.015 250)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "oklch(0.52 0.014 260)",
+        "dark": "oklch(0.68 0.015 250)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "oklch(0.9 0.007 260)",
+        "dark": "oklch(0.3 0.02 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "oklch(0.6 0.012 260)",
+        "dark": "oklch(0.52 0.02 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "rule-field": {
+        "role": "neutral",
+        "displayName": "Field Rule",
+        "canonical": "oklch(0.8 0.01 260)",
+        "dark": "oklch(0.4 0.022 262)",
+        "tonalRamp": [
+          "oklch(0.21 0.02 260)",
+          "oklch(0.42 0.018 260)",
+          "oklch(0.52 0.014 260)",
+          "oklch(0.6 0.012 260)",
+          "oklch(0.9 0.007 260)",
+          "oklch(0.942 0.009 255)",
+          "oklch(0.958 0.008 255)",
+          "oklch(0.995 0.002 250)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Focus Blue",
+        "canonical": "oklch(0.55 0.17 255)",
+        "dark": "oklch(0.75 0.12 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.088 255)",
+          "oklch(0.264 0.133 255)",
+          "oklch(0.379 0.162 255)",
+          "oklch(0.493 0.172 255)",
+          "oklch(0.607 0.164 255)",
+          "oklch(0.721 0.138 255)",
+          "oklch(0.836 0.094 255)",
+          "oklch(0.95 0.033 255)"
+        ]
+      },
+      "data": {
+        "role": "tertiary",
+        "displayName": "Data Cerulean",
+        "canonical": "oklch(0.55 0.1 215)",
+        "dark": "oklch(0.72 0.1 215)"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing hero headline only; 2.5rem on phones, 3.4rem from 640px, width 112%."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Landing and pricing section heads; plan prices use the same cut at 2.25rem with tabular figures."
+      },
+      "title-page": {
+        "displayName": "Page Title",
+        "purpose": "The letterhead heading of every app page."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Modal titles and landing step and feature heads; record titles (a client's name, a ticket's subject) go up to 1.25rem."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Cells, fields and descriptions; sheet heads use it at 600."
+      },
+      "body-dense": {
+        "displayName": "Dense",
+        "purpose": "Secondary cells at 13px: dates, assignees, context lines."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Default button labels."
+      },
+      "control-dense": {
+        "displayName": "Dense Control",
+        "purpose": "Tabs, toggles, filters, small buttons, back links and field errors."
+      },
+      "label": {
+        "displayName": "Caption",
+        "purpose": "Uppercase Ink 3 caption for field labels, column heads, nav group names and the label of a numbered box.",
+        "textTransform": "uppercase"
+      },
+      "stamp": {
+        "displayName": "Stamp",
+        "purpose": "Status stamps only, uppercase and condensed to 82%; 12px at 0.08em on the large ticket stamp.",
+        "textTransform": "uppercase"
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Amounts, ticket numbers and sequences, case codes, keyboard keys and the landing's list numerals."
+      },
+      "figure-total": {
+        "displayName": "Total Figure",
+        "purpose": "Totals under the 3px double rule, one line per currency."
+      },
+      "figure-doc": {
+        "displayName": "Numbered-Box Figure",
+        "purpose": "The figure in a form's numbered box, such as the Precio box on a project letterhead."
+      }
+    },
+    "shadows": [
+      {
+        "name": "control",
+        "value": "0 1px 2px oklch(0.2 0.02 260 / 0.07)",
+        "purpose": "Buttons, fields and the chosen segment of a segmented control; a pressed button drops it (variable --shadow-control)."
+      },
+      {
+        "name": "resting-sheet",
+        "value": "0 1px 2px oklch(0.2 0.02 260 / 0.05), 0 4px 12px -6px oklch(0.2 0.02 260 / 0.12)",
+        "purpose": "Every sheet at rest on the desk (variable --shadow-sheet)."
+      },
+      {
+        "name": "lifted-sheet",
+        "value": "0 18px 40px -16px oklch(0.2 0.02 260 / 0.3), 0 4px 10px -2px oklch(0.2 0.02 260 / 0.08)",
+        "purpose": "Modals, popovers, toasts, the featured pricing plan, a board card under the pointer or in hand, and the landing's sample ledger and ticket slip (variable --shadow-lift)."
+      },
+      {
+        "name": "control-carbon",
+        "value": "0 1px 2px oklch(0 0 0 / 0.35)",
+        "purpose": "The control shadow on carbon paper."
+      },
+      {
+        "name": "resting-sheet-carbon",
+        "value": "0 1px 2px oklch(0 0 0 / 0.3), 0 4px 12px -6px oklch(0 0 0 / 0.45)",
+        "purpose": "The resting sheet under the dark, carbon-paper theme."
+      },
+      {
+        "name": "lifted-sheet-carbon",
+        "value": "0 18px 44px -14px oklch(0 0 0 / 0.65), 0 2px 6px oklch(0 0 0 / 0.35)",
+        "purpose": "The lifted sheet under the dark, carbon-paper theme."
+      },
+      {
+        "name": "stamp-double-frame",
+        "value": "inset 0 0 0 1px var(--paper), inset 0 0 0 1.75px currentColor",
+        "purpose": "The inner paper gap and ink line that make the double frame of 20px and 28px status stamps. A border device, not elevation."
+      },
+      {
+        "name": "field-focus-ring",
+        "value": "0 0 0 3px color-mix(in oklch, var(--focus) 22%, transparent)",
+        "purpose": "The ring around a focused field, whose border also turns Focus Blue."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Easing for the stamp landing and for sheets entering."
+      },
+      {
+        "name": "stamp",
+        "value": "260ms ease-out-expo: scale 1.35 to 1, rotate -4deg to 0, opacity 0 to 1 by 60%",
+        "purpose": "A status stamp landing, only right after a status change, never on page load."
+      },
+      {
+        "name": "sheet-in",
+        "value": "200ms ease-out-expo: translateY 6px to 0, opacity 0 to 1",
+        "purpose": "Modals and popovers entering."
+      },
+      {
+        "name": "fade",
+        "value": "160ms ease-out",
+        "purpose": "Scrims behind modals and the mobile drawer."
+      },
+      {
+        "name": "control-transition",
+        "value": "150ms",
+        "purpose": "Color, border and background changes on buttons, fields, tabs, rows and nav items."
+      },
+      {
+        "name": "drawer",
+        "value": "200ms ease-out on transform and visibility",
+        "purpose": "The mobile sidebar sliding in over the scrim."
+      },
+      {
+        "name": "press",
+        "value": "translateY(1px)",
+        "purpose": "A button pressed while active."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "1ms",
+        "purpose": "Under prefers-reduced-motion every animation and transition collapses to 1ms."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Gutters grow to 24px; money tables unfold their status and count columns; modals stop being bottom sheets."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "The sidebar becomes static at 240px."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Letterhead actions and the numbered box sit at the right; view switcher labels appear."
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "purpose": "Work pages add their fixed side column."
+      },
+      {
+        "name": "container-xl",
+        "value": "36rem",
+        "purpose": "Summary strip boxes stand side by side; the task list adds number, status and deadline."
+      },
+      {
+        "name": "container-3xl",
+        "value": "48rem",
+        "purpose": "Container step used by wider sheet layouts."
+      },
+      {
+        "name": "container-4xl",
+        "value": "56rem",
+        "purpose": "The task list adds priority and assignee."
+      },
+      {
+        "name": "container-6xl",
+        "value": "72rem",
+        "purpose": "The task list adds request type."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one Logo Red action per view, last among the letterhead actions at the top right.",
+      "html": "<button type='button' class='ds-btn-primary'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M5 12h14'/><path d='M12 5v14'/></svg>Nuevo proyecto</button>",
+      "css": ".ds-btn-primary { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid var(--brand); border-radius: 8px; background: var(--brand); box-shadow: var(--shadow-control); color: var(--on-brand); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 20px; white-space: nowrap; cursor: pointer; transition: background-color 150ms, border-color 150ms, color 150ms, box-shadow 150ms; } .ds-btn-primary:hover { background: var(--brand-strong); border-color: var(--brand-strong); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Page-level secondary actions: Raised White with a Field Rule edge and the control shadow.",
+      "html": "<button type='button' class='ds-btn-secondary'>Exportar PDF</button>",
+      "css": ".ds-btn-secondary { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid var(--rule-field); border-radius: 8px; background: var(--raised); box-shadow: var(--shadow-control); color: var(--ink); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 20px; white-space: nowrap; cursor: pointer; transition: background-color 150ms, border-color 150ms, color 150ms; } .ds-btn-secondary:hover { border-color: var(--rule-strong); background: var(--well); } .ds-btn-secondary:active { transform: translateY(1px); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "A red outline that fills only under the pointer, so it never looks like the primary at rest.",
+      "html": "<button type='button' class='ds-btn-danger'>Eliminar</button>",
+      "css": ".ds-btn-danger { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid color-mix(in oklch, var(--st-red) 50%, transparent); border-radius: 8px; background: var(--paper); color: var(--st-red); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 20px; white-space: nowrap; cursor: pointer; transition: background-color 150ms, border-color 150ms, color 150ms; } .ds-btn-danger:hover { background: var(--st-red); border-color: var(--st-red); color: var(--on-brand); } .ds-btn-danger:active { transform: translateY(1px); } .ds-btn-danger:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .ds-btn-danger:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Form Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "A form cell lifted a hair, with its caption label above and a hint below.",
+      "html": "<div class='ds-field-wrap'><label class='ds-field-label' for='ds-field-1'>Nombre del proyecto<span class='ds-field-req' aria-hidden='true'>*</span></label><input id='ds-field-1' class='ds-field' placeholder='Ej.: Portal de clientes' aria-describedby='ds-field-1-hint' required><p id='ds-field-1-hint' class='ds-field-hint'>Así aparece en el libro de cotizaciones.</p></div>",
+      "css": ".ds-field-wrap { width: 300px; font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); } .ds-field-label { display: block; margin-bottom: 6px; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); } .ds-field-req { margin-left: 2px; color: var(--st-red); } .ds-field { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid var(--rule-field); border-radius: 8px; box-shadow: var(--shadow-control); background: var(--paper); color: var(--ink); font-family: inherit; font-size: 14px; line-height: 20px; transition: border-color 150ms, box-shadow 150ms; } .ds-field::placeholder { color: var(--ink-3); opacity: 1; } .ds-field:hover:not(:disabled) { border-color: var(--rule-strong); } .ds-field:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in oklch, var(--focus) 22%, transparent); } .ds-field[aria-invalid='true'] { border-color: var(--st-red); } .ds-field:disabled { background: var(--well); color: var(--ink-3); cursor: not-allowed; } .ds-field-hint { margin: 4px 0 0; font-size: 12px; line-height: 16px; color: var(--ink-3); }"
+    },
+    {
+      "name": "Status Stamps",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Every status as a framed rubber stamp, inked inside its frame: double frame at 20px and 28px, single frame at 18px for dense rows.",
+      "html": "<div class='ds-stamps'><span class='ds-stamp ds-ink-graphite'>Pendiente de análisis</span><span class='ds-stamp ds-ink-ochre'>Pendiente de aprobación</span><span class='ds-stamp ds-ink-blue'>Aprobado</span><span class='ds-stamp ds-ink-violet'>En desarrollo</span><span class='ds-stamp ds-ink-green'>Finalizado</span><span class='ds-stamp ds-ink-red'>Vencido</span><span class='ds-stamp ds-stamp-sm ds-ink-ochre'>En espera</span><span class='ds-stamp ds-stamp-lg ds-ink-ochre'>Pendiente de aprobación</span></div>",
+      "css": ".ds-stamps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px; background: var(--paper); } .ds-stamp { box-sizing: border-box; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border: 1.5px solid color-mix(in oklch, currentColor 45%, transparent); border-radius: 5px; background: color-mix(in oklch, currentColor 12%, transparent); box-shadow: inset 0 0 0 1px var(--paper), inset 0 0 0 1.75px currentColor; font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); font-size: 11px; font-weight: 700; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase; font-stretch: 82%; white-space: nowrap; user-select: none; } .ds-stamp-sm { height: 18px; padding: 0 4px; border-width: 1px; box-shadow: none; } .ds-stamp-lg { height: 28px; padding: 0 10px; border-width: 2px; font-size: 12px; letter-spacing: 0.08em; animation: ds-stamp 260ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-ink-graphite { color: color-mix(in oklab, var(--st-graphite) 80%, var(--ink)); } .ds-ink-ochre { color: color-mix(in oklab, var(--st-ochre) 80%, var(--ink)); } .ds-ink-blue { color: color-mix(in oklab, var(--st-blue) 80%, var(--ink)); } .ds-ink-violet { color: color-mix(in oklab, var(--st-violet) 80%, var(--ink)); } .ds-ink-green { color: color-mix(in oklab, var(--st-green) 80%, var(--ink)); } .ds-ink-red { color: color-mix(in oklab, var(--st-red) 80%, var(--ink)); } @keyframes ds-stamp { from { opacity: 0; transform: scale(1.35) rotate(-4deg); } 60% { opacity: 1; } to { opacity: 1; transform: scale(1) rotate(0deg); } } @media (prefers-reduced-motion: reduce) { .ds-stamp-lg { animation: none; } }"
+    },
+    {
+      "name": "Priority Ticks",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Priority as three rising ticks, like the boxes of a printed priority field.",
+      "html": "<div class='ds-urgency-row'><span class='ds-urgency ds-urgency-high' title='Prioridad alta'><span class='ds-ticks' aria-hidden='true'><i class='on'></i><i class='on'></i><i class='on'></i></span><span class='ds-urgency-word'>Alta</span></span><span class='ds-urgency ds-urgency-medium' title='Prioridad media'><span class='ds-ticks' aria-hidden='true'><i class='on'></i><i class='on'></i><i></i></span><span class='ds-urgency-word'>Media</span></span><span class='ds-urgency ds-urgency-low' title='Prioridad baja'><span class='ds-ticks' aria-hidden='true'><i class='on'></i><i></i><i></i></span><span class='ds-urgency-word'>Baja</span></span></div>",
+      "css": ".ds-urgency-row { display: flex; flex-wrap: wrap; gap: 20px; padding: 16px; background: var(--paper); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); } .ds-urgency { display: inline-flex; align-items: center; gap: 6px; } .ds-ticks { display: flex; align-items: flex-end; gap: 2px; } .ds-ticks i { display: block; width: 3px; border-radius: 9999px; background: var(--rule); } .ds-ticks i:nth-child(1) { height: 6px; } .ds-ticks i:nth-child(2) { height: 10px; } .ds-ticks i:nth-child(3) { height: 14px; } .ds-ticks i.on { background: currentColor; } .ds-urgency-high .ds-ticks { color: var(--st-red); } .ds-urgency-medium .ds-ticks { color: var(--st-ochre); } .ds-urgency-low .ds-ticks { color: var(--st-graphite); } .ds-urgency-word { font-size: 13px; font-weight: 500; color: var(--ink-2); } .ds-urgency-high .ds-urgency-word { color: var(--st-red); }"
+    },
+    {
+      "name": "Ruled Ledger",
+      "kind": "custom",
+      "refersTo": "ledger-row",
+      "description": "The money register: caption heads on the well, mono amounts per currency, totals under a 3px double ink rule, with a segmented scope control in the sheet head.",
+      "html": "<section class='ds-ledger' aria-labelledby='ds-ledger-title'><div class='ds-ledger-head'><div><h2 id='ds-ledger-title' class='ds-ledger-title'>Libro de cotizaciones</h2><p class='ds-ledger-note'>Precio de los proyectos por cliente. Cada moneda se suma por separado.</p></div><div class='ds-ledger-toggle' role='group' aria-label='Proyectos'><button type='button' aria-pressed='true'>Abiertos</button><button type='button' aria-pressed='false'>Completados</button><button type='button' aria-pressed='false'>Todos</button></div></div><table class='ds-ledger-table'><thead><tr><th scope='col'>Cliente</th><th scope='col' class='ds-num'>Proyectos</th><th scope='col' class='ds-num'>USD</th><th scope='col' class='ds-num'>DOP</th></tr></thead><tbody><tr><th scope='row'>Cliente de ejemplo</th><td class='ds-num ds-count'>3</td><td class='ds-num ds-amt'>US$12,400.00</td><td class='ds-num ds-amt'>RD$58,000.00</td></tr><tr><th scope='row'>Otro cliente de ejemplo</th><td class='ds-num ds-count'>2<span class='ds-sub'>1 sin precio</span></td><td class='ds-num ds-amt'>US$2,150.00</td><td class='ds-num ds-dash'>—</td></tr></tbody><tfoot><tr><th scope='row'>Total</th><td class='ds-num'>5<span class='ds-sub'>1 sin precio</span></td><td class='ds-num ds-amt'>US$14,550.00</td><td class='ds-num ds-amt'>RD$58,000.00</td></tr></tfoot></table></section>",
+      "css": ".ds-ledger { max-width: 600px; overflow: hidden; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-sheet); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); } .ds-ledger-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--rule); } .ds-ledger-title { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; } .ds-ledger-note { margin: 0; font-size: 12px; line-height: 16px; color: var(--ink-3); } .ds-ledger-toggle { display: inline-flex; padding: 2px; border-radius: 8px; background: color-mix(in oklch, var(--ink) 6%, var(--paper)); } .ds-ledger-toggle button { padding: 4px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 500; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-ledger-toggle button:hover { color: var(--ink); } .ds-ledger-toggle button[aria-pressed='true'] { background: var(--raised); color: var(--ink); box-shadow: var(--shadow-control); } .ds-ledger-toggle button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .ds-ledger-table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px; } .ds-ledger-table thead tr { border-bottom: 1px solid var(--rule); background: var(--well); } .ds-ledger-table thead th { padding: 8px 16px; text-align: left; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; } .ds-ledger-table tbody tr + tr { border-top: 1px solid var(--rule); } .ds-ledger-table tbody tr { transition: background-color 150ms; } .ds-ledger-table tbody tr:hover { background: color-mix(in oklch, var(--ink) 2%, transparent); } .ds-ledger-table tbody th { padding: 8px 16px; text-align: left; font-weight: 500; } .ds-ledger-table td { padding: 8px 16px; vertical-align: middle; } .ds-ledger-table .ds-num, .ds-ledger-table thead th.ds-num { text-align: right; font-variant-numeric: tabular-nums; } .ds-ledger-table .ds-count { color: var(--ink-2); } .ds-ledger-table .ds-amt { font-family: var(--font-mono, 'Red Hat Mono Variable', ui-monospace, 'Cascadia Mono', monospace); color: var(--ink); white-space: nowrap; } .ds-ledger-table .ds-dash { color: var(--ink-3); } .ds-ledger-table .ds-sub { display: block; font-size: 11px; line-height: 16px; font-weight: 400; color: var(--ink-3); } .ds-ledger-table tfoot tr { border-top: 3px double var(--ink); } .ds-ledger-table tfoot th, .ds-ledger-table tfoot td { padding: 10px 16px; text-align: left; font-weight: 600; } .ds-ledger-table tfoot .ds-num { text-align: right; }"
+    },
+    {
+      "name": "Numbered Box",
+      "kind": "custom",
+      "refersTo": "doc-number",
+      "description": "The numbered box in a form's top-right corner; on a project letterhead it holds the Precio.",
+      "html": "<div class='ds-docnum-desk'><div class='ds-docnum'><p class='ds-docnum-label'>Precio</p><p class='ds-docnum-value'>US$12,400.00</p></div></div>",
+      "css": ".ds-docnum-desk { display: inline-block; padding: 16px; background: var(--desk); } .ds-docnum { display: inline-block; padding: 6px 12px; border: 1px solid color-mix(in oklch, var(--rule-strong) 60%, transparent); border-radius: 8px; background: var(--paper); text-align: right; } .ds-docnum-label { margin: 0; font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); font-size: 11px; line-height: 1; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); } .ds-docnum-value { margin: 4px 0 0; font-family: var(--font-mono, 'Red Hat Mono Variable', ui-monospace, 'Cascadia Mono', monospace); font-size: 15px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }"
+    },
+    {
+      "name": "Folder Tabs",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "Folder tabs on the letterhead's bottom rule; the active tab is the sheet in front, with a 2px red top rule.",
+      "html": "<div class='ds-tabs-desk'><div class='ds-tabs' role='tablist' aria-label='Proyecto'><button type='button' role='tab' class='ds-tab' aria-selected='true'>Tickets <span class='ds-tab-count'>12</span></button><button type='button' role='tab' class='ds-tab' aria-selected='false' tabindex='-1'>Bitácora</button><button type='button' role='tab' class='ds-tab' aria-selected='false' tabindex='-1'>Archivos <span class='ds-tab-count'>3</span></button><button type='button' role='tab' class='ds-tab' aria-selected='false' tabindex='-1'>Documentación</button></div><div class='ds-tabs-page'></div></div>",
+      "css": ".ds-tabs-desk { padding: 12px 16px 0; background: var(--desk); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); } .ds-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); } .ds-tab { position: relative; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px 8px 0 0; background: transparent; color: var(--ink-2); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-tab:hover { background: color-mix(in oklch, var(--ink) 4%, transparent); color: var(--ink); } .ds-tab[aria-selected='true'] { border-color: var(--rule); border-bottom-color: var(--paper); background: var(--paper); color: var(--ink); } .ds-tab[aria-selected='true']::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; height: 2px; border-radius: 8px 8px 0 0; background: var(--brand); } .ds-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .ds-tab-count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-3); } .ds-tab[aria-selected='true'] .ds-tab-count { color: var(--ink-2); } .ds-tabs-page { height: 40px; background: var(--paper); }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Paper sidebar divided from the desk by a rule; the current item takes the 10% Logo Red wash with a Pressed Red label, groups named by captions.",
+      "html": "<nav class='ds-nav' aria-label='Navegación principal'><a class='ds-nav-item' href='#' aria-current='page'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8'/><path d='M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/></svg>Inicio</a><a class='ds-nav-item' href='#'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>Mensajes</a><p class='ds-nav-group'>Trabajo</p><a class='ds-nav-item' href='#'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/></svg>Proyectos</a><a class='ds-nav-item' href='#'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M3 6h.01'/><path d='M3 12h.01'/><path d='M3 18h.01'/><path d='M8 6h13'/><path d='M8 12h13'/><path d='M8 18h13'/></svg>Tareas</a></nav>",
+      "css": ".ds-nav { box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; width: 240px; padding: 16px 12px; border-right: 1px solid var(--rule); background: var(--paper); font-family: var(--font-sans, 'Archivo Variable', ui-sans-serif, system-ui, sans-serif); } .ds-nav-item { box-sizing: border-box; display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; color: var(--ink-2); font-size: 14px; text-decoration: none; transition: background-color 150ms, color 150ms; } .ds-nav-item svg { flex-shrink: 0; color: var(--ink-3); } .ds-nav-item:hover { background: color-mix(in oklch, var(--ink) 5%, transparent); color: var(--ink); } .ds-nav-item[aria-current='page'] { background: color-mix(in oklch, var(--brand) 10%, transparent); color: var(--brand-strong); font-weight: 600; } .ds-nav-item[aria-current='page'] svg { color: var(--brand); } .ds-nav-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .ds-nav-group { margin: 18px 0 4px; padding: 0 8px; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The House Forms",
+    "overview": "ibPulse is set as the business forms of IBSYSTEMS.SRL; the stylesheet calls it «Formularios de la casa». A project is a quote, a ticket is a work order, a status is a rubber stamp. Bond-white sheets lie on a cool grey desk, printed in black ink. The logo red is the one printed spot color, kept for the primary action, the head rule of a form and the mark that says where you are. Statuses are framed stamps in six office inks. Amounts are typed entries in a monospaced face, one line per currency, closed by a double accounting rule.\n\nThe density is an operator's. Ruled registers with uppercase caption heads, one line per record, 14px body text, 13px secondary text and 11px captions are read at a glance across a full workday on a desktop screen. Every app page has the same anatomy: a letterhead on the desk (title, what the page covers, the page's actions and, where it applies, a numbered box at the top right), then sheets on the desk. Depth is paper on a desk and nothing more: no gradients, no glows, no glass.\n\nThis is the second edition of the forms, set for a newer office. Sheets round their corners to 12px and rest on a layered shadow; buttons, fields and the chosen segment rise a hair off the paper; the sidebar is paper like the top bar. Stamps are inked inside their frames, and color now also names people (one hue per name), quantities (one data hue) and the selected record (a blue tint). Density, captions, stamps and the mono figures did not change.\n\nDark mode is carbon paper: the same variables re-inked as a blue-black desk, slightly lighter carbon sheets, pale ink and a lighter logo red with dark lettering on it. The confirmed rejection, from the direction contract, is the category default of white cards, indigo accents and a row of stat tiles at the top of the page.",
+    "keyCharacteristics": [
+      "Bond sheets (1px rule, 12px corners, a layered resting shadow) on a cool grey desk; sheets never nest.",
+      "One printed spot color, the logo red: primary action, form head rules, the current place.",
+      "Statuses are framed rubber stamps in office inks; priority is a three-tick meter.",
+      "Archivo for every word, Red Hat Mono for codes and amounts, tabular figures wherever numbers line up.",
+      "Ruled registers with uppercase captions; totals sit under a 3px double ink rule, one line per currency.",
+      "Color with a job: stamps inked inside their frames, a hue per person, one data hue, a blue tint on the selected record.",
+      "Carbon-paper dark mode from the same variables, with no per-component overrides."
+    ],
+    "rules": [
+      {
+        "name": "The One Printed Ink Rule",
+        "body": "Logo red is the only printed spot color. In the app it marks the primary action (one per view), the head rule of a form and the current place, which is the only background it washes (at 10%); it never carries a status, colors a chart series or decorates.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Figure Rule",
+        "body": "Amounts print in black ink. A figure turns red (Stamp Red, semibold) only when it is late or alarming. Money is never red.",
+        "section": "colors"
+      },
+      {
+        "name": "The Office Ink Rule",
+        "body": "Status color follows one fixed map: graphite waits to start, ochre waits on someone, blue is approved, violet is in progress, green is finished, red is cancelled or overdue. No other status colors exist.",
+        "section": "colors"
+      },
+      {
+        "name": "The Color With a Job Rule",
+        "body": "Every color beyond paper and ink carries information: the office inks name a status, a hue names a person, the data hue measures a quantity, the focus tint marks the selected record. Surfaces stay neutral.",
+        "section": "colors"
+      },
+      {
+        "name": "The Carbon Paper Rule",
+        "body": "Dark mode re-inks the same variables; components never carry theme-specific colors. The one per-theme treatment is the logo wordmark, inverted with a half-turn of hue so the red stays red.",
+        "section": "colors"
+      },
+      {
+        "name": "The Typed Entry Rule",
+        "body": "Red Hat Mono is for codes, identifying numbers and amounts. Counts and dates keep Archivo's tabular figures, because they sit inside sentences and stamps. A missing price is a word (\"Sin precio\") and stays in Archivo even in a mono cell.",
+        "section": "typography"
+      },
+      {
+        "name": "The Caption Rule",
+        "body": "The uppercase 11px caption names what a box holds: a field, a column, a nav group, a numbered box. It never floats above a section heading as a kicker.",
+        "section": "typography"
+      },
+      {
+        "name": "The Eleven-Pixel Floor Rule",
+        "body": "No text is set below 11px. Captions, small stamps and the initials of the two smallest avatars sit exactly on the floor.",
+        "section": "typography"
+      },
+      {
+        "name": "The Width Axis Rule",
+        "body": "Width is a role: 82% belongs to stamps, 108 to 112% to marketing display heads, and app text stays at 100%.",
+        "section": "typography"
+      },
+      {
+        "name": "The Amount Stays in View Rule",
+        "body": "On a phone, a money register keeps the name and the amount; every other column folds into the name cell or drops. A price is never truncated or scrolled out of view.",
+        "section": "layout"
+      },
+      {
+        "name": "The Paper Weight Rule",
+        "body": "Three elevations exist: control, resting and lifted. No hard offset shadows, no glows, no colored shadows.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Nested Sheets Rule",
+        "body": "Sheets sit on the desk and never inside each other. A strip placed inside a sheet drops its border, corners and shadow and becomes a ruled band.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Double Line Rule",
+        "body": "A doubled line means final. The double frame is a stamp; the 3px double rule closes a total. Nothing else is doubled.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do set every surface as a bond sheet on the desk: paper fill, 1px rule, 12px corners, the layered resting shadow, 20px of desk between sheets.",
+      "Do keep one Logo Red primary action per view, last among the letterhead actions at the top right.",
+      "Do set every amount in Red Hat Mono with tabular figures, right-aligned, in the es-DO format (\"US$12,400.00\", \"RD$58,000.00\"), one column or one line per currency, US$ before RD$.",
+      "Do close a money register with a footer row under the 3px double ink rule, totals in semibold mono, one line per currency.",
+      "Do show every status as a stamp from the fixed office-ink map, and every priority as the three-tick meter.",
+      "Do label fields, column heads, nav groups and numbered boxes with the 11px uppercase caption in Ink 3.",
+      "Do fold secondary columns into the name cell below 640px so the amount stays in view, and let project names break anywhere.",
+      "Do size dense registers with container queries, so a list keeps its subject column beside a side panel.",
+      "Do take every color from the semantic variables (desk, paper, raised, shelf, well, the inks, the rules, the office inks, the data hue, the person hues), so carbon paper follows on its own.",
+      "Do raise the chosen segment onto its track (Raised White, the control shadow), and mark the current place, a nav item or a filter, with the 10% Logo Red wash.",
+      "Do mark the selected record with the 8% Focus Blue tint, the same in every list.",
+      "Do step corners down as they nest: 12px sheet, 8px control, 6px inner, 5px stamp.",
+      "Do use lucide icons at 14 to 18px beside a text label, Ink 3 at rest, including every chevron and back arrow.",
+      "Do land the stamp animation only right after a status change, and let reduced motion collapse every animation."
+    ],
+    "donts": [
+      "Don't open a page with white cards, indigo accents or a row of stat tiles; a summary strip lives inside a sheet, under its head.",
+      "Don't print amounts in red or in Archivo, and don't set counts or calendar dates in mono.",
+      "Don't add amounts in different currencies, in a total or anywhere else, without an explicit conversion.",
+      "Don't use Logo Red inside the app for a status, a chart series or decoration, or as a wash anywhere but the current place; status red means cancelled or overdue only.",
+      "Don't put a caption above a section heading as a kicker or eyebrow; captions name boxes.",
+      "Don't set any text below 11px.",
+      "Don't add elevation beyond control, resting and lifted: no hard offset shadows, glows or colored shadows. The stamp's inner double frame is a border, not elevation.",
+      "Don't nest a sheet inside a sheet.",
+      "Don't use arrow or bullet glyphs (←, →, ›, ✓) as icons or link pointers. Spanish «comillas», and a › naming a menu path inside running text, are typography, not icons.",
+      "Don't give a component theme-specific colors; only the logo wordmark is treated per theme.",
+      "Don't mix an ink toward a neutral in OKLCH: the hue swings along the short arc (ochre turned red). Mix in OKLab.",
+      "Don't paint the sidebar grey; it is paper, like the top bar.",
+      "Don't give avatars or chart bars a status ink or the logo red; people and quantities have their own hues.",
+      "Don't show real client data on a public page; the landing preview is labelled sample data (\"Datos de ejemplo\")."
+    ]
+  }
+}

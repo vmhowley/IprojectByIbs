@@ -74,8 +74,30 @@ serve(async (req) => {
     }
     // Handle other events like payment_failed or subscription_deleted
     case 'customer.subscription.deleted': {
-         // Downgrade user...
-         break;
+      const subscription = event.data.object as Stripe.Subscription
+      const customerId = subscription.customer as string
+
+      const { error: subError } = await supabaseClient
+        .from('subscriptions')
+        .update({ status: 'canceled', updated_at: new Date().toISOString() })
+        .eq('stripe_subscription_id', subscription.id)
+
+      if (subError) console.error('Error updating subscription record:', subError)
+
+      // Downgrade only when the customer has no other active subscription
+      const active = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 1 })
+
+      if (active.data.length === 0) {
+        console.log(`Downgrading customer ${customerId} to FREE`)
+
+        const { error: profileError } = await supabaseClient
+          .from('user_profiles')
+          .update({ subscription_tier: 'free' })
+          .eq('stripe_customer_id', customerId)
+
+        if (profileError) console.error('Error downgrading profile:', profileError)
+      }
+      break
     }
   }
 

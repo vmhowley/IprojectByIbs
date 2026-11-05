@@ -1,162 +1,106 @@
-import { Building2, Calendar, Clock, Folder, Tag, User } from 'lucide-react';
-import { Task } from '../../lib/supabase';
+import { ExternalLink, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { cn } from '../../lib/utils';
+import { formatDate, isOverdue, relativeDay } from '../../utils/format';
+import { Avatar } from '../ui/Avatar';
+import { Card } from '../ui/Card';
+import { requestTypeLabel } from '../ui/RequestTypeBadge';
 import { StatusBadge } from '../ui/StatusBadge';
 import { UrgencyBadge } from '../ui/UrgencyBadge';
+import { TaskItem } from './TaskList';
 
 interface PropertiesPanelProps {
-  task: Task | null;
+  task: TaskItem | null;
   onClose: () => void;
 }
 
+/** The selected ticket at a glance, beside the list, with a way into the full order. */
 export function PropertiesPanel({ task, onClose }: PropertiesPanelProps) {
   if (!task) {
     return (
-      <div className="w-80 bg-white border-l border-gray-200 p-6 flex items-center justify-center text-gray-500">
-        <p className="text-sm">Select a task to view details</p>
-      </div>
+      <Card padding="lg" className="flex min-h-[16rem] items-center justify-center text-center">
+        <p className="max-w-[14rem] text-sm text-ink-3">
+          Selecciona un ticket para ver sus datos aquí. Enter o doble clic lo abre completo.
+        </p>
+      </Card>
     );
   }
 
-  const formatDate = (date: string | null) => {
-    if (!date) return 'Not set';
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const late = isOverdue(task.deadline, task.status);
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-gray-900">Properties</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            ×
-          </button>
+    <Card ruled padding="none" role="complementary" aria-label="Propiedades del ticket" className="flex flex-col">
+      <div className="flex items-start justify-between gap-3 border-b border-rule px-4 py-3">
+        <div className="min-w-0">
+          <p className="font-mono text-xs font-semibold text-ink-3">{task.number}</p>
+          <h2 className="mt-0.5 text-[15px] font-semibold leading-snug text-ink">{task.title}</h2>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar propiedades"
+          className="-mr-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-ink/[0.06] hover:text-ink"
+        >
+          <X size={16} />
+        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Clock size={14} className="text-gray-400" />
-            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Progress
-            </span>
-          </div>
-          <StatusBadge status={task.status} />
-        </div>
+      <div className="space-y-4 px-4 py-4">
+        <StatusBadge status={task.status} size="lg" />
 
-        {task.category && (
+        <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2.5 text-sm">
+          <dt className="caption pt-0.5">Proyecto</dt>
+          <dd>
+            <Link to={`/project/${task.projectId}`} className="text-ink hover:underline">{task.projectName}</Link>
+          </dd>
+          <dt className="caption pt-0.5">Cliente</dt>
+          <dd className="text-ink-2">{task.clientName}</dd>
+          <dt className="caption pt-0.5">Asignado a</dt>
+          <dd className="flex items-center gap-2 text-ink-2">
+            {task.assigned_to ? <><Avatar name={task.assignedToName} src={task.assignedToAvatar} size="xs" />{task.assignedToName}</> : <span className="text-ink-3">Sin asignar</span>}
+          </dd>
+          <dt className="caption pt-0.5">Prioridad</dt>
+          <dd><UrgencyBadge urgency={task.urgency} /></dd>
+          <dt className="caption pt-0.5">Tipo</dt>
+          <dd className="text-ink-2">{task.request_type ? requestTypeLabel(task.request_type) : '—'}</dd>
+          <dt className="caption pt-0.5">Abierto</dt>
+          <dd className="tabular-nums text-ink-2">{formatDate(task.date_added || task.created_at, 'long')}</dd>
+          <dt className="caption pt-0.5">Fecha límite</dt>
+          <dd className={cn('tabular-nums', late ? 'font-semibold text-st-red' : 'text-ink-2')}>
+            {task.deadline ? `${formatDate(task.deadline)} (${relativeDay(task.deadline)})` : '—'}
+          </dd>
+        </dl>
+
+        {task.tags && task.tags.filter(Boolean).length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Folder size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Category
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-sm font-medium text-gray-700 w-fit">
-              <span>{task.category}</span>
-            </div>
-          </div>
-        )}
-
-        {task.assigned_to && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <User size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Task owner
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-100 rounded text-sm font-medium text-orange-700 w-fit">
-              <span>{task.assigned_to}</span>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Tag size={14} className="text-gray-400" />
-            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Urgency
-            </span>
-          </div>
-          <UrgencyBadge urgency={task.urgency} />
-        </div>
-
-        {task.department && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Building2 size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Department
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-sm font-medium text-gray-700 w-fit">
-              <span>{task.department}</span>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar size={14} className="text-gray-400" />
-            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Date added
-            </span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-sm text-gray-700 w-fit">
-            <Calendar size={14} className="text-gray-400" />
-            <span>{formatDate(task.date_added)}</span>
-          </div>
-        </div>
-
-        {task.deadline && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Deadline
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-sm text-gray-700 w-fit">
-              <Calendar size={14} className="text-gray-400" />
-              <span>{formatDate(task.deadline)}</span>
-            </div>
-          </div>
-        )}
-
-        {task.tags && task.tags.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Tag size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Tags
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {task.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className={`px-3 py-1 rounded text-xs font-medium ${tag === 'Features'
-                    ? 'bg-cyan-100 text-cyan-700'
-                    : tag === 'Bugs'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700'
-                    }`}
-                >
+            <p className="caption">Etiquetas</p>
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {task.tags.filter(Boolean).map((tag) => (
+                <span key={tag} className="rounded-inner border border-rule bg-well px-1.5 py-0.5 text-xs text-ink-2">
                   {tag}
                 </span>
               ))}
             </div>
           </div>
         )}
+
+        {task.description && (
+          <div>
+            <p className="caption">Descripción</p>
+            <p className="mt-1.5 line-clamp-6 whitespace-pre-line text-[13px] leading-relaxed text-ink-2">{task.description}</p>
+          </div>
+        )}
       </div>
-    </div>
+
+      <div className="mt-auto border-t border-rule bg-well px-4 py-3">
+        <Link
+          to={`/ticket/${task.id}`}
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-control border border-brand bg-brand px-3.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+        >
+          <ExternalLink size={15} aria-hidden="true" />
+          Abrir ticket
+        </Link>
+      </div>
+    </Card>
   );
 }

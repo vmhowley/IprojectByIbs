@@ -1,11 +1,14 @@
-import { Share2, Trash2, UserPlus, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Trash2, UserPlus } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../hooks/useSubscription';
 import { ProjectMember, memberService } from '../../services/memberService';
+import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
+import { confirmDialog } from '../ui/ConfirmDialog';
+import { Modal } from '../ui/Modal';
+import { errorMessage } from '../../utils/errors';
 
 interface ShareProjectModalProps {
     projectId: string;
@@ -13,10 +16,13 @@ interface ShareProjectModalProps {
     onClose: () => void;
 }
 
+/** Who else works on this project, and with what rights. */
 export function ShareProjectModal({ projectId, projectName, onClose }: ShareProjectModalProps) {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<'viewer' | 'editor'>('viewer');
     const [members, setMembers] = useState<ProjectMember[]>([]);
+    const [loadingMembers, setLoadingMembers] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -30,17 +36,29 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
             setMembers(data);
         } catch (err) {
             console.error('Failed to load members', err);
+        } finally {
+            setLoadingMembers(false);
         }
     };
 
     const { isPro, limits } = useSubscription();
 
-    const handleInvite = async (e: React.FormEvent) => {
+    const handleInvite = async (e: FormEvent) => {
         e.preventDefault();
 
         // Enforce Plan Limits
         if (!isPro && members.length >= limits.maxMembers) {
-            alert(`Has alcanzado el límite de ${limits.maxMembers} colaboradores en el plan Gratis.\n\nActualiza a Business para colaboradores ilimitados.`);
+            const upgrade = await confirmDialog({
+                title: 'Llegaste al límite del plan Gratis',
+                message: `El plan Gratis permite ${limits.maxMembers} colaboradores por proyecto. Con Pro no hay límite.`,
+                confirmText: 'Ver planes',
+                cancelText: 'Ahora no',
+                tone: 'primary',
+            });
+            if (upgrade) {
+                onClose();
+                navigate('/pricing');
+            }
             return;
         }
 
@@ -49,102 +67,96 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
 
         try {
             await memberService.addMember(projectId, email, role);
+            toast.success(`${email} ahora tiene acceso`);
             setEmail('');
             await loadMembers();
-        } catch (err: any) {
-            setError(err.message === 'User not found' ? 'Usuario no encontrado' : 'Error al invitar usuario');
+        } catch (err) {
+            setError(errorMessage(err, '') === 'User not found'
+                ? 'No hay ninguna cuenta con ese correo. La persona debe registrarse primero.'
+                : 'No se pudo invitar. Inténtalo de nuevo.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleRemove = async (memberId: string) => {
-        if (!confirm('¿Estás seguro de eliminar a este usuario?')) return;
+    const handleRemove = async (member: ProjectMember) => {
+        const ok = await confirmDialog({
+            title: 'Quitar acceso',
+            message: `${member.user?.name || 'Esta persona'} dejará de ver «${projectName}».`,
+            confirmText: 'Quitar acceso',
+        });
+        if (!ok) return;
         try {
-            await memberService.removeMember(memberId);
-            setMembers(members.filter(m => m.id !== memberId));
+            await memberService.removeMember(member.id);
+            setMembers(members.filter(m => m.id !== member.id));
         } catch (err) {
             console.error('Error removing member', err);
+            toast.error('No se pudo quitar el acceso.');
         }
     };
 
-    return createPortal(
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-slate-800">
-                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Share2 size={20} className="text-gray-500 dark:text-slate-400" />
-                        Compartir "{projectName}"
-                    </h2>
-                    <button onClick={onClose} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">
-                        <X size={20} />
-                    </button>
+    return (
+        <Modal isOpen onClose={onClose} size="md" title="Miembros del proyecto" description={projectName}>
+            <form onSubmit={handleInvite} className="space-y-2">
+                <label htmlFor="share-email" className="caption block">Invitar por correo</label>
+                <div className="flex gap-2">
+                    <input
+                        id="share-email"
+                        type="email"
+                        placeholder="nombre@empresa.com.do"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={error ? 'share-error' : undefined}
+                        className="field min-w-0 flex-1"
+                        required
+                    />
+                    <label htmlFor="share-role" className="sr-only">Permiso</label>
+                    <select
+                        id="share-role"
+                        value={role}
+                        onChange={(e) => setRole(e.target.value as 'viewer' | 'editor')}
+                        className="field w-28 shrink-0"
+                    >
+                        <option value="viewer">Lector</option>
+                        <option value="editor">Editor</option>
+                    </select>
+                    <Button type="submit" isLoading={isLoading} className="shrink-0">
+                        {!isLoading && <UserPlus size={16} aria-hidden="true" />}
+                        Invitar
+                    </Button>
                 </div>
+                {error && <p id="share-error" className="text-[13px] font-medium text-st-red">{error}</p>}
+            </form>
 
-                <div className="p-4">
-                    <form onSubmit={handleInvite} className="space-y-4 mb-6">
-                        <div className="flex gap-2">
-                            <div className="flex-1">
-                                <Input
-                                    type="email"
-                                    placeholder="Email del usuario"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
+            <h3 className="caption mt-6">Con acceso</h3>
+            <ul className="mt-2 divide-y divide-rule rounded-control border border-rule">
+                {loadingMembers ? (
+                    <li className="px-3 py-3 text-sm text-ink-3">Cargando…</li>
+                ) : members.length === 0 ? (
+                    <li className="px-3 py-3 text-sm text-ink-3">Nadie más tiene acceso todavía. El equipo de tu dominio ya ve el proyecto.</li>
+                ) : (
+                    members.map((member) => (
+                        <li key={member.id} className="flex items-center gap-3 px-3 py-2">
+                            <Avatar name={member.user?.name} src={member.user?.avatar} size="sm" />
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-ink">{member.user?.name}</p>
+                                <p className="truncate text-xs text-ink-3">
+                                    {member.user?.email} · {member.role === 'editor' ? 'puede editar' : 'solo lectura'}
+                                </p>
                             </div>
-                            <Select
-                                value={role}
-                                onChange={(e) => setRole(e.target.value as 'viewer' | 'editor')}
-                                className="w-32"
-                                options={[
-                                    { value: 'viewer', label: 'Lector' },
-                                    { value: 'editor', label: 'Editor' },
-                                ]}
-                            />
-                        </div>
-                        {error && <p className="text-red-500 dark:text-red-400 text-xs">{error}</p>}
-
-                        <Button type="submit" isLoading={isLoading} className="w-full">
-                            <UserPlus size={16} className="mr-2" />
-                            Invitar
-                        </Button>
-                    </form>
-
-                    <div className="space-y-4">
-                        <h3 className="text-xs font-semibold text-gray-500 dark:text-slate-500 uppercase tracking-wider">
-                            Miembros del proyecto
-                        </h3>
-
-                        <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                            {members.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-slate-500 italic">No hay miembros compartidos.</p>
-                            ) : (
-                                members.map((member) => (
-                                    <div key={member.id} className="flex items-center justify-between group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xs border border-indigo-200 dark:border-indigo-800/50">
-                                                {member.user?.name?.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">{member.user?.name}</p>
-                                                <p className="text-xs text-gray-500 dark:text-slate-400">{member.role === 'editor' ? 'Puede editar' : 'Solo lectura'}</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleRemove(member.id)}
-                                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>,
-        document.body
+                            <button
+                                type="button"
+                                onClick={() => handleRemove(member)}
+                                aria-label={`Quitar acceso a ${member.user?.name}`}
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-st-red/10 hover:text-st-red"
+                            >
+                                <Trash2 size={15} />
+                            </button>
+                        </li>
+                    ))
+                )}
+            </ul>
+        </Modal>
     );
 }

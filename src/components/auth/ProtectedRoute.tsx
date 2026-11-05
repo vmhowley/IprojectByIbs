@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import NProgress from '../../lib/nprogress';
+import SplashScreen from '../layout/SplashScreen';
 
 
 interface ProtectedRouteProps {
@@ -22,7 +23,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Show loading state while checking authentication
   if (loading || !initialized) {
-    return null;
+    return <SplashScreen />;
   }
 
 
