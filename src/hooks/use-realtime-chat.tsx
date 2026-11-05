@@ -21,7 +21,7 @@ function toChatMessage(message: DirectMessage, me: ChatPerson, other: ChatPerson
     return {
         id: message.id,
         content: message.content,
-        user: { name: message.sender?.name || (mine ? me.name : other.name) },
+        user: { name: mine ? me.name : other.name },
         createdAt: message.created_at,
         userId: message.sender_id,
     }
@@ -110,13 +110,20 @@ export function useRealtimeChat({ me, other }: UseRealtimeChatProps) {
             ])
             try {
                 await directMessageService.send(otherRef.current.id, text)
-                // Replace the pending copy with the stored message.
-                await loadHistory()
             } catch (error) {
                 console.error('Failed to send message', error)
                 setMessages((current) => current.filter((m) => m.id !== tempId))
                 toast.error('No se pudo enviar el mensaje. Revisa tu conexión e inténtalo de nuevo.')
                 throw error
+            }
+            // The message is stored now: a failed refresh must not report it as unsent,
+            // or the person sends it again.
+            try {
+                // Replace the pending copy with the stored message.
+                await loadHistory()
+            } catch (error) {
+                console.error('Failed to refresh conversation', error)
+                setMessages((current) => current.map((m) => (m.id === tempId ? { ...m, pending: false } : m)))
             }
         },
         [loadHistory]

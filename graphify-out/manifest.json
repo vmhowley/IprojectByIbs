@@ -414,9 +414,9 @@
     "semantic_hash": "6947a20609068588fee79c39249a47ea"
   },
   "src/hooks/use-realtime-chat.tsx": {
-    "mtime": 1793799660.93918,
-    "seen": 1793809367.370538,
-    "ast_hash": "2316d66bb92d838daeac83a41316ee6d",
+    "mtime": 1793884238.9737034,
+    "seen": 1793884286.85813,
+    "ast_hash": "afa0b7045011cc794a496829adb2879a",
     "semantic_hash": ""
   },
   "src/hooks/use-support-chat.tsx": {
@@ -678,9 +678,9 @@
     "semantic_hash": ""
   },
   "src/services/directMessageService.ts": {
-    "mtime": 1793799633.90426,
-    "seen": 1793809367.372917,
-    "ast_hash": "211ec9b192965840a46e1f100427b471",
+    "mtime": 1793884238.0787923,
+    "seen": 1793884286.865132,
+    "ast_hash": "7f14aba00eaaf8aca8c07fa1e51806ab",
     "semantic_hash": ""
   },
   "src/services/documentService.ts": {

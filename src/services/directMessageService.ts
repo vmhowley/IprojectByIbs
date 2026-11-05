@@ -7,10 +7,6 @@ export interface DirectMessage {
   content: string;
   created_at: string;
   is_read: boolean;
-  sender?: {
-      name: string;
-      avatar?: string;
-  }
 }
 
 export const directMessageService = {
@@ -19,15 +15,11 @@ export const directMessageService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // No embedded sender: sender_id references auth.users, which PostgREST cannot
+    // embed (PGRST200). The chat already knows both people's names.
     const { data, error } = await supabase
       .from('direct_messages')
-      .select(`
-        *,
-        sender:sender_id (
-            name,
-            avatar
-        )
-      `)
+      .select('*')
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
       .order('created_at', { ascending: true });
 
