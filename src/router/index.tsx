@@ -27,6 +27,7 @@ import { Projects } from '../pages/Projects';
 import { Register } from '../pages/Register';
 import { Roadmaps } from '../pages/Roadmaps';
 import { SettingsPage } from '../pages/SettingsPage';
+import { StaffPage } from '../pages/StaffPage';
 import SupportDashboard from '../pages/SupportDashboard';
 import { TasksPage } from '../pages/TasksPage';
 import { TicketDetail } from '../pages/TicketDetail';
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
           {
             path: 'calendar',
             element: <CalendarPage />,
+          },
+          {
+            path: 'personal',
+            element: <StaffPage />,
           },
           {
             path: 'messages',

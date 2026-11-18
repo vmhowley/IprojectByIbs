@@ -20,6 +20,8 @@ const STAMPS: Record<string, StampSpec> = {
   active: { label: 'Activo', ink: 'violet' },
   on_hold: { label: 'En espera', ink: 'ochre' },
   archived: { label: 'Archivado', ink: 'graphite' },
+  // An employee who left the company (Personal).
+  left: { label: 'De baja', ink: 'graphite' },
   pending: { label: 'Pendiente', ink: 'graphite' },
   cancelled: { label: 'Cancelado', ink: 'red' },
   overdue: { label: 'Vencido', ink: 'red' },

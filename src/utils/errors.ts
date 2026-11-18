@@ -37,6 +37,16 @@ const DB_MESSAGES: [RegExp, string][] = [
   [/organization_invitations_organization_id_email_key/i, 'Ya invitaste a ese correo.'],
   [/organizations_email_domain_key/i, 'Otro equipo ya usa ese dominio.'],
   [/organization_invitations_email_check/i, 'Ese correo no es válido.'],
+  // Staff register (Personal)
+  [/falls outside the employment dates/i, 'La ausencia cae fuera del empleo: antes del ingreso o después de la salida.'],
+  [/overlaps another absence/i, 'Se cruza con otra ausencia de esa persona. Cambia las fechas o edita la otra.'],
+  [/employee_absences_hours_one_day/i, 'Un permiso por horas es de un solo día.'],
+  [/employees_one_per_account/i, 'Esa cuenta ya está vinculada a otra persona del registro.'],
+  [/employees_exit_after_hire/i, 'La salida no puede ser antes del ingreso.'],
+  [/employees_opening_after_hire/i, 'El día del saldo inicial no puede ser antes del ingreso.'],
+  [/hr_holidays_one_per_day/i, 'Ya hay un feriado ese día.'],
+  [/row-level security policy for table "(employees|employee_absences|hr_settings|hr_holidays)"/i, 'Solo los administradores del equipo cambian el registro de personal, y solo con cuentas del equipo.'],
+  [/(could not find|does not exist).*(employees|employee_absences|hr_settings|hr_holidays|my_leave_record)/i, 'El registro de personal aún no está activado. Falta aplicar su actualización en la base de datos.'],
 ];
 
 /** errorMessage for the database, with the guards' English answers in Spanish. */

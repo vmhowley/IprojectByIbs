@@ -4,6 +4,7 @@ export * from './Client';
 export * from './Comment';
 export * from './meeting';
 export * from './Project';
+export * from './Staff';
 export * from './Subscription';
 export * from './Ticket';
 export * from './User';

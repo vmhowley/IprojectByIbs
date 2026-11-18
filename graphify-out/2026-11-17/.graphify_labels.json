@@ -1,0 +1,18 @@
+{
+  "5": "Arranque app y contexto auth",
+  "7": "Dependencias runtime",
+  "9": "Dependencias de desarrollo",
+  "11": "Config tsconfig.app",
+  "12": "Config shadcn",
+  "14": "Config tsconfig.node",
+  "15": "Reglas graphify (CLAUDE.md)",
+  "16": "Config ESLint",
+  "17": "Build Vite",
+  "18": "Edge Functions de pago",
+  "19": "Scripts check_db/check_users",
+  "20": "Scripts npm",
+  "21": "tsconfig raíz",
+  "22": "deno.json checkout",
+  "23": "deno.json webhook",
+  "25": "vite-env.d.ts"
+}

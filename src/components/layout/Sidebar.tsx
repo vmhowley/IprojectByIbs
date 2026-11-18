@@ -7,12 +7,14 @@ import {
   Hash,
   HelpCircle,
   Home,
+  IdCard,
   LifeBuoy,
   ListChecks,
   LucideIcon,
   MessagesSquare,
   Mic,
   Plus,
+  TreePalm,
   X
 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
@@ -96,6 +98,13 @@ export function Sidebar({ onNewProject, isOpen = false, onClose }: SidebarProps)
     }
   };
 
+  // Admins keep the staff register; everyone else reads their own vacations there.
+  const staffEntry: NavEntry =
+    user?.role === 'admin'
+      ? { to: '/personal', label: 'Personal', icon: IdCard, hideForGuest: true }
+      : { to: '/personal', label: 'Mis vacaciones', icon: TreePalm, hideForGuest: true };
+  const workEntries = WORK.flatMap((entry) => (entry.to === '/documentation' ? [staffEntry, entry] : [entry]));
+
   const isActive = (entry: NavEntry) =>
     location.pathname === entry.to ||
     (entry.match || []).some((prefix) => location.pathname.startsWith(prefix));
@@ -162,7 +171,7 @@ export function Sidebar({ onNewProject, isOpen = false, onClose }: SidebarProps)
 
           <div>
             <p className="caption px-2 pb-1.5">Trabajo</p>
-            <div className="space-y-0.5">{WORK.map(renderEntry)}</div>
+            <div className="space-y-0.5">{workEntries.map(renderEntry)}</div>
           </div>
 
           {!isGuest && (

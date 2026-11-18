@@ -1,17 +1,6 @@
 import type { CSSProperties } from 'react';
 import { cn } from '../../lib/utils';
-import { initials } from '../../utils/format';
-
-// Hues for people, spread around the wheel and clear of the logo red, so a seal never reads as an alert.
-const HUES = [55, 95, 140, 180, 215, 250, 285, 320];
-
-/** The same name always gets the same hue. */
-function hueFor(name?: string | null): number {
-  if (!name) return 250;
-  let hash = 0;
-  for (const ch of name.trim().toLowerCase()) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return HUES[hash % HUES.length];
-}
+import { hueFor, initials } from '../../utils/format';
 
 interface AvatarProps {
   name?: string | null;
